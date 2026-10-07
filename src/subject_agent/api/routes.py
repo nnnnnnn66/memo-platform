@@ -1,0 +1,77 @@
+"""Endpoints HTTP de l'Agent Sujet. Aucune logique métier ici."""
+
+from fastapi import APIRouter, HTTPException, Request
+
+from ..core.errors import ErrorState, PipelineError
+from ..core.logging import get_logger
+from ..pipeline import input_controller, orchestrator
+from ..schemas.input import SubjectRequest
+from ..storage import audit, workspace
+
+router = APIRouter()
+log = get_logger("api")
+
+_STATUS_MAP = {
+    ErrorState.INVALID_INPUT: 422,
+    ErrorState.MISSING_INFORMATION: 422,
+    ErrorState.RESOURCE_LIMIT: 413,
+    ErrorState.SECURITY_VIOLATION: 400,
+    ErrorState.TIMEOUT: 504,
+    ErrorState.OUTPUT_SCHEMA_ERROR: 502,
+    ErrorState.TOOL_ERROR: 502,
+    ErrorState.VERIFICATION_FAILED: 502,
+}
+
+
+@router.get("/health")
+async def health() -> dict:
+    return {"status": "healthy", "agent": "subject_agent", "version": "1.0"}
+
+
+@router.post("/subject/analyze")
+async def analyze(request: Request, body: SubjectRequest) -> dict:
+    settings = request.app.state.settings
+    llm = request.app.state.llm
+    verifier_llm = getattr(request.app.state, "verifier_llm", None) or llm
+    prepared = input_controller.prepare(body)
+
+    try:
+        result = orchestrator.analyze_subject(prepared, settings, llm, verifier_llm)
+    except PipelineError as exc:
+        audit.log_event(settings.audit_db, session_id=prepared.session_id or "?",
+                        agent_id="subject_agent", version="1.0",
+                        status=exc.state.value, errors=[exc.detail])
+        raise HTTPException(status_code=_STATUS_MAP.get(exc.state, 500),
+                            detail={"error": exc.state.value, "detail": exc.detail}) from exc
+
+    # Persistance du résultat validé + audit
+    workspace.save(settings.workspace_dir, prepared.student_id, prepared.session_id,
+                   "subject_output", result.output)
+    if result.verifier is not None:
+        workspace.save(settings.workspace_dir, prepared.student_id, prepared.session_id,
+                       "verifier_output", result.verifier)
+    audit.log_event(settings.audit_db, session_id=prepared.session_id,
+                    agent_id="subject_agent", version="1.0",
+                    status=result.output.status.value,
+                    validation_result=result.verifier_status,
+                    attempts=result.attempts,
+                    consumption=llm.calls)
+
+    return {
+        "session_id": prepared.session_id,
+        "status": result.output.status.value,
+        "verifier_status": result.verifier_status,
+        "attempts": result.attempts,
+        "injection_annotations": result.injection_annotations,
+        "output": result.output.model_dump(mode="json"),
+        "verifier": result.verifier.model_dump(mode="json") if result.verifier else None,
+    }
+
+
+@router.get("/subject/{student_id}/{session_id}")
+async def get_subject(request: Request, student_id: str, session_id: str) -> dict:
+    settings = request.app.state.settings
+    data = workspace.load(settings.workspace_dir, student_id, session_id, "subject_output")
+    if data is None:
+        raise HTTPException(status_code=404, detail={"error": "NOT_FOUND"})
+    return data

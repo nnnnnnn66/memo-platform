@@ -1,0 +1,12 @@
+# Environnement
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Données d'exécution (jamais versionnées)
+workspace/
+*.db
+
+# Secrets
+.env

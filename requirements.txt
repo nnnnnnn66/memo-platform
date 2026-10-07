@@ -1,0 +1,9 @@
+# Agent Sujet V1 — dépendances (toutes libres, aucune payante)
+fastapi
+uvicorn[standard]
+pydantic>=2
+httpx
+python-dotenv
+pyyaml
+pytest
+pytest-asyncio
