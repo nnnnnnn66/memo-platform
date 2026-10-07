@@ -62,11 +62,12 @@ Ne jamais construire toute la plateforme d'un coup. Un seul agent à la fois.
       75 tests, test réel sur modèle OK) — paquet autonome, Agent Sujet non modifié
 - [x] SPEC + architecture Agent Revue de littérature & Diagnostic épistémologique →
       `docs/spec-agent-03-revue-litterature.md`, `docs/architecture-agent-03-revue-litterature-v1.md`
-- [x] **Agent Revue de littérature V1 implémenté et testé** (`src/literature_review_agent/`,
+- [x] **Agent Revue de littérature V1 implémenté et VALIDÉ** (`src/literature_review_agent/`,
       API `/literature/review`, deux étages déterministes — recherche documentaire multi-fournisseurs
       et acquisition/lecture du texte intégral des PDF d'accès ouvert —, ancrage verbatim des
       citations, sélection du corpus fondée sur la pertinence, vérificateur indépendant,
-      70 tests hors réseau, campagne réelle réseau + modèle + PDF) — paquet autonome, agents 1 et 2
-      non modifiés
+      80 tests hors réseau, campagne réelle réseau + modèle + PDF allant jusqu'au verdict du
+      vérificateur : `validation.verified = true`, verdict `verified`) — paquet autonome,
+      agents 1 et 2 non modifiés
 - [ ] Agent suivant (à définir) — un seul agent à la fois
 
