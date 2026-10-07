@@ -7,3 +7,7 @@ python-dotenv
 pyyaml
 pytest
 pytest-asyncio
+# --- Agent Revue de littérature (étape 3) : lecture réelle du texte des PDF téléchargés ---
+# pdfminer.six — licence MIT, pur Python, aucune dépendance système (ni poppler, ni OCR).
+# Choisi après épreuve sur documents réels (arXiv, PLOS) : extraction fiable et rapide.
+pdfminer.six

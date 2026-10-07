@@ -1,0 +1,47 @@
+# Agent Problème de recherche V1 — configuration PROPRE à cet agent (aucun secret ici).
+# L'Agent Sujet garde son propre fichier config/settings.yaml : les deux agents sont indépendants.
+
+llm:
+  provider: deepseek                 # deepseek | google
+  deepseek:
+    base_url: https://api.deepseek.com/v1
+    model: deepseek-flash
+    api_key_env: DEEPSEEK_API_KEY
+  google:
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    model: gemini-2.5-flash
+    api_key_env: GOOGLE_API_KEY
+  temperature: 0.2
+
+limits:                              # SPEC §10.9 (consommation bornée)
+  max_input_size: 20000              # caractères par champ texte
+  max_output_tokens: 16000           # le modèle raisonne avant de répondre : les tokens de
+                                     # raisonnement consomment ce budget (4000 → JSON tronqué
+                                     # ou réponse vide, constaté en test réel)
+  max_tool_calls: 6                  # requêtes de recherche réellement exécutées par appel
+  max_agent_turns: 6
+  max_verification_retries: 3
+  timeout: 90                        # secondes (appel LLM)
+  max_external_requests: 10          # appels réseau vers les fournisseurs de sources
+  max_search_results: 5              # résultats demandés par fournisseur
+  max_search_queries: 4              # requêtes proposées par le LLM (phase 1)
+  source_timeout: 20                 # secondes par requête fournisseur
+  max_source_snippet: 800            # caractères d'extrait conservés par source
+  cache_ttl_hours: 168               # 7 jours
+
+paths:
+  workspace: workspace                           # workspace/<student_id>/<session_id>/
+  audit_db: workspace/audit-probleme.db          # journal d'audit (SQLite stdlib)
+  cache_db: workspace/sources-cache.db           # cache des requêtes de sources
+
+sources:
+  enabled: true                      # false = aucune recherche externe (mode dégradé assumé)
+  user_agent: "memo-platform/0.1 (accompagnement memoire; contact: etudiant@example.org)"
+  max_response_bytes: 2000000        # plafond de taille d'une réponse HTTP
+  providers_file: providers.yaml     # relatif à src/research_problem_agent/sources/
+  max_providers_per_intent: 3        # nombre de fournisseurs interrogés par requête
+  max_sources_total: 10              # sources conservées au maximum (taille du contexte)
+
+security:
+  fail_on_injection: false           # true = bloquer ; false = annoter et continuer
+  max_document_chars: 20000

@@ -1,0 +1,144 @@
+# Fournisseurs de sources de l'Agent Problème de recherche.
+#
+# PRINCIPE : tout fournisseur GRATUIT et SANS CLÉ qui sert l'objectif peut être ajouté ici,
+# sans modifier le code du pipeline (cadre propre à l'agent, liste extensible).
+# Chaque entrée est un hôte EXPLICITEMENT autorisé : aucune URL arbitraire n'est jamais
+# appelée (anti-SSRF, SPEC §10.13).
+#
+# family    : sert la sélection déterministe selon le type de recherche demandé
+#             (publications | repositories | statistics)
+# source_type : type de source au sens de la priorité SPEC §7
+# adapter   : module d'adaptation dans sources/adapters/
+
+providers:
+  # ---- publications scientifiques ----
+  - id: openalex
+    label: OpenAlex
+    family: publications
+    source_type: scientific
+    host: api.openalex.org
+    adapter: openalex
+    enabled: true
+
+  - id: crossref
+    label: Crossref
+    family: publications
+    source_type: scientific
+    host: api.crossref.org
+    adapter: crossref
+    enabled: true
+
+  - id: europepmc
+    label: Europe PMC
+    family: publications
+    source_type: scientific
+    host: www.ebi.ac.uk
+    adapter: europepmc
+    enabled: true
+
+  - id: doaj
+    label: DOAJ (Directory of Open Access Journals)
+    family: publications
+    source_type: scientific
+    host: doaj.org
+    adapter: doaj
+    enabled: true
+
+  - id: hal
+    label: HAL (dépôt universitaire francophone)
+    family: repositories
+    source_type: university
+    host: api.archives-ouvertes.fr
+    adapter: hal
+    enabled: true
+
+  - id: arxiv
+    label: arXiv (prépublications)
+    family: repositories
+    source_type: scientific
+    host: export.arxiv.org
+    adapter: arxiv
+    enabled: true
+
+  - id: openaire
+    label: OpenAIRE Graph (recherche financée publiquement)
+    family: repositories
+    source_type: institutional
+    host: api.openaire.eu
+    adapter: openaire
+    enabled: true
+
+  - id: pubmed
+    label: PubMed (NLM, E-utilities)
+    family: publications
+    source_type: governmental
+    host: eutils.ncbi.nlm.nih.gov
+    adapter: pubmed
+    enabled: true
+
+  - id: zenodo
+    label: Zenodo (dépôt pluridisciplinaire)
+    family: repositories
+    source_type: institutional
+    host: zenodo.org
+    adapter: zenodo
+    enabled: true
+
+  - id: datacite
+    label: DataCite (DOI de données et de dépôts)
+    family: repositories
+    source_type: institutional
+    host: api.datacite.org
+    adapter: datacite
+    enabled: true
+
+  # ---- données publiques et statistiques ----
+  - id: datagouv
+    label: data.gouv.fr (données publiques françaises)
+    family: statistics
+    source_type: governmental
+    host: www.data.gouv.fr
+    adapter: datagouv
+    enabled: true
+
+  - id: dataeuropa
+    label: data.europa.eu (portail open data de l'UE)
+    family: statistics
+    source_type: international_org
+    host: data.europa.eu
+    adapter: dataeuropa
+    enabled: true
+
+  # ---- fournisseurs connus mais non activés (décision documentée) ----
+  - id: eurostat
+    label: Eurostat
+    family: statistics
+    source_type: international_org
+    host: ec.europa.eu
+    adapter: eurostat
+    enabled: false
+    note: >-
+      Pas de recherche textuelle libre : Eurostat diffuse des séries par CODE de dataset.
+      À activer le jour où l'agent saura mapper un besoin à un code de dataset.
+
+  - id: worldbank
+    label: World Bank Open Data
+    family: statistics
+    source_type: international_org
+    host: api.worldbank.org
+    adapter: worldbank
+    enabled: false
+    note: >-
+      Pas de recherche textuelle par mot-clé : l'API rend des valeurs par code d'indicateur
+      et code de pays. Même raison qu'Eurostat.
+
+  - id: scielo
+    label: SciELO (articlemeta)
+    family: publications
+    source_type: scientific
+    host: articlemeta.scielo.org
+    adapter: scielo
+    enabled: false
+    note: >-
+      L'API articlemeta donne des identifiants puis exige un appel par article (coût en
+      requêtes élevé, budget borné). Réactivation possible plus tard, par configuration.

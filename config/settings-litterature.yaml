@@ -1,0 +1,82 @@
+# Agent Revue de littérature & Diagnostic épistémologique V1 — configuration PROPRE à cet agent.
+# (Aucun secret ici : les clés vivent uniquement dans ~/.hermes/.env.)
+
+llm:
+  provider: deepseek                 # deepseek | google
+  deepseek:
+    base_url: https://api.deepseek.com/v1
+    model: deepseek-flash
+    api_key_env: DEEPSEEK_API_KEY
+  google:
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    model: gemini-2.5-flash
+    api_key_env: GOOGLE_API_KEY
+  temperature: 0.2
+
+limits:
+  max_input_size: 20000              # caractères par champ texte
+  max_output_tokens: 16000           # modèle raisonneur : les tokens de raisonnement consomment ce budget
+  max_agent_turns: 6
+  max_verification_retries: 3
+  timeout: 90                        # secondes (appel LLM)
+  max_llm_calls: 40                  # garde-fou global : 1 (P1) + 6 lots × 2 tentatives (P2)
+                                     # + 1 (P3) + 1 (P4) + 1 (vérificateur) + corrections éventuelles
+  # --- recherche documentaire ---
+  max_search_queries: 12             # requêtes exécutées par campagne
+  max_results_per_query: 25          # résultats demandés par requête/fournisseur
+  max_documents: 60                  # objectif et plafond dur du corpus retenu
+  min_documents_useful: 10           # en dessous : corpus_sufficiency = insufficient
+  max_external_requests: 80          # appels réseau (recherche + enrichissement)
+  source_timeout: 25                 # secondes par requête fournisseur
+  max_abstract_chars: 1200           # extrait de résumé conservé
+  documents_per_scoring_batch: 12    # documents par lot de notation/extraction (P2)
+  max_scoring_batches: 6             # plafond de lots
+  cache_ttl_hours: 336               # 14 jours
+  unpaywall_max_lookups: 60          # requêtes d'enrichissement accès ouvert
+  # --- texte intégral (téléchargement + lecture réelle) ---
+  max_downloads: 60                  # documents téléchargés au maximum par campagne
+  max_download_mb: 30                # taille maximale d'un fichier
+  max_session_download_mb: 400       # quota disque par session
+  download_timeout: 40               # secondes par téléchargement
+  max_pdf_pages: 40                  # pages lues au maximum par document
+  max_text_chars_per_doc: 80000      # texte extrait conservé par document
+  max_excerpts_per_doc: 6            # passages envoyés au modèle par document
+  excerpt_window_chars: 8000         # taille d'un passage
+  max_quote_chars: 400               # longueur maximale d'une citation ancrée
+  max_thesis_resolvers: 10          # recherches HAL par NNT pour trouver le texte de thèses
+
+paths:
+  workspace: workspace                            # workspace/<student_id>/<session_id>/
+  audit_db: workspace/audit-litterature.db        # journal d'audit (SQLite stdlib)
+  cache_db: workspace/documents-cache.db          # cache des requêtes documentaires
+
+sources:
+  enabled: true
+  user_agent: "memo-platform/0.1 (accompagnement memoire; contact: etudiant@example.org)"
+  polite_email: "etudiant@example.org"            # paramètre mailto (OpenAlex, Crossref, Unpaywall)
+  max_response_bytes: 3000000                     # plafond de taille d'une réponse JSON/XML
+  providers_file: providers.yaml                  # relatif à src/literature_review_agent/sources/
+  max_providers_per_query: 4                      # fournisseurs interrogés par requête
+  max_pool_documents: 250                         # vivier collecté avant sélection finale
+  polite_delay_seconds: 0.4                       # politesse envers les API publiques (429)
+  retry_on_transient: 2                           # nouvelles tentatives sur 429/5xx (attente bornée)
+  max_retry_wait: 5.0                             # attente maximale avant nouvelle tentative (s)
+  cascade: ["Côte d'Ivoire", "Afrique de l'Ouest", "Afrique", "International"]
+
+fulltext:
+  enabled: true                                   # téléchargement + lecture du texte intégral
+  prefer_repositories: true                       # dépôts (HAL, arXiv, Zenodo, OSF) avant éditeurs
+  block_private_ips: true                         # anti-SSRF
+  require_pdf_signature: true                     # octets %PDF- obligatoires
+  extract_excerpts: true                          # découpage en passages (méthode/résultats/limites)
+
+bibliography:
+  default_style: apa7                             # apa7 | iso690 | vancouver
+  include_dois: true
+
+diagnosis:
+  require_matrix_row: true                        # le diagnostic doit pointer une ligne de la matrice
+
+security:
+  fail_on_injection: false                          # true = bloquer ; false = annoter et continuer
+  max_document_chars: 60000                         # texte intégral transmis au modèle (borné par passages)

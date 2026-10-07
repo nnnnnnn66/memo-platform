@@ -52,9 +52,21 @@ Ne jamais construire toute la plateforme d'un coup. Un seul agent à la fois.
 ## État d'avancement
 - [x] Cadrage général validé (ce document)
 - [x] SPEC définitive Agent Sujet V1 reçue → `docs/spec-agent-sujet-v1.md` (référentiel canonique)
-- [x] **Présentation d'architecture V1 (15 points, §42) → `docs/architecture-v1.md`** ← en attente de validation humaine
-- [ ] Implémentation de l'Agent Sujet V1 (à démarrer après validation de l'architecture)
-- [ ] Vérificateur
-- [ ] Tests (§36–37)
-- [ ] Validation de l'agent
+- [x] Architecture V1 de l'Agent Sujet (15 points, §42) → `docs/architecture-v1.md` (validée)
+- [x] **Agent Sujet V1 implémenté et validé** (`src/subject_agent/`, API `/subject/analyze`,
+      vérificateur indépendant, 13 tests, test réel sur modèle OK)
+- [x] SPEC Agent Problème de recherche reçue → `docs/spec-agent-02-probleme.md`
+- [x] Architecture Agent Problème V1 (15 points, §42) → `docs/architecture-agent-02-probleme-v1.md`
+- [x] **Agent Problème V1 implémenté et validé** (`src/research_problem_agent/`,
+      API `/problem/analyze`, étage de recherche documentaire, vérificateur indépendant,
+      75 tests, test réel sur modèle OK) — paquet autonome, Agent Sujet non modifié
+- [x] SPEC + architecture Agent Revue de littérature & Diagnostic épistémologique →
+      `docs/spec-agent-03-revue-litterature.md`, `docs/architecture-agent-03-revue-litterature-v1.md`
+- [x] **Agent Revue de littérature V1 implémenté et testé** (`src/literature_review_agent/`,
+      API `/literature/review`, deux étages déterministes — recherche documentaire multi-fournisseurs
+      et acquisition/lecture du texte intégral des PDF d'accès ouvert —, ancrage verbatim des
+      citations, sélection du corpus fondée sur la pertinence, vérificateur indépendant,
+      70 tests hors réseau, campagne réelle réseau + modèle + PDF) — paquet autonome, agents 1 et 2
+      non modifiés
+- [ ] Agent suivant (à définir) — un seul agent à la fois
 
