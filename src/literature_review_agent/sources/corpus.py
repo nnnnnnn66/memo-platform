@@ -44,7 +44,10 @@ def detect_geography(text: str, declared_country: str = "") -> tuple[str, str]:
         for term in GEO_TERMS[scope]:
             if term in haystack:
                 return scope, f"terme détecté : « {term} »"
-    return "international", "aucun repère national ou régional détecté"
+    # Aucun repère national ou régional trouvé : la portée est INDÉTERMINÉE. Annoncer
+    # « international » affirmerait à tort que l'étude couvre plusieurs pays (une étude
+    # menée dans un seul pays hors Afrique n'a rien d'international).
+    return "unclear", "aucun repère national ou régional détecté"
 
 
 # Codes de langue renvoyés par les fournisseurs (3 lettres ou libellés) → code à 2 lettres.
@@ -201,11 +204,16 @@ class Corpus:
         for index, record in enumerate(self.records, start=1):
             record.doc_id = f"D{index}"
 
-    def counts(self) -> dict:
+    def counts(self, records=None) -> dict:
+        """Répartition par langue, géographie et type, sur les documents RÉELLEMENT retenus.
+
+        Le sous-ensemble est passé explicitement : compter le corpus collecté (avant sélection)
+        produisait des totaux incohérents avec le nombre de documents de la revue.
+        """
         by_language: dict[str, int] = {}
         by_geography: dict[str, int] = {}
         by_type: dict[str, int] = {}
-        for record in self.records:
+        for record in (self.records if records is None else records):
             by_language[record.language or "inconnue"] = by_language.get(record.language or "inconnue", 0) + 1
             scope, _ = detect_geography(f"{record.title} {record.abstract}")
             by_geography[scope] = by_geography.get(scope, 0) + 1

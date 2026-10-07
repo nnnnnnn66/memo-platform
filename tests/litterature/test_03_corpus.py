@@ -71,7 +71,7 @@ def test_geographie_detectee_avec_preuve():
     assert scope == "ivory_coast"
     assert "côte d'ivoire" in evidence.lower() or "abidjan" in evidence.lower()
 
-    assert detect_geography("Telework in Spain")[0] == "international"
+    assert detect_geography("Telework in Spain")[0] == "unclear"
     assert detect_geography("Étude en Afrique de l'Ouest")[0] == "west_africa"
 
 
@@ -134,3 +134,22 @@ def test_selection_ecarte_le_non_pertinent():
     # Les identifiants d'origine sont conservés (ils identifient le texte téléchargé et les
     # citations déjà produites) : la sélection ne renomme jamais les documents.
     assert [r.doc_id for r in retained] == [by_title["Telework and productivity"]]
+
+
+def test_comptages_limites_aux_documents_retenus():
+    """Régression : les répartitions portaient sur tout le corpus collecté (84) au lieu des
+    documents réellement retenus (7), rendant les statistiques incohérentes."""
+    corpus = Corpus()
+    corpus.add(_record(title="A retenir", abstract="telework"))
+    corpus.add(_record(title="B aussi", abstract="telework", doi="10.9/b",
+                       url="https://doi.org/10.9/b"))
+    corpus.rank(["telework"], ["en"])
+
+    subset = corpus.records[:1]
+    counts = corpus.counts(subset)
+    assert sum(counts["by_language"].values()) == 1
+    assert sum(counts["by_type"].values()) == 1
+    assert sum(counts["by_geography"].values()) == 1
+
+    complet = corpus.counts()
+    assert sum(complet["by_language"].values()) == 2

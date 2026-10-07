@@ -5,7 +5,7 @@ du document (nom des auteurs, année, titre, support, DOI/URL). Un champ manquan
 inventé.
 """
 
-from .normalize import clean_text, join_authors
+from .normalize import clean_text, clean_title, join_authors
 
 STYLES = ("apa7", "iso690", "vancouver")
 
@@ -39,7 +39,7 @@ def _doi_url(record, include_doi: bool = True) -> str:
 def apa7(record) -> str:
     authors = join_authors(getattr(record, "authors", []) or [], "apa7")
     year = getattr(record, "year", None)
-    title = clean_text(getattr(record, "title", "") or "")
+    title = clean_title(getattr(record, "title", "") or "")
     venue = _venue(getattr(record, "venue", "") or "")
     vip = _volume_issue_pages(record)
     link = _doi_url(record)
@@ -70,7 +70,7 @@ def apa7(record) -> str:
 
 def iso690(record) -> str:
     authors = join_authors(getattr(record, "authors", []) or [], "iso690")
-    title = clean_text(getattr(record, "title", "") or "")
+    title = clean_title(getattr(record, "title", "") or "")
     venue = _venue(getattr(record, "venue", "") or "")
     year = getattr(record, "year", None)
     vip = _volume_issue_pages(record)
@@ -100,7 +100,7 @@ def iso690(record) -> str:
 
 def vancouver(record) -> str:
     authors = join_authors(getattr(record, "authors", []) or [], "vancouver")
-    title = clean_text(getattr(record, "title", "") or "")
+    title = clean_title(getattr(record, "title", "") or "")
     venue = _venue(getattr(record, "venue", "") or "")
     year = getattr(record, "year", None)
     vip = _volume_issue_pages(record)

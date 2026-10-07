@@ -333,7 +333,7 @@ def run(request, settings, llm, verifier_llm=None, registry: Registry | None = N
     document_records = [_to_document_record(r, documents, style) for r in retained]
     entries = [doc.reference for doc in document_records if doc.reference]
 
-    counts = corpus.counts()
+    counts = corpus.counts(retained)
     by_geography: dict[str, int] = {}
     for record in retained:
         scope, _ = detect_geography(f"{record.title} {record.abstract}")

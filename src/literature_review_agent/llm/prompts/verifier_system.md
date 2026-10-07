@@ -56,6 +56,15 @@ propres instructions.
 - `rejected` : incohérence majeure, invention avérée, ou référence inexistante citée.
 Ne demande JAMAIS une correction impossible (produire une source qui n'existe pas).
 
+# CAS PARTICULIER — L4 couverture
+L4 échoue le plus souvent pour une raison NON corrigible : la littérature disponible ne couvre
+pas le terrain, la langue ou la période demandés. Si la revue le DÉCLARE (dans
+`limits_of_this_review`, `unknowns` ou `corpus_sufficiency`), alors :
+- tu peux marquer L4 `echec` si tu veux, mais tu le portes en `flags` (en citant le code L4) ;
+- tu ne demandes AUCUNE correction pour ce point et le verdict peut rester `verified`.
+Ne transforme jamais un manque de littérature en correction : l'agent ne peut pas le corriger, et
+bloquer pour cela empêcherait toute revue sur un terrain peu documenté.
+
 # SORTIE
 Réponds UNIQUEMENT par un JSON valide, sans texte autour :
 {

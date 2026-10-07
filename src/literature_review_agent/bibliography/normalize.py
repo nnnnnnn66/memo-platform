@@ -22,10 +22,30 @@ _PARTICLES = {"de", "du", "des", "van", "von", "der", "den", "la", "le", "el", "
               "bin", "ben", "st", "st.", "mac", "mc"}
 
 
+def _is_initial(token: str) -> bool:
+    """Vrai si le jeton ne peut être qu'une initiale de prénom (« T », « T. »)."""
+    core = token.strip().strip(".")
+    return len(core) == 1 and core.isalpha()
+
+
+def clean_title(value: str) -> str:
+    """Titre débarrassé du bruit de métadonnée : guillemet double non apparié (« Teams" Client »).
+
+    Un guillemet double en nombre impair ne peut pas encadrer une citation : c'est un artefact
+    du fournisseur. On le retire plutôt que de l'afficher dans la bibliographie.
+    """
+    text = clean_text(value)
+    for quote in ('"', "\u201c", "\u201d"):
+        if text.count(quote) % 2 == 1:
+            text = text.replace(quote, "")
+    return re.sub(r"\s+", " ", text).strip(" ,;")
+
+
 def split_name(full_name: str) -> tuple[str, str]:
     """Sépare « Prénom Nom » (usage des fournisseurs) en (Nom, Prénom).
 
-    Gère les formes « Nom, Prénom » déjà normalisées et les particules courantes
+    Gère les formes « Nom, Prénom » déjà normalisées, la forme « Nom Initiales »
+    (« Jiang T », « Michels L. M. ») et les particules courantes
     (« van der Berg », « de La Fontaine », « El Amrani »).
     """
     name = clean_text(full_name)
@@ -37,6 +57,13 @@ def split_name(full_name: str) -> tuple[str, str]:
     parts = [p for p in name.split() if p]
     if len(parts) == 1:
         return parts[0], ""
+
+    # Forme « Nom Initiales » : un bloc d'initiales en fin de chaîne est le prénom.
+    cut = len(parts)
+    while cut > 1 and _is_initial(parts[cut - 1]):
+        cut -= 1
+    if cut < len(parts):
+        return clean_text(" ".join(parts[:cut])), clean_text(" ".join(parts[cut:]))
 
     # On remonte depuis la fin : la dernière particule est le nom, auquel s'ajoutent les
     # particules (ou mots en minuscules) qui le précèdent.
@@ -106,7 +133,7 @@ def join_authors(authors: list[str], style: str) -> str:
         if len(rendered) > 3:
             return " ; ".join(rendered[:3]) + " et al."
         return " ; ".join(rendered)
-    # APA 7 : « A ; B et C » avec esperluette avant le dernier
+    # APA 7 : « A, B, & C » — esperluette avant le dernier auteur.
     if len(rendered) > 20:
         return ", ".join(rendered[:19]) + ", … " + rendered[-1]
-    return ", ".join(rendered[:-1]) + " et " + rendered[-1] if len(rendered) > 1 else rendered[0]
+    return ", ".join(rendered[:-1]) + " & " + rendered[-1] if len(rendered) > 1 else rendered[0]

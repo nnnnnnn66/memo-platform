@@ -74,3 +74,32 @@ def test_particules_de_nom_preservees():
 
 def test_style_inconnu_retombe_sur_apa():
     assert styles.render(_doc(), "inconnu") == styles.render(_doc(), "apa7")
+
+
+def test_apa7_esperluette_avant_le_dernier_auteur():
+    ref = styles.render(_doc(authors=["Marie Dupont", "Awa Traoré"]), "apa7")
+    assert "Dupont, M. & Traoré, A." in ref
+
+
+def test_nom_suivi_d_initiales_remis_dans_le_bon_ordre():
+    """Fournisseurs : « Jiang T » (nom puis initiale) ne doit pas devenir « T, J. »."""
+    from literature_review_agent.bibliography.normalize import author_apa, split_name
+
+    assert split_name("Jiang T") == ("Jiang", "T")
+    assert author_apa("Jiang T") == "Jiang, T."
+    assert author_apa("Michels L. M.") == "Michels, L. M."
+    assert author_apa("Abdulrahman M. Qahtani") == "Qahtani, A. M."
+    assert author_apa("Graziotin, D.") == "Graziotin, D."
+    ref = styles.render(_doc(authors=["Jiang T"]), "apa7")
+    assert ref.startswith("Jiang, T.")
+
+
+def test_guillemet_double_non_apparie_retire_du_titre():
+    ref = styles.render(_doc(title='Enhancing Teams" Client Awareness'), "apa7")
+    assert '"' not in ref
+    assert "Teams Client Awareness" in ref
+
+
+def test_guillemets_apparies_conserves():
+    ref = styles.render(_doc(title='The "New" Normal of Work'), "apa7")
+    assert '"New"' in ref
