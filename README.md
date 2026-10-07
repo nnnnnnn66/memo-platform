@@ -72,6 +72,12 @@ Ne jamais construire toute la plateforme d'un coup. Un seul agent à la fois.
 - [x] SPEC & architecture Agent Problématique & Construction Théorique (étape 4) reçues →
       `docs/spec-agent-04-problematique.md`, `docs/architecture-agent-04-problematique-v1.md`,
       `docs/elements-agent-04-problematique.md` + profil Hermes `agent-problematique`
-- [ ] **Agent 4 — Problématique** : architecture présentée, **en attente de validation** (portillon §42)
+- [x] **Agent 4 — Problématique : implémenté et VALIDÉ en exécution réelle**
+      (`src/problematization_agent/`, API `/problematization/analyze`, ancrage verbatim
+      déterministe, gap check réseau borné, amorce d'alignement déterministe, bibliographie
+      APA7, vérificateur indépendant) — campagne réelle réseau + modèle allant jusqu'au verdict :
+      `validation.verified = true`, verdict `verified`, 12/12 contrôles OK, 26/26 affirmations
+      ancrées. 36 tests hors réseau. Paquet autonome, agents 1-3 non modifiés.
+      *(Architecture présentée pour le portillon §42 : à contresigner par le porteur.)*
 - [ ] Agent suivant (à définir) — un seul agent à la fois
 
