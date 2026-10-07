@@ -79,5 +79,12 @@ Ne jamais construire toute la plateforme d'un coup. Un seul agent à la fois.
       `validation.verified = true`, verdict `verified`, 12/12 contrôles OK, 26/26 affirmations
       ancrées. 36 tests hors réseau. Paquet autonome, agents 1-3 non modifiés.
       *(Architecture présentée pour le portillon §42 : à contresigner par le porteur.)*
+- [x] **Gap check (agent 4) rendu résilient** : OpenAlex renvoie `429` depuis ce serveur (quota
+      gratuit *partagé par l'adresse IP*, réinitialisation à minuit UTC) → la vérification du gap
+      interroge désormais 8 fournisseurs gratuits sans clé (Crossref, HAL, theses.fr, OpenAIRE,
+      DataCite, DOAJ, Europe PMC en plus d'OpenAlex), avec requêtes en mots-clés `OR` et
+      pertinence déterministe. Vérifié en exécution réelle : 7 fournisseurs répondent malgré le
+      429 d'OpenAlex, échec déclaré, 5 publications proches trouvées.
+      ⚠️ À contresigner par le porteur (modification d'un agent déjà validé).
 - [ ] Agent suivant (à définir) — un seul agent à la fois
 

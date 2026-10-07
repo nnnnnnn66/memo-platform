@@ -57,6 +57,57 @@ def test_requetes_derivees_du_sujet_et_du_gap(settings, request_factory):
     queries = gap_check_stage.build_queries(request_factory(), _gap(), 4)
     assert queries
     assert all(len(q) < 300 for q in queries)
+    # La 1re requête est en mots-clés joints par OR : sans cela, les fournisseurs à ET
+    # (HAL, theses.fr, OpenAIRE, DataCite, DOAJ, Europe PMC) ne renvoient RIEN.
+    assert " OR " in queries[0]
+
+
+# --- robustesse : la défaillance d'un fournisseur n'empêche pas la vérification -----------------
+
+HAL_ENDPOINT = "https://api.archives-ouvertes.fr/search/"
+HAL_TITLE = "Télétravail et productivité des développeurs d'Abidjan : mesure locale"
+
+
+def test_openalex_en_echec_le_gap_reste_verifiable(settings, request_factory):
+    """429 OpenAlex (quota IP partagé) : les autres fournisseurs gratuits prennent le relais."""
+    fetcher = FakeFetcher(
+        {
+            HAL_ENDPOINT: {"response": {"docs": [{"title_s": [HAL_TITLE],
+                                                  "authFullName_s": ["A. Traoré"],
+                                                  "producedDate_s": "2024-05-01"}]}},
+            CROSSREF_ENDPOINT: CROSSREF_OK,
+        },
+        raise_for={OPENALEX_ENDPOINT},
+    )
+    check = gap_check_stage.run(request_factory(), _gap(), settings, fetcher=fetcher)
+    assert check.result == GapCheckResult.already_addressed
+    assert any(p.provider == "hal" for p in check.publications)
+    assert "hal" in check.providers_used
+    # L'échec d'OpenAlex reste DÉCLARÉ, jamais interprété comme « gap confirmé ».
+    assert any(f["provider"] == "openalex" for f in check.providers_failed)
+
+
+def test_registre_fournisseurs_gratuits_et_liste_blanche():
+    """Les fournisseurs gratuits sans clé sont déclarés en configuration, et leurs hôtes seuls."""
+    from problematization_agent.sources.registry import Registry
+
+    registry = Registry(settings_providers_file())
+    ids = {p.id for p in registry.enabled()}
+    assert {"openalex", "crossref", "hal", "theses_fr", "openaire",
+            "datacite", "doaj", "europepmc"} <= ids
+    hosts = registry.allowed_hosts()
+    assert {"api.openalex.org", "api.crossref.org", "api.archives-ouvertes.fr",
+            "theses.fr", "api.openaire.eu", "api.datacite.org", "doaj.org",
+            "www.ebi.ac.uk"} <= hosts
+    for provider in registry.enabled():
+        adapter = registry.adapter_module(provider)  # l'adaptateur doit exister et s'importer
+        assert adapter.PROVIDER_ID == provider.id
+
+
+def settings_providers_file():
+    from problematization_agent.core.config import Settings
+
+    return Settings().providers_file
 
 
 class _Limits:

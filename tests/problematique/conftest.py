@@ -25,7 +25,7 @@ def settings(tmp_path):
         max_documents_read=10,
         max_gap_check_queries=2,
         max_results_per_query=3,
-        max_external_requests=10,
+        max_external_requests=40,  # 8 fournisseurs × 2 requêtes × 2 tentatives
         max_llm_calls=30,
         max_verification_retries=2,
     )

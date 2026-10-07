@@ -23,33 +23,66 @@ _STOPWORDS = {
 }
 
 
-def _tokens(text: str) -> set[str]:
+def _tokens_ordered(text: str) -> list[str]:
+    """Tokens normalisés (sans accent), sans doublon, dans l'ORDRE d'apparition du texte."""
     normalized = unicodedata.normalize("NFKD", (text or "").lower())
     normalized = normalized.encode("ascii", "ignore").decode("ascii")
     words = re.findall(r"[a-z]{4,}", normalized)
-    return {w for w in words if w not in _STOPWORDS}
+    seen: set[str] = set()
+    out: list[str] = []
+    for word in words:
+        if word not in _STOPWORDS and word not in seen:
+            seen.add(word)
+            out.append(word)
+    return out
+
+
+def _tokens(text: str) -> set[str]:
+    return set(_tokens_ordered(text))
+
+
+def keywords_for(request, gap) -> list[str]:
+    """Mots-clés saillants du croisement sujet × gap (ordre d'apparition du sujet)."""
+    subject_tokens = _tokens_ordered(request.subject_text)
+    gap_tokens = set(_tokens_ordered(gap.description))
+    shared = [word for word in subject_tokens if word in gap_tokens] or subject_tokens
+    return shared[:6]
 
 
 def build_queries(request, gap, limit: int) -> list[str]:
-    """Requêtes déterministes : sujet, description du gap, et croisement des deux."""
+    """Requêtes déterministes : mots-clés du croisement sujet × gap, puis sujet et gap en clair.
+
+    Les mots-clés sont joints par « OR » : la plupart des fournisseurs (HAL, theses.fr, OpenAIRE,
+    DataCite, DOAJ, Europe PMC) appliquent un ET sur les requêtes multi-termes, si bien qu'une
+    phrase entière — ou même deux mots — ne renvoie RIEN. La requête en mots-clés est donc placée
+    en premier ; les fournisseurs à recherche « booléenne libre » (Crossref, OpenAlex) acceptent
+    aussi les deux autres formulations.
+    """
     subject = " ".join((request.subject_text or "").split()[:14]).strip()
     gap_text = " ".join((gap.description or "").split()[:16]).strip()
-    shared = sorted(_tokens(request.subject_text) & _tokens(gap.description))
+    keywords = " OR ".join(keywords_for(request, gap)).strip()
+
     queries: list[str] = []
-    for candidate in (subject, gap_text, " ".join(shared[:8])):
+    for candidate in (keywords, subject, gap_text):
         candidate = candidate.strip()
         if candidate and candidate not in queries:
             queries.append(candidate)
     return queries[:max(1, limit)]
 
 
-def _relevant(record: dict, reference_tokens: set[str], threshold: float = 0.2) -> bool:
-    if not reference_tokens:
+def _relevant(record: dict, keywords: set[str], min_hits: int = 2) -> bool:
+    """Pertinence déterministe : au moins `min_hits` mots-clés du gap présents dans titre + revue.
+
+    Un ratio sur TOUS les mots du sujet s'est révélé trop strict : il écartait des publications
+    réellement proches (HAL) et ne laissait passer que les titres longs de Crossref. La référence
+    est donc le jeu de mots-clés qui a servi à interroger les fournisseurs.
+    """
+    if not keywords:
         return False
     candidate = _tokens(f"{record.get('title', '')} {record.get('venue', '')}")
     if not candidate:
         return False
-    return len(candidate & reference_tokens) / len(reference_tokens) >= threshold
+    return len(candidate & keywords) >= min(min_hits, len(keywords))
 
 
 def run(request, gap, settings, registry=None, fetcher=None, cache=None) -> GapCheck:
@@ -104,6 +137,7 @@ def run(request, gap, settings, registry=None, fetcher=None, cache=None) -> GapC
         )
 
     # Déduplication + sélection des publications réellement proches du sujet et du gap.
+    reference = set(keywords_for(request, gap))
     seen: set[str] = set()
     publications: list[GapCheckPublication] = []
     for record in collected:

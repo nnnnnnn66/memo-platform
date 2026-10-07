@@ -33,3 +33,8 @@ def year_of(value) -> int | None:
         return None
     match = re.search(r"(1[5-9]\d{2}|20\d{2}|21\d{2})", str(value))
     return int(match.group(1)) if match else None
+
+
+def candidate(url: str, host_kind: str = "repository", license: str = "") -> dict:
+    """Candidate de texte intégral : uniquement des URL fournies par l'API du fournisseur."""
+    return {"url": (url or "").strip(), "host_kind": host_kind, "license": license or ""}

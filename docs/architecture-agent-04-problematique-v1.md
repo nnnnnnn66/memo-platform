@@ -118,6 +118,8 @@ Points non négociables :
 │   │   ├── cache.py                        # cache SQLite des requêtes (14 j)
 │   │   └── adapters/
 │   │       ├── openalex.py crossref.py     # vérification « gap déjà comblé ? »
+│   │       └── hal.py theses_fr.py openaire.py datacite.py doaj.py europepmc.py
+│   │                                        #   fournisseurs gratuits de repli (429 OpenAlex)
 │   ├── schemas/
 │   │   ├── input.py problem.py gap.py question.py alignment.py output.py verifier.py
 │   ├── core/
@@ -366,7 +368,7 @@ n'utilise que des API publiques sans clé. Le LLM passe par la clé existante de
 | Poste | Coût |
 |---|---|
 | LLM (P1–P5 + vérificateur) | Clé DeepSeek déjà en place (budget projet 0 € ; tokens bornés par campagne). |
-| Gap check (OpenAlex, Crossref) | Gratuit, sans clé. |
+| Gap check (8 fournisseurs gratuits sans clé) | Gratuit, sans clé (voir §14). |
 | Téléchargement / lecture | Aucun (les textes amont sont déjà dans l'espace de session de l'étape 3). |
 | Stockage | Local, nul. |
 
@@ -376,10 +378,21 @@ n'utilise que des API publiques sans clé. Le LLM passe par la clé existante de
 
 ## 14. Alternatives gratuites
 
-- Gap check : plusieurs fournisseurs sans clé déclarés en configuration (OpenAlex, Crossref ; DOAJ,
-  HAL, arXiv en réserve si besoin) — substitution par configuration, sans code.
-- Si OpenAlex limite le débit (429, déjà observé depuis ce serveur) : repli sur Crossref, réessais
-  bornés (`Retry-After` respecté), et **déclaration** `gap_check = unavailable` plutôt que supposition.
+- Gap check : **huit** fournisseurs sans clé déclarés en configuration — OpenAlex, Crossref, HAL,
+  theses.fr, OpenAIRE, DataCite, DOAJ, Europe PMC. Ajouter/retirer un fournisseur = éditer
+  `sources/providers.yaml` (l'adaptateur correspondant existe déjà dans `sources/adapters/`).
+- **OpenAlex renvoie 429 depuis ce serveur** : le quota quotidien gratuit est *partagé par toute
+  l'adresse IP* et s'épuise (`x-ratelimit-remaining: 0`, réinitialisation à minuit UTC). La
+  vérification ne dépend donc pas d'un seul fournisseur : les sept autres prennent le relais, la
+  défaillance d'OpenAlex est **déclarée** (`providers_failed`), jamais interprétée comme une preuve
+  d'absence. Repli de repli : une **clé OpenAlex gratuite** (quota propre) lève la limite partagée.
+- **Requêtes en mots-clés joints par OR** : HAL, theses.fr, OpenAIRE, DataCite, DOAJ et Europe PMC
+  appliquent un **ET** sur les requêtes multi-termes — une phrase, ou même deux mots, ne renvoie
+  rien. La première requête est donc `mot1 OR mot2 OR …` (mots-clés du croisement sujet × gap) ; les
+  fournisseurs à recherche libre (Crossref, OpenAlex) acceptent aussi les formulations en clair.
+- **Pertinence déterministe** : une publication est retenue si son titre/revue contient au moins
+  DEUX des mots-clés du gap (et non un ratio sur tous les mots du sujet, trop strict : il écartait
+  des travaux réellement proches au profit de seuls titres longs de Crossref).
 - Aucune base vectorielle : l'ancrage se fait par recherche verbatim dans le texte, sans embedding.
 
 ---
@@ -391,7 +404,8 @@ n'utilise que des API publiques sans clé. Le LLM passe par la clé existante de
 2. **Ancrage limité par les textes disponibles** : si un document du corpus n'a qu'un résumé
    (`abstract_only`), l'affirmation correspondante est retirée — perte de richesse déclarée.
 3. **Gap check partiel** : les API gratuites ne couvrent pas tout ; `not_found` signifie « non trouvé
-   dans ces sources », jamais « gap certain ». Toujours déclaré.
+   dans ces sources », jamais « gap certain ». Toujours déclaré. Depuis ce serveur, OpenAlex (quota
+   IP partagé) est en 429 : la vérification s'appuie sur les sept autres fournisseurs gratuits.
 4. **Qualité = proposition** : la problématique reste une proposition à valider par l'étudiant et son
    directeur ; l'agent n'a jamais raison contre eux.
 5. **Pas d'embedding/RAG vectoriel en V1** (SPEC §28) : l'accès aux documents passe par le texte réel,
@@ -412,8 +426,11 @@ n'utilise que des API publiques sans clé. Le LLM passe par la clé existante de
 - **D2 — Enum du gap.** La SPEC §9.3 liste 3 types (contextuelle, conceptuelle, empirique) mais §3.5
   en mentionne 4 (+ méthodologique). Proposition : enum à **4 valeurs**.
 - **D3 — Gap check réseau.** Inclure dès la V1 un étage déterministe de vérification du gap
-  (OpenAlex + Crossref, gratuit, borné, caché) — ou le différer ? Note : OpenAlex renvoie parfois
-  `429` depuis ce serveur, d'où le repli Crossref et la déclaration `unavailable`.
+  (huit fournisseurs gratuits sans clé : OpenAlex, Crossref, HAL, theses.fr, OpenAIRE, DataCite,
+  DOAJ, Europe PMC) — ou le différer ? Note : OpenAlex renvoie `429` depuis ce serveur (quota
+  gratuit **partagé par l'adresse IP**, réinitialisation à minuit UTC) ; la vérification ne repose
+  donc pas sur lui seul, sa défaillance est déclarée. Une clé OpenAlex gratuite (quota propre)
+  supprimerait cette limite.
 - **D4 — Interface.** Route `POST /problematique/analyze`, port **8040**, `run-problematique.sh`.
 - **D5 — Bibliographie.** Rendu **déterministe** (le modèle ne rédige jamais une référence), cohérent
   avec l'étape 3 ; à partir des seuls `doc_id` réellement cités.

@@ -31,7 +31,11 @@ limits:
   max_quote_chars: 600               # au-delà : citation refusée (ancrage plus sûr)
   max_statements_per_stage: 40       # plafond d'affirmations par étage
   # --- gap check (réseau borné, fournisseurs gratuits sans clé) ---
-  max_external_requests: 20
+  # Le gap check interroge 8 fournisseurs gratuits sans clé (providers.yaml) : la défaillance de
+  # l'un n'empêche pas la vérification (OpenAlex renvoie 429 depuis ce serveur, quota IP partagé).
+  # Budget = requêtes distinctes (≤ 3) × fournisseurs (8) × tentatives (1 + retry_on_transient = 3)
+  # = 72 au pire ; en pratique ~27 (seul OpenAlex réessaie).
+  max_external_requests: 72
   source_timeout: 25                 # secondes par requête fournisseur
   max_gap_check_queries: 4           # requêtes de vérification du gap
   max_results_per_query: 10          # résultats demandés par requête/fournisseur
