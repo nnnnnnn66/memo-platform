@@ -85,11 +85,18 @@ Ne jamais construire toute la plateforme d'un coup. Un seul agent à la fois.
       HAL, theses.fr, OpenAIRE, DataCite, DOAJ, Europe PMC en plus d'OpenAlex), avec requêtes en
       mots-clés `OR` et pertinence déterministe. Vérifié en exécution réelle : 7 fournisseurs
       répondent malgré le 429 d'OpenAlex, échec déclaré, 5 publications proches trouvées.
+- [x] **Support de la clé OpenAlex étendu à l'Agent 3 (revue de littérature)** — l'adaptateur
+      OpenAlex de l'agent 3 lisait aucune clé et subissait donc le `429` partagé par IP. Il lit
+      désormais `OPENALEX_API_KEY` comme l'agent 4 et la transmet en en-tête `Authorization`
+      (jamais dans l'URL ni dans les journaux). Le transport (`sources/http.py`) accepte des
+      en-têtes optionnels. 3 tests de non-régression. Agents 1, 2 et 4 non modifiés.
 - [ ] **Clé OpenAlex gratuite (facultatif, 0 €)** : lève la limite partagée (budget 10×). À créer
       par le porteur depuis SON navigateur (openalex.org → compte → Settings → API key) : le site
-      OpenAlex bloque la création de compte depuis l'IP de ce serveur. Une fois la clé obtenue :
+      OpenAlex bloque la création de compte depuis l'IP de ce serveur. Une seule clé suffit pour
+      **les agents 3 et 4** : une fois obtenue,
       `echo 'OPENALEX_API_KEY=<clé>' >> ~/.hermes/.env` — le code la lit automatiquement et l'envoie
       en en-tête `Authorization` (jamais dans l'URL ni dans les journaux),
-      `src/problematization_agent/sources/adapters/openalex.py`. Rien d'autre à modifier.
+      `src/{literature_review,problematization}_agent/sources/adapters/openalex.py`.
+      Rien d'autre à modifier, aucun redémarrage nécessaire.
 - [ ] Agent suivant (à définir) — un seul agent à la fois
 

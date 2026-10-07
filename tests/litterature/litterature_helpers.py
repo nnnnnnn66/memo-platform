@@ -239,16 +239,19 @@ class FakeApiFetcher:
                 return payload
         raise AssertionError(f"FakeApiFetcher : aucune réponse pour {url}")
 
-    def fetch(self, url: str, params=None, cost: int = 1) -> str:
+    def fetch(self, url: str, params=None, cost: int = 1, headers: dict | None = None) -> str:
         payload = self._payload(url)
         self.requests += cost
         self.seen.append(url)
+        self.last_headers = dict(headers or {})
         return payload if isinstance(payload, str) else json.dumps(payload)
 
-    def fetch_json(self, url: str, params=None, cost: int = 1) -> dict:
+    def fetch_json(self, url: str, params=None, cost: int = 1,
+                   headers: dict | None = None) -> dict:
         payload = self._payload(url)
         self.requests += cost
         self.seen.append(url)
+        self.last_headers = dict(headers or {})
         return json.loads(payload) if isinstance(payload, str) else payload
 
 

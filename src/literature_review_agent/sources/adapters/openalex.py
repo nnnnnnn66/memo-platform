@@ -1,9 +1,25 @@
-"""OpenAlex — publications, chapitres et thèses (gratuit, sans clé)."""
+"""OpenAlex — publications, chapitres et thèses (gratuit).
+
+Le quota gratuit d'OpenAlex est **partagé par toute l'adresse IP** : depuis ce serveur il répond
+parfois `429`. Une **clé OpenAlex gratuite** lève cette limite (quota propre, 10× le budget
+anonyme). La clé est un SECRET : elle n'est jamais écrite ici, ni dans la configuration, ni dans
+les journaux ; elle est lue dans l'environnement sous `OPENALEX_API_KEY` (à placer dans
+`~/.hermes/.env`) et transmise en en-tête `Authorization` — jamais dans l'URL. Sans clé,
+l'adaptateur fonctionne exactement comme avant (requête anonyme).
+"""
+
+import os
 
 from . import candidate, clean, first, year_of
 
 PROVIDER_ID = "openalex"
 ENDPOINT = "https://api.openalex.org/works"
+ENV_VAR = "OPENALEX_API_KEY"
+
+
+def api_key() -> str:
+    """Clé OpenAlex fournie par l'environnement (vide si non configurée). Jamais journalisée."""
+    return (os.environ.get(ENV_VAR) or "").strip()
 
 _TYPE_MAP = {
     "article": "article", "review": "article", "book-chapter": "book", "book": "book",
@@ -27,7 +43,12 @@ def search(fetcher, query: str, limit: int) -> list[dict]:
     email = (fetcher.cfg or {}).get("polite_email")
     if email:
         params["mailto"] = email
-    data = fetcher.fetch_json(ENDPOINT, params)
+    headers: dict = {}
+    key = api_key()
+    if key:
+        # En-tête, pas paramètre d'URL : la clé ne doit jamais apparaître dans une URL journalisée.
+        headers["Authorization"] = f"Bearer {key}"
+    data = fetcher.fetch_json(ENDPOINT, params, headers=headers)
     out = []
     for work in data.get("results", []):
         location = work.get("primary_location") or {}
