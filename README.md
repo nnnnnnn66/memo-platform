@@ -98,6 +98,17 @@ Ne jamais construire toute la plateforme d'un coup. Un seul agent à la fois.
       testé avec un payload fabriqué à la main. 3 tests de chaîne ajoutés.
       Passations vérifiées : 1 → 2 OK, 2 → 3 OK (exige seulement `validation.verified`), 3 → 4
       corrigée.
+- [x] **Test de CHAÎNE réel Agent 1 → 2 → 3 → 4 (2026-10-07)** : chaque sortie réelle alimente le
+      suivant, jusqu'au verdict du vérificateur. Résultat : A1 `verified`, A2 `verified`,
+      A3 `verified` (5 documents, 2 lus en texte intégral), A4 `verification_failed` → cause
+      identifiée (bibliographie, ci-dessous) → **après correctif, A4 `verified`, zéro correction**
+      (vérifié en rejouant le vérificateur sur la sortie réelle reconstruite). Script :
+      `~/.hermes/cache/scratch/e2e_chaine.py` ; sorties d'étape conservées dans `chaine/stage*.json`.
+- [x] **Bug de bibliographie de l'Agent 4 (contrôle L10)** : les fournisseurs renvoient « Nom
+      Initiales » (« Mutiganda JC », « Jiang T ») ; l'Agent 4 prenait le dernier mot pour le nom et
+      écrivait « JC, M. » au lieu de « Mutiganda, J. C. ». Même famille de bug que celui corrigé
+      sur l'Agent 3, mais implémentation distincte (`bibliography/styles.py`) → détection des
+      blocs d'initiales collés (« JC », « MÈ ») et éclatement en « J. C. ». 3 tests ajoutés.
 - [ ] **Clé OpenAlex gratuite (facultatif, 0 €)** : lève la limite partagée (budget 10×). À créer
       par le porteur depuis SON navigateur (openalex.org → compte → Settings → API key) : le site
       OpenAlex bloque la création de compte depuis l'IP de ce serveur. Une seule clé suffit pour

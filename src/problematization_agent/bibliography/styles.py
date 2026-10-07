@@ -10,16 +10,40 @@ _PARTICLES = {"de", "van", "von", "der", "den", "la", "le", "du", "del", "di", "
 
 
 def _initials(tokens: list[str]) -> str:
+    """Initiales d'un prénom. Un bloc collé sans points (« JC », « MÈ ») est éclaté : « J. C. »."""
     out = []
     for token in tokens:
         cleaned = re.sub(r"[^A-Za-zÀ-ÿ]", "", token)
-        if cleaned:
+        if not cleaned:
+            continue
+        if len(cleaned) > 1 and cleaned.isupper():
+            out.extend(f"{letter.upper()}." for letter in cleaned)
+        else:
             out.append(f"{cleaned[0].upper()}.")
     return " ".join(out)
 
 
+def _is_initials(token: str) -> bool:
+    """Vrai si le jeton est un bloc d'initiales de prénom (« T », « T. », « JC »).
+
+    Couvre la forme des fournisseurs « Nom Initiales » (« Jiang T », « Mutiganda JC »).
+    Un nom court en casse mixte (« Li », « Wu ») n'est jamais pris pour des initiales.
+    """
+    core = token.strip().strip(".")
+    if not core or not core.isalpha():
+        return False
+    if len(core) == 1:
+        return True
+    return 2 <= len(core) <= 3 and core.isupper()
+
+
 def format_author(name: str) -> str:
-    """« Prénom Nom » → « Nom, P. » (best-effort déterministe ; jamais d'invention)."""
+    """« Prénom Nom » / « Nom Initiales » → « Nom, I. » (best-effort déterministe, sans invention).
+
+    Les fournisseurs renvoient tantôt « Prénom Nom », tantôt « Nom Initiales » (« Jiang T »,
+    « Mutiganda JC »). Sans cette détection, le dernier mot était pris pour le nom et la
+    bibliographie affichait « JC, M. » au lieu de « Mutiganda, J. C. ».
+    """
     name = (name or "").strip()
     if not name:
         return ""
@@ -31,6 +55,16 @@ def format_author(name: str) -> str:
     tokens = name.split()
     if len(tokens) == 1:
         return tokens[0]
+
+    # Forme « Nom Initiales » : un bloc d'initiales EN FIN de chaîne est le prénom.
+    cut = len(tokens)
+    while cut > 1 and _is_initials(tokens[cut - 1]):
+        cut -= 1
+    if cut < len(tokens):
+        family = " ".join(tokens[:cut])
+        initials = _initials(tokens[cut:])
+        return f"{family}, {initials}".strip().rstrip(",")
+
     # « van der Berg Jan » ou « Jan van der Berg » : last token = nom de famille, le reste initiales
     family_parts = [tokens[-1]]
     index = len(tokens) - 2
