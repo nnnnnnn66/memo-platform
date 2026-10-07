@@ -69,5 +69,9 @@ Ne jamais construire toute la plateforme d'un coup. Un seul agent à la fois.
       80 tests hors réseau, campagne réelle réseau + modèle + PDF allant jusqu'au verdict du
       vérificateur : `validation.verified = true`, verdict `verified`) — paquet autonome,
       agents 1 et 2 non modifiés
+- [x] SPEC & architecture Agent Problématique & Construction Théorique (étape 4) reçues →
+      `docs/spec-agent-04-problematique.md`, `docs/architecture-agent-04-problematique-v1.md`,
+      `docs/elements-agent-04-problematique.md` + profil Hermes `agent-problematique`
+- [ ] **Agent 4 — Problématique** : architecture présentée, **en attente de validation** (portillon §42)
 - [ ] Agent suivant (à définir) — un seul agent à la fois
 
