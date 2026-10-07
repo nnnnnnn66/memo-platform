@@ -1,0 +1,66 @@
+# Agent Problématique & Construction Théorique V1 — configuration PROPRE à cet agent.
+# (Aucun secret ici : les clés vivent uniquement dans ~/.hermes/.env.)
+
+llm:
+  provider: deepseek                 # deepseek | google
+  deepseek:
+    base_url: https://api.deepseek.com/v1
+    model: deepseek-flash
+    api_key_env: DEEPSEEK_API_KEY
+  google:
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    model: gemini-2.5-flash
+    api_key_env: GOOGLE_API_KEY
+  temperature: 0.2
+
+limits:
+  max_input_size: 20000              # caractères par champ texte
+  max_output_tokens: 32000           # modèle raisonneur : les tokens de raisonnement consomment
+                                     # ce budget ; la limite basse coupait les JSON en plein
+  max_agent_turns: 6
+  max_verification_retries: 3
+  timeout: 90                        # secondes (appel LLM)
+  max_llm_calls: 24                  # garde-fou global : P1 + P2 + P3 + P4 + P5 + vérificateur
+                                     # + re-tentatives éventuelles (2 tentatives par étage)
+  # --- lecture du corpus amont (étape 3) ---
+  max_documents_read: 60             # documents du corpus amont indexés
+  max_context_chars: 60000           # texte total transmis au modèle
+  max_document_chars: 80000          # texte conservé par document
+  # --- ancrage verbatim ---
+  min_quote_chars: 25                # en dessous : citation rejetée (jamais d'acceptation par défaut)
+  max_quote_chars: 600               # au-delà : citation refusée (ancrage plus sûr)
+  max_statements_per_stage: 40       # plafond d'affirmations par étage
+  # --- gap check (réseau borné, fournisseurs gratuits sans clé) ---
+  max_external_requests: 20
+  source_timeout: 25                 # secondes par requête fournisseur
+  max_gap_check_queries: 4           # requêtes de vérification du gap
+  max_results_per_query: 10          # résultats demandés par requête/fournisseur
+  cache_ttl_hours: 336               # 14 jours
+
+paths:
+  workspace: workspace                             # workspace/<student_id>/<session_id>/
+  audit_db: workspace/audit-problematique.db       # journal d'audit (SQLite stdlib)
+  cache_db: workspace/gap-check-cache.db           # cache des requêtes du gap check
+
+sources:
+  enabled: true
+  user_agent: "memo-platform/0.1 (accompagnement memoire; contact: etudiant@example.org)"
+  polite_email: "etudiant@example.org"             # paramètre mailto (OpenAlex, Crossref)
+  max_response_bytes: 3000000
+  providers_file: providers.yaml                   # relatif à src/problematization_agent/sources/
+  polite_delay_seconds: 0.4                        # politesse envers les API publiques (429)
+  retry_on_transient: 2                            # nouvelles tentatives sur 429/5xx (attente bornée)
+  max_retry_wait: 5.0                              # attente maximale avant nouvelle tentative (s)
+
+anchoring:
+  require_anchor: true                             # aucune affirmation sans citation ancrée
+
+alignment:
+  require_matrix_row: true                         # l'amorce doit pointer une ligne de matrice
+
+bibliography:
+  default_style: apa7                              # apa7 | iso690 | vancouver
+  include_dois: true
+
+security:
+  fail_on_injection: false                         # true = bloquer ; false = annoter et continuer

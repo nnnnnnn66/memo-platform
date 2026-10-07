@@ -1,0 +1,19 @@
+# Fournisseurs du « gap check » de l'Agent Problématique (étape 4).
+# Ajouter un fournisseur gratuit utile = éditer ce fichier (aucun code).
+# `host` est la SEULE destination réseau autorisée pour ce fournisseur (anti-SSRF).
+
+providers:
+  - id: openalex
+    label: OpenAlex
+    family: publications
+    host: api.openalex.org
+    adapter: openalex
+    enabled: true
+    note: "Publications et chapitres (gratuit, sans clé). Peut renvoyer 429 depuis certains serveurs."
+  - id: crossref
+    label: Crossref
+    family: publications
+    host: api.crossref.org
+    adapter: crossref
+    enabled: true
+    note: "Registre officiel des DOI (gratuit, sans clé). Repli en cas de 429 d'OpenAlex."
