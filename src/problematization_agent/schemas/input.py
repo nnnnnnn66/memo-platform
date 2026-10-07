@@ -2,7 +2,7 @@
 
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from .common import UpstreamValidation
 
@@ -98,6 +98,22 @@ class LiteraturePayload(BaseModel):
     documents: list[LiteratureDocument] = Field(default_factory=list)
     diagnosis: LiteratureDiagnosis = Field(default_factory=LiteratureDiagnosis)
     validation: UpstreamValidation = Field(default_factory=UpstreamValidation)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _lift_corpus_documents(cls, value):
+        """Accepte la VRAIE sortie de l'étape 3, où les documents vivent sous `corpus.documents`.
+
+        Bug constaté sur une sortie réelle : l'agent 3 produit 8 documents dans `corpus.documents`,
+        mais ce contrat les attendait à la racine — l'agent 4 recevait donc un corpus VIDE et
+        répondait « corpus vide » au lieu de travailler. Le pont évite d'imposer à l'appelant de
+        recopier une structure interne.
+        """
+        if isinstance(value, dict) and not value.get("documents"):
+            corpus = value.get("corpus")
+            if isinstance(corpus, dict) and corpus.get("documents"):
+                value = {**value, "documents": corpus["documents"]}
+        return value
 
     @property
     def is_verified(self) -> bool:

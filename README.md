@@ -90,6 +90,14 @@ Ne jamais construire toute la plateforme d'un coup. Un seul agent à la fois.
       désormais `OPENALEX_API_KEY` comme l'agent 4 et la transmet en en-tête `Authorization`
       (jamais dans l'URL ni dans les journaux). Le transport (`sources/http.py`) accepte des
       en-têtes optionnels. 3 tests de non-régression. Agents 1, 2 et 4 non modifiés.
+- [x] **Bug de chaîne corrigé (passation 3 → 4)** : la sortie réelle de l'Agent 3 place ses
+      documents sous `corpus.documents`, alors que l'entrée de l'Agent 4 les attendait à la racine
+      → sur une sortie réelle de 8 documents, l'Agent 4 en recevait **0** et répondait « corpus
+      vide » au lieu de travailler. L'entrée accepte désormais les deux formes (pont automatique).
+      Constat : aucun test ne passait la sortie RÉELLE d'un agent au suivant — chaque agent était
+      testé avec un payload fabriqué à la main. 3 tests de chaîne ajoutés.
+      Passations vérifiées : 1 → 2 OK, 2 → 3 OK (exige seulement `validation.verified`), 3 → 4
+      corrigée.
 - [ ] **Clé OpenAlex gratuite (facultatif, 0 €)** : lève la limite partagée (budget 10×). À créer
       par le porteur depuis SON navigateur (openalex.org → compte → Settings → API key) : le site
       OpenAlex bloque la création de compte depuis l'IP de ce serveur. Une seule clé suffit pour
