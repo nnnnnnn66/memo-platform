@@ -69,21 +69,47 @@ def _to_strings(items) -> list[str]:
     return out
 
 
-def verify(llm, request, output, corpus) -> VerifierOutput:
+def _normalize(data):
+    """Aplati les tolérances de forme du modèle (objets au lieu de chaînes, contrôles en dict)."""
+    if not isinstance(data, dict):
+        return data
+    data.setdefault("corrections", [])
+    data.setdefault("flags", [])
+    data["corrections"] = _to_strings(data.get("corrections"))
+    data["flags"] = _to_strings(data.get("flags"))
+    if isinstance(data.get("controls"), dict):
+        data["controls"] = [{"code": k, "resultat": str(v), "detail": ""}
+                            for k, v in data["controls"].items()]
+    return data
+
+
+def verify(llm, request, output, corpus, max_attempts: int = 3) -> VerifierOutput:
+    """Rend le verdict du vérificateur.
+
+    Une réponse tronquée ou non conforme est RE-DEMANDÉE (avec consigne de concision) au lieu de
+    faire échouer toute la campagne : le modèle est un raisonneur, il partage `max_tokens` avec
+    ses tokens de raisonnement, donc une vérification longue peut être coupée en plein JSON.
+    """
     system = load_system()
-    user = "\n\n".join([_student_block(request), _corpus_block(corpus.records), _outputs_block(output),
-                        "Rends ton verdict JSON."])
-    raw = llm.complete(system, user)
-    data = output_parser.extract_json(raw)
-    if isinstance(data, dict):
-        data.setdefault("corrections", [])
-        data.setdefault("flags", [])
-        data["corrections"] = _to_strings(data.get("corrections"))
-        data["flags"] = _to_strings(data.get("flags"))
-        if "controls" in data and isinstance(data["controls"], dict):
-            data["controls"] = [{"code": k, "resultat": str(v), "detail": ""}
-                                for k, v in data["controls"].items()]
-    try:
-        return VerifierOutput.model_validate(data)
-    except Exception as exc:  # noqa: BLE001
-        raise PipelineError(ErrorState.VERIFICATION_FAILED, str(exc)) from exc
+    base = "\n\n".join([_student_block(request), _corpus_block(corpus.records),
+                        _outputs_block(output)])
+    extra = ""
+    for attempt in range(1, max_attempts + 1):
+        user = base
+        if extra:
+            user += "\n\n[INSTRUCTION DE CORRECTION]\n" + extra
+        user += "\n\nRends ton verdict JSON."
+        raw = llm.complete(system, user)
+        try:
+            return VerifierOutput.model_validate(_normalize(output_parser.extract_json(raw)))
+        except PipelineError as exc:
+            detail = exc.detail
+        except Exception as exc:  # noqa: BLE001 — sortie non conforme au schéma
+            detail = str(exc)
+        if attempt < max_attempts:
+            extra = (f"Ton verdict précédent était invalide ({detail[:300]}). "
+                     "Réémets UNIQUEMENT le JSON, et sois CONCIS : au plus 12 contrôles, "
+                     "au plus 5 corrections et 5 signalements, une phrase courte chacun.")
+            continue
+        raise PipelineError(ErrorState.VERIFICATION_FAILED, detail)
+    raise PipelineError(ErrorState.VERIFICATION_FAILED, "échec après re-tentatives")

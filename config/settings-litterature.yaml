@@ -15,7 +15,8 @@ llm:
 
 limits:
   max_input_size: 20000              # caractères par champ texte
-  max_output_tokens: 16000           # modèle raisonneur : les tokens de raisonnement consomment ce budget
+  max_output_tokens: 32000           # modèle raisonneur : les tokens de raisonnement consomment
+                                     # ce budget ; 16000 coupait le JSON de vérification en plein
   max_agent_turns: 6
   max_verification_retries: 3
   timeout: 90                        # secondes (appel LLM)
