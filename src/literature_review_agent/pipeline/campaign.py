@@ -343,7 +343,7 @@ def run(request, settings, llm, verifier_llm=None, registry: Registry | None = N
     if sufficiency != "sufficient":
         limits_notes.append(
             f"corpus_sufficiency = {sufficiency} : {len(retained)} documents retenus pour un "
-            f"objectif de {settings.limits.max_documents}"
+            f"objectif de couverture configuré de {settings.limits.max_documents} documents"
         )
     not_read = [doc.doc_id for doc in document_records if not doc.full_text.downloaded]
     if not_read:
@@ -364,6 +364,11 @@ def run(request, settings, llm, verifier_llm=None, registry: Registry | None = N
         limits_notes.append(
             f"{selection_stats['not_analysed_over_budget']} document(s) collectés n'ont pas été "
             "analysés (budget d'analyse borné) et ne sont donc pas retenus"
+        )
+    if selection_stats.get("not_retained_over_max"):
+        limits_notes.append(
+            f"{selection_stats['not_retained_over_max']} document(s) pertinent(s) n'ont pas été "
+            f"retenus : plafond du corpus atteint ({settings.limits.max_documents})"
         )
     if scope_corrected:
         limits_notes.append(

@@ -127,7 +127,7 @@ def select_corpus(corpus: Corpus, limits, analyses: dict | None = None) -> tuple
     écartés sont comptés et déclarés : le corpus n'est jamais complété artificiellement.
     """
     analyses = analyses or {}
-    retained, rejected_relevance, rejected_no_term, not_analysed = [], 0, 0, 0
+    retained, rejected_relevance, rejected_no_term, not_analysed, over_max = [], 0, 0, 0, 0
     for record in sorted(corpus.records, key=lambda r: r.relevance, reverse=True):
         if record.doc_id not in analyses:
             not_analysed += 1
@@ -140,6 +140,10 @@ def select_corpus(corpus: Corpus, limits, analyses: dict | None = None) -> tuple
             continue
         if len(retained) < limits.max_documents:
             retained.append(record)
+        else:
+            # Pertinent mais au-delà du plafond du corpus : compté, jamais silencieusement perdu
+            # (sinon le total ne se réconcilie pas avec le nombre de documents collectés).
+            over_max += 1
 
     count = len(retained)
     if count < limits.min_documents_useful:
@@ -156,5 +160,7 @@ def select_corpus(corpus: Corpus, limits, analyses: dict | None = None) -> tuple
         "rejected_low_relevance": rejected_relevance,
         "rejected_no_concept_match": rejected_no_term,
         "not_analysed_over_budget": not_analysed,
+        "not_retained_over_max": over_max,
+        "collected_total": len(corpus.records),
     }
     return retained, sufficiency, stats

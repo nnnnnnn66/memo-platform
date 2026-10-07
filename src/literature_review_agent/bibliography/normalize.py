@@ -23,9 +23,18 @@ _PARTICLES = {"de", "du", "des", "van", "von", "der", "den", "la", "le", "el", "
 
 
 def _is_initial(token: str) -> bool:
-    """Vrai si le jeton ne peut être qu'une initiale de prénom (« T », « T. »)."""
+    """Vrai si le jeton est un bloc d'initiales de prénom.
+
+    Couvre « T », « T. » et les blocs collés sans points de certains fournisseurs
+    (« Yurtseven HR », « Michels LM »). Un nom en casse mixte (« Li », « Wu ») n'est
+    jamais pris pour des initiales.
+    """
     core = token.strip().strip(".")
-    return len(core) == 1 and core.isalpha()
+    if not core or not core.isalpha():
+        return False
+    if len(core) == 1:
+        return True
+    return 2 <= len(core) <= 3 and core.isupper()
 
 
 def clean_title(value: str) -> str:
@@ -80,11 +89,20 @@ def split_name(full_name: str) -> tuple[str, str]:
 
 
 def initials(first_names: str, style: str = "apa") -> str:
-    """Initiales d'un prénom : « Jean Pierre » → « J. P. » (APA) ou « JP » (Vancouver)."""
+    """Initiales d'un prénom : « Jean Pierre » → « J. P. » (APA) ou « JP » (Vancouver).
+
+    Un bloc collé (« HR », « LM ») est éclaté en initiales distinctes : « H. R. ».
+    """
     if not first_names:
         return ""
     parts = [p for p in re.split(r"[\s\-]+", first_names) if p]
-    letters = [p[0].upper() for p in parts if p and p[0].isalpha()]
+    letters: list[str] = []
+    for part in parts:
+        core = part.strip().strip(".")
+        if len(core) > 1 and core.isalpha() and core.isupper():
+            letters.extend(core)
+        elif core and core[0].isalpha():
+            letters.append(core[0].upper())
     if style == "vancouver":
         return "".join(letters)
     return " ".join(f"{letter}." for letter in letters)
@@ -133,7 +151,9 @@ def join_authors(authors: list[str], style: str) -> str:
         if len(rendered) > 3:
             return " ; ".join(rendered[:3]) + " et al."
         return " ; ".join(rendered)
-    # APA 7 : « A, B, & C » — esperluette avant le dernier auteur.
+    # APA 7 : « A & B » (deux auteurs), « A, B, & C » (trois et plus, virgule sérielle).
     if len(rendered) > 20:
         return ", ".join(rendered[:19]) + ", … " + rendered[-1]
-    return ", ".join(rendered[:-1]) + " & " + rendered[-1] if len(rendered) > 1 else rendered[0]
+    if len(rendered) == 2:
+        return f"{rendered[0]} & {rendered[1]}"
+    return ", ".join(rendered[:-1]) + ", & " + rendered[-1]

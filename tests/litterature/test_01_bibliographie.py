@@ -90,8 +90,18 @@ def test_nom_suivi_d_initiales_remis_dans_le_bon_ordre():
     assert author_apa("Michels L. M.") == "Michels, L. M."
     assert author_apa("Abdulrahman M. Qahtani") == "Qahtani, A. M."
     assert author_apa("Graziotin, D.") == "Graziotin, D."
+    # Bloc d'initiales collées sans points, renvoyé par certains fournisseurs.
+    assert author_apa("Yurtseven HR") == "Yurtseven, H. R."
+    assert author_apa("Li") == "Li"          # un nom court en casse mixte reste un nom
     ref = styles.render(_doc(authors=["Jiang T"]), "apa7")
     assert ref.startswith("Jiang, T.")
+
+
+def test_apa7_virgule_serielle_avant_l_esperluette_a_partir_de_trois_auteurs():
+    deux = styles.render(_doc(authors=["Marie Dupont", "Awa Traoré"]), "apa7")
+    assert "Dupont, M. & Traoré, A." in deux
+    trois = styles.render(_doc(authors=["Marie Dupont", "Awa Traoré", "Kim Lee"]), "apa7")
+    assert "Dupont, M., Traoré, A., & Lee, K." in trois
 
 
 def test_guillemet_double_non_apparie_retire_du_titre():
