@@ -254,7 +254,8 @@ class FakeFetcher:
         self.requests = 0
         self.cfg = {}
 
-    def fetch_json(self, url: str, params: dict | None = None, cost: int = 1) -> dict:
+    def fetch_json(self, url: str, params: dict | None = None, cost: int = 1,
+                   headers: dict | None = None) -> dict:
         from problematization_agent.core.errors import ErrorState, PipelineError
 
         self.requests += 1

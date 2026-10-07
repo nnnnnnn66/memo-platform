@@ -393,6 +393,10 @@ n'utilise que des API publiques sans clé. Le LLM passe par la clé existante de
 - **Pertinence déterministe** : une publication est retenue si son titre/revue contient au moins
   DEUX des mots-clés du gap (et non un ratio sur tous les mots du sujet, trop strict : il écartait
   des travaux réellement proches au profit de seuls titres longs de Crossref).
+- **Clé OpenAlex (facultatif, 0 €)** : lue dans l'environnement sous `OPENALEX_API_KEY`
+  (`~/.hermes/.env`), elle est envoyée en EN-TÊTE `Authorization: Bearer …` (jamais dans l'URL, qui
+  est journalisée) et donne à la plateforme son propre quota (10× le budget anonyme). Jamais écrite
+  en configuration ni dans les journaux.
 - Aucune base vectorielle : l'ancrage se fait par recherche verbatim dans le texte, sans embedding.
 
 ---
@@ -425,12 +429,13 @@ n'utilise que des API publiques sans clé. Le LLM passe par la clé existante de
   laisser toute la question aux étapes suivantes.
 - **D2 — Enum du gap.** La SPEC §9.3 liste 3 types (contextuelle, conceptuelle, empirique) mais §3.5
   en mentionne 4 (+ méthodologique). Proposition : enum à **4 valeurs**.
-- **D3 — Gap check réseau.** Inclure dès la V1 un étage déterministe de vérification du gap
+- **D3 — Gap check réseau — CONTRESIGNÉ le 2026-10-07.** Étage déterministe de vérification du gap
   (huit fournisseurs gratuits sans clé : OpenAlex, Crossref, HAL, theses.fr, OpenAIRE, DataCite,
-  DOAJ, Europe PMC) — ou le différer ? Note : OpenAlex renvoie `429` depuis ce serveur (quota
-  gratuit **partagé par l'adresse IP**, réinitialisation à minuit UTC) ; la vérification ne repose
-  donc pas sur lui seul, sa défaillance est déclarée. Une clé OpenAlex gratuite (quota propre)
-  supprimerait cette limite.
+  DOAJ, Europe PMC). Note : OpenAlex renvoie `429` depuis ce serveur (quota gratuit **partagé par
+  l'adresse IP**, réinitialisation à minuit UTC) ; la vérification ne repose donc pas sur lui seul,
+  sa défaillance est déclarée. Une **clé OpenAlex gratuite** — lue dans l'environnement sous
+  `OPENALEX_API_KEY` (`~/.hermes/.env`), jamais écrite en configuration — donne un quota propre et
+  supprime cette limite.
 - **D4 — Interface.** Route `POST /problematique/analyze`, port **8040**, `run-problematique.sh`.
 - **D5 — Bibliographie.** Rendu **déterministe** (le modèle ne rédige jamais une référence), cohérent
   avec l'étape 3 ; à partir des seuls `doc_id` réellement cités.

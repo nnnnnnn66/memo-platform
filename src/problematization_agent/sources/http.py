@@ -42,7 +42,8 @@ class ApiFetcher:
                 f"MAX_EXTERNAL_REQUESTS atteint ({self.limits.max_external_requests})",
             )
 
-    def fetch(self, url: str, params: dict | None = None, cost: int = 1) -> str:
+    def fetch(self, url: str, params: dict | None = None, cost: int = 1,
+              headers: dict | None = None) -> str:
         if params:
             query = urllib.parse.urlencode(params, doseq=True)
             url = f"{url}{'&' if '?' in url else '?'}{query}"
@@ -61,6 +62,9 @@ class ApiFetcher:
             request = urllib.request.Request(url, headers={
                 "User-Agent": self.cfg.get("user_agent", "memo-platform/0.1"),
                 "Accept": "application/json, */*",
+                # Les secrets (clé OpenAIRE, OpenAlex…) passent par des EN-TÊTES, jamais par l'URL :
+                # une URL est journalisée et recopiée dans les erreurs, pas un en-tête.
+                **(headers or {}),
             })
             try:
                 with urllib.request.urlopen(request, timeout=self.limits.source_timeout) as resp:
@@ -99,8 +103,9 @@ class ApiFetcher:
         self.bytes_downloaded += len(raw)
         return raw.decode("utf-8", "replace")
 
-    def fetch_json(self, url: str, params: dict | None = None, cost: int = 1) -> dict:
-        text = self.fetch(url, params, cost=cost)
+    def fetch_json(self, url: str, params: dict | None = None, cost: int = 1,
+                   headers: dict | None = None) -> dict:
+        text = self.fetch(url, params, cost=cost, headers=headers)
         try:
             return json.loads(text)
         except json.JSONDecodeError as exc:

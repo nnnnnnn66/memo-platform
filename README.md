@@ -78,13 +78,18 @@ Ne jamais construire toute la plateforme d'un coup. Un seul agent à la fois.
       APA7, vérificateur indépendant) — campagne réelle réseau + modèle allant jusqu'au verdict :
       `validation.verified = true`, verdict `verified`, 12/12 contrôles OK, 26/26 affirmations
       ancrées. 36 tests hors réseau. Paquet autonome, agents 1-3 non modifiés.
-      *(Architecture présentée pour le portillon §42 : à contresigner par le porteur.)*
-- [x] **Gap check (agent 4) rendu résilient** : OpenAlex renvoie `429` depuis ce serveur (quota
-      gratuit *partagé par l'adresse IP*, réinitialisation à minuit UTC) → la vérification du gap
-      interroge désormais 8 fournisseurs gratuits sans clé (Crossref, HAL, theses.fr, OpenAIRE,
-      DataCite, DOAJ, Europe PMC en plus d'OpenAlex), avec requêtes en mots-clés `OR` et
-      pertinence déterministe. Vérifié en exécution réelle : 7 fournisseurs répondent malgré le
-      429 d'OpenAlex, échec déclaré, 5 publications proches trouvées.
-      ⚠️ À contresigner par le porteur (modification d'un agent déjà validé).
+      *(Architecture contresignée par le porteur de projet le 2026-10-07.)*
+- [x] **Gap check (agent 4) rendu résilient — contresigné par le porteur le 2026-10-07** : OpenAlex
+      renvoie `429` depuis ce serveur (quota gratuit *partagé par l'adresse IP*, réinitialisation à
+      minuit UTC) → la vérification du gap interroge 8 fournisseurs gratuits sans clé (Crossref,
+      HAL, theses.fr, OpenAIRE, DataCite, DOAJ, Europe PMC en plus d'OpenAlex), avec requêtes en
+      mots-clés `OR` et pertinence déterministe. Vérifié en exécution réelle : 7 fournisseurs
+      répondent malgré le 429 d'OpenAlex, échec déclaré, 5 publications proches trouvées.
+- [ ] **Clé OpenAlex gratuite (facultatif, 0 €)** : lève la limite partagée (budget 10×). À créer
+      par le porteur depuis SON navigateur (openalex.org → compte → Settings → API key) : le site
+      OpenAlex bloque la création de compte depuis l'IP de ce serveur. Une fois la clé obtenue :
+      `echo 'OPENALEX_API_KEY=<clé>' >> ~/.hermes/.env` — le code la lit automatiquement et l'envoie
+      en en-tête `Authorization` (jamais dans l'URL ni dans les journaux),
+      `src/problematization_agent/sources/adapters/openalex.py`. Rien d'autre à modifier.
 - [ ] Agent suivant (à définir) — un seul agent à la fois
 

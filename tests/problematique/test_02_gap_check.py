@@ -110,6 +110,41 @@ def settings_providers_file():
     return Settings().providers_file
 
 
+class _CapturingFetcher:
+    """Fetcher qui enregistre les paramètres et en-têtes envoyés (aucun réseau)."""
+
+    def __init__(self):
+        self.cfg = {}
+        self.calls: list[tuple[str, dict]] = []
+        self.headers: list[dict] = []
+
+    def fetch_json(self, url: str, params: dict | None = None, cost: int = 1,
+                   headers: dict | None = None) -> dict:
+        self.calls.append((url, dict(params or {})))
+        self.headers.append(dict(headers or {}))
+        return {"results": []}
+
+
+def test_cle_openalex_envoyee_si_configuree(monkeypatch):
+    """La clé OpenAlex (si présente dans l'environnement) lève le quota IP partagé.
+
+    Elle part en EN-TÊTE `Authorization`, jamais dans l'URL : une URL est journalisée et recopiée
+    dans les erreurs, un en-tête non. Sans clé : requête anonyme, comportement inchangé.
+    """
+    from problematization_agent.sources.adapters import openalex as adapter
+
+    fetcher = _CapturingFetcher()
+    monkeypatch.setenv("OPENALEX_API_KEY", "cle-de-test")
+    adapter.search(fetcher, "teletravail OR productivite", 5)
+    assert fetcher.headers[-1].get("Authorization") == "Bearer cle-de-test"
+    assert "api_key" not in fetcher.calls[-1][1]
+    assert "cle-de-test" not in fetcher.calls[-1][0]  # jamais dans l'URL
+
+    monkeypatch.delenv("OPENALEX_API_KEY", raising=False)
+    adapter.search(fetcher, "teletravail", 5)
+    assert "Authorization" not in fetcher.headers[-1]
+
+
 class _Limits:
     max_external_requests = 5
     source_timeout = 5
