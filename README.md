@@ -109,13 +109,14 @@ Ne jamais construire toute la plateforme d'un coup. Un seul agent à la fois.
       écrivait « JC, M. » au lieu de « Mutiganda, J. C. ». Même famille de bug que celui corrigé
       sur l'Agent 3, mais implémentation distincte (`bibliography/styles.py`) → détection des
       blocs d'initiales collés (« JC », « MÈ ») et éclatement en « J. C. ». 3 tests ajoutés.
-- [ ] **Clé OpenAlex gratuite (facultatif, 0 €)** : lève la limite partagée (budget 10×). À créer
-      par le porteur depuis SON navigateur (openalex.org → compte → Settings → API key) : le site
-      OpenAlex bloque la création de compte depuis l'IP de ce serveur. Une seule clé suffit pour
-      **les agents 3 et 4** : une fois obtenue,
-      `echo 'OPENALEX_API_KEY=<clé>' >> ~/.hermes/.env` — le code la lit automatiquement et l'envoie
-      en en-tête `Authorization` (jamais dans l'URL ni dans les journaux),
-      `src/{literature_review,problematization}_agent/sources/adapters/openalex.py`.
-      Rien d'autre à modifier, aucun redémarrage nécessaire.
+- [x] **Clé OpenAlex gratuite — POSÉE et VÉRIFIÉE le 2026-10-09** : lue depuis `~/.hermes/.env`
+      sous `OPENALEX_API_KEY` et transmise en en-tête `Authorization` (jamais dans l'URL ni dans
+      les journaux) par les agents 3 et 4. Vérifié par un appel réel à l'API :
+      `HTTP 200`, `X-RateLimit-Limit: 10000` (budget quotidien), `X-RateLimit-Remaining: 9990`
+      — là où le serveur recevait `429` avec le quota anonyme partagé par IP.
+      Prérequis (corrigé) : les agents ne lisaient **pas** `~/.hermes/.env` — seuls le `.env` du
+      projet (inexistant) était chargé ; chaque agent charge désormais les deux.
+      *Filet de sécurité* : en cas d'exposition de la clé, la faire tourner depuis
+      openalex.org → Settings → API key → Rotate, puis relancer `bash /root/poser-cle-openalex.sh`.
 - [ ] Agent suivant (à définir) — un seul agent à la fois
 
