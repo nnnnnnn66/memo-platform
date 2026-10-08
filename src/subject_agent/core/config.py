@@ -12,10 +12,23 @@ from .limits import Limits
 ROOT = Path(__file__).resolve().parents[3]
 
 
+def _load_secrets(root: Path) -> None:
+    """Charge les secrets : fichier du PROJET (.env) puis fichier HERMES (~/.hermes/.env).
+
+    `load_dotenv` n'écrase jamais une variable déjà définie : le projet garde la priorité, et le
+    fichier Hermes comble ce qui manque. Sans ce second chargement, une clé posée dans
+    `~/.hermes/.env` (emplacement documenté dans le README) n'était JAMAIS lue par les agents :
+    la consigne ne fonctionnait pas en exécution normale.
+    """
+    load_dotenv(root / ".env")
+    hermes_home = os.environ.get("HERMES_HOME") or str(Path.home() / ".hermes")
+    load_dotenv(Path(hermes_home) / ".env")
+
+
 class Settings:
     def __init__(self, root: Path | None = None) -> None:
         self.root = Path(root) if root else ROOT
-        load_dotenv(self.root / ".env")
+        _load_secrets(self.root)
         cfg_path = self.root / "config" / "settings.yaml"
         self.raw = yaml.safe_load(cfg_path.read_text(encoding="utf-8"))
         self.limits = Limits.from_dict(self.raw["limits"])
