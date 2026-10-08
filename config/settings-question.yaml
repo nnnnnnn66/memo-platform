@@ -1,0 +1,52 @@
+# Agent Question de recherche V1 — configuration PROPRE à cet agent.
+# (Aucun secret ici : les clés vivent uniquement dans ~/.hermes/.env.)
+
+llm:
+  provider: deepseek                 # deepseek | google
+  deepseek:
+    base_url: https://api.deepseek.com/v1
+    model: deepseek-flash
+    api_key_env: DEEPSEEK_API_KEY
+  google:
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    model: gemini-2.5-flash
+    api_key_env: GOOGLE_API_KEY
+  temperature: 0.2
+
+limits:
+  max_input_size: 40000              # caractères par champ texte
+  max_output_tokens: 32000           # modèle raisonneur : les tokens de raisonnement consomment
+                                     # ce budget ; une limite basse coupe les JSON en plein
+  max_agent_turns: 8
+  max_verification_retries: 3
+  timeout: 90                        # secondes (appel LLM)
+  max_llm_calls: 16                  # P1 + P2 + P3 + vérificateur + re-tentatives + corrections
+  # --- clarification documentaire (optionnelle, réseau borné) ---
+  max_external_requests: 24          # requêtes × fournisseurs × (1 + retry) si l'option est activée
+  source_timeout: 25                 # secondes par requête fournisseur
+  max_clarification_queries: 3       # requêtes de clarification d'un concept ambigu
+  max_results_per_query: 8           # résultats demandés par requête/fournisseur
+  cache_ttl_hours: 336               # 14 jours
+
+paths:
+  workspace: workspace                             # workspace/<student_id>/<session_id>/
+  audit_db: workspace/audit-question.db            # journal d'audit (SQLite stdlib)
+  cache_db: workspace/question-cache.db            # cache des requêtes de clarification
+
+sources:
+  enabled: true
+  user_agent: "memo-platform/0.1 (accompagnement memoire; contact: etudiant@example.org)"
+  polite_email: "etudiant@example.org"
+  max_response_bytes: 3000000
+  providers_file: providers.yaml                   # relatif à src/research_question_agent/sources/
+  polite_delay_seconds: 0.4
+  retry_on_transient: 2
+  max_retry_wait: 5.0
+
+clarification:
+  # Désactivée par défaut : la clarification documentaire n'est utile que pour lever une ambiguïté
+  # terminologique. La mettre à `true` active l'étage réseau borné (fournisseurs gratuits sans clé).
+  enabled: false
+
+security:
+  fail_on_injection: false                         # true = bloquer ; false = annoter et continuer
