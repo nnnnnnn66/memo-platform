@@ -118,5 +118,7 @@ Ne jamais construire toute la plateforme d'un coup. Un seul agent à la fois.
       projet (inexistant) était chargé ; chaque agent charge désormais les deux.
       *Filet de sécurité* : en cas d'exposition de la clé, la faire tourner depuis
       openalex.org → Settings → API key → Rotate, puis relancer `bash /root/poser-cle-openalex.sh`.
+      **Rotation effectuée le 2026-10-09 et vérifiée** : la clé exposée renvoie désormais `401`
+      (morte), la nouvelle répond `200` sur 3 appels successifs.
 - [ ] Agent suivant (à définir) — un seul agent à la fois
 
