@@ -120,5 +120,26 @@ Ne jamais construire toute la plateforme d'un coup. Un seul agent à la fois.
       openalex.org → Settings → API key → Rotate, puis relancer `bash /root/poser-cle-openalex.sh`.
       **Rotation effectuée le 2026-10-09 et vérifiée** : la clé exposée renvoie désormais `401`
       (morte), la nouvelle répond `200` sur 3 appels successifs.
+- [x] **Agent 5 — Question de recherche : implémenté et VALIDÉ en exécution réelle (2026-10-09)**
+      (`src/research_question_agent/`, API `/question/analyze`, profil Hermes `agent-question`,
+      `run-question.sh`) : pré-cadrage, compréhension P1, intention P2 (+ contrôle d'intention
+      déterministe), formulation P3, contrôles de neutralité codés (F2–F6 : présupposé, question
+      double, question trop large, délimitation non sourcée), clarification documentaire bornée
+      (désactivée par défaut), vérificateur indépendant (C1–C12), puis **portillon humain** — le
+      statut `validated` ne vient que de la décision de l'étudiant. Campagne réelle : statut
+      `awaiting_human_validation`, vérificateur `verified` (12/12), 0 correction, confiance 0,95,
+      décision étudiante `validated`.
+- [x] **Blocage réel de l'Agent 5 corrigé (règle F5)** : la campagne échouait AVANT le vérificateur
+      (`PipelineError: formulation non conforme — F5: délimitation ajoutée sans source
+      (geo=Côte d'Ivoire, Abidjan)`). Ce n'était pas une invention du modèle : l'étudiant fournit le
+      pays et la ville dans DEUX champs distincts, et F5 exigeait la délimitation entière comme bloc
+      contigu. Un défaut déterministe (donc du code, pas du prompt). F5 vérifie désormais chaque
+      élément d'une délimitation composée (« X, Y », « X et Y ») ; une délimitation dont UN élément
+      n'est nulle part reste signalée. 2 tests ajoutés. Suite : `pytest -q` = 269 tests.
+- [ ] **Test de chaîne A4 → A5 sur sortie RÉELLE** : la passation est couverte par un test unitaire
+      construit sur la forme de sortie de l'Agent 4 (`subject_reference.original`,
+      `problematique_note.texte_complet`, `validation.verified`), mais pas encore par une sortie
+      réelle de bout en bout (la leçon « les payloads fabriqués à la main ne prouvent rien »).
+- [ ] **Agent 5 : architecture à contresigner par le porteur** (portillon §42).
 - [ ] Agent suivant (à définir) — un seul agent à la fois
 

@@ -90,12 +90,24 @@ def premise_is_grounded(premise: str, context_text: str) -> bool:
 
 _YEAR_RE = re.compile(r"\b(1[89]\d{2}|20\d{2}|21\d{2})\b")
 
+# Une délimitation peut être COMPOSÉE (« Côte d'Ivoire, Abidjan », « Abidjan et Bouaké ») alors que
+# l'étudiant fournit ses éléments dans des champs DISTINCTS (pays / zone géographique). Exiger la
+# chaîne entière comme bloc contigu signalerait à tort une délimitation pourtant fournie — constaté
+# au test réel (F5 refusait « geo=Côte d'Ivoire, Abidjan »). On vérifie donc chaque élément.
+_PARTS_RE = re.compile(r"\s*[,;/]\s*|\s+et\s+|\s+puis\s+|\s+-\s+")
+
+
+def _boundary_parts(normalized_value: str) -> list[str]:
+    """Éléments d'une délimitation composée (chaque élément doit être sourcé séparément)."""
+    return [part.strip() for part in _PARTS_RE.split(normalized_value) if part.strip()]
+
 
 def unsourced_boundaries(scope, provided_text: str) -> dict:
     """Repère les délimitations présentes dans la question mais absentes des entrées fournies.
 
     Aucune invention n'est tolérée : si l'agent délimite (zone, période, population) sans que cela
     figure dans les données de l'étudiant, c'est signalé — jamais accepté en silence.
+    Une délimitation composée est acceptée dès lors que CHACUN de ses éléments est fourni.
     """
     haystack = _normalize(provided_text)
     out: dict[str, str] = {}
@@ -107,6 +119,9 @@ def unsourced_boundaries(scope, provided_text: str) -> dict:
             continue
         normalized = _normalize(value)
         if normalized and normalized in haystack:
+            continue
+        parts = _boundary_parts(normalized)
+        if len(parts) > 1 and all(part in haystack for part in parts):
             continue
         # Une période sous forme d'années est acceptée si les années figurent déjà dans les entrées.
         if field_name == "temps":

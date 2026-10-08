@@ -1,11 +1,14 @@
 # Architecture V1 — Agent Question de recherche (`research_question_agent` 1.0)
 
-> Présentation exigée par la SPEC §42 (15 points). **Aucune implémentation n'a été faite.**
-> Ce document attend la validation humaine avant toute ligne de code.
+> Présentation exigée par la SPEC §42 (15 points). **Implémentation faite et vérifiée en exécution
+> réelle le 2026-10-09** : campagne réelle (modèle DeepSeek) jusqu'au verdict du vérificateur —
+> `awaiting_human_validation`, vérificateur `verified` (12/12 contrôles), puis décision étudiante
+> `validated`. Suite : `pytest -q` = 269 tests, hors réseau.
 > Référentiel : `docs/spec-agent-05-question-recherche.md` (SPEC reçue).
 > Éléments de l'agent : `docs/elements-agent-05-question-recherche.md` (profil Hermes
-> `agent-question` + paquet prévu). **Cadre autonome** : aucun agent existant n'est modifié et
-> aucun code n'est partagé avec eux.
+> `agent-question` + paquet `src/research_question_agent/`). **Cadre autonome** : aucun agent
+> existant n'est modifié et aucun code n'est partagé avec eux.
+> ⚠️ Architecture à contresigner par le porteur de projet.
 
 ---
 

@@ -55,3 +55,29 @@ def test_delimitation_presente_dans_les_entrees_acceptee():
     boundaries = ScopeAndBoundaries(geo="Abidjan", temps="2020-2024", population="")
     added = qr.unsourced_boundaries(boundaries, "étude menée à Abidjan entre 2020-2024")
     assert added == {}
+
+
+def test_delimitation_composee_issue_de_champs_distincts_acceptee():
+    """« Côte d'Ivoire, Abidjan » n'est pas inventé si le pays ET la ville sont fournis.
+
+    Bug du test réel : les entrées étudiantes contiennent le pays dans un champ et la ville dans un
+    autre ; exiger la chaîne entière comme bloc contigu signalait à tort (F5) une délimitation
+    pourtant fournie → la campagne échouait avant le vérificateur.
+    """
+    from research_question_agent.schemas.question import ScopeAndBoundaries
+
+    provided = "Pays : Côte d'Ivoire\nZone géographique : Abidjan\nPériode : 2020-2024"
+    boundaries = ScopeAndBoundaries(geo="Côte d'Ivoire, Abidjan", temps="2020 - 2024",
+                                    population="développeurs")
+    added = qr.unsourced_boundaries(boundaries, provided)
+    assert "geo" not in added        # pays + ville fournis séparément
+    assert "temps" not in added      # années fournies
+    assert "population" in added     # population jamais fournie : signalée
+
+
+def test_delimitation_composee_inventee_signalee():
+    from research_question_agent.schemas.question import ScopeAndBoundaries
+
+    boundaries = ScopeAndBoundaries(geo="Abidjan, Dakar", temps="", population="")
+    added = qr.unsourced_boundaries(boundaries, "Pays : Côte d'Ivoire\nZone géographique : Abidjan")
+    assert "geo" in added            # Dakar n'est nulle part : on ne l'accepte pas
