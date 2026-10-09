@@ -162,5 +162,6 @@ Ne jamais construire toute la plateforme d'un coup. Un seul agent à la fois.
       construit sur la forme de sortie de l'Agent 5 (`main_research_question`, `subject`,
       `validation.verified`), mais pas encore par une sortie réelle de bout en bout.
 - [ ] **Agent 6 : architecture à contresigner par le porteur** (portillon §42).
+- [ ] **Agent 5 : architecture à contresigner par le porteur** (portillon §42).
 - [ ] Agent suivant (à définir) — un seul agent à la fois
 
