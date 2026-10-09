@@ -47,6 +47,34 @@ def test_causalite_sans_dispositif():
     assert rules.causality_is_justified("experimentation")
 
 
+def test_causalite_deniee_n_est_pas_une_affirmation():
+    """Une phrase qui ÉCARTE la causalité n'est pas une affirmation de causalité.
+
+    Faux positif constaté en campagne réelle : le modèle écrivait, à juste titre,
+    « sans prétendre à une causalité (aucun dispositif expérimental) » et la campagne
+    échouait sur M4 sans que le modèle puisse « corriger » une phrase correcte.
+    """
+    assert not rules.causal_hits(
+        "La question est traitée en quantifiant l'association, sans prétendre à une causalité "
+        "(aucun dispositif expérimental).")
+    assert not rules.causal_hits("Cette stratégie ne permet pas d'établir une causalité.")
+    assert not rules.causal_hits("Aucune causalité ne peut être établie avec ce dispositif.")
+    assert not rules.causal_hits("Cette étude ne démontre pas de causalité.")
+    # Une affirmation reste bien détectée, même si un « sans » traîne hors de la proposition.
+    assert rules.causal_hits("Le dispositif démontre une causalité.")
+    assert rules.causal_hits("Le télétravail cause une baisse de productivité.")
+    assert rules.causal_hits("Sans surprise, le dispositif démontre une causalité.")
+
+
+def test_causalite_deniee_dans_le_diagnostic_ne_declenche_pas_m4(request_factory):
+    """Intégration : un diagnostic qui écarte la causalité ne doit pas être refusé."""
+    params = _baseline()
+    params["coherence"] = ("La question est traitée en quantifiant l'association, sans prétendre "
+                           "à une causalité (aucun dispositif expérimental).")
+    out = _output(**params)
+    assert not any(v.startswith("M4") for v in diagnosis_checks.apply(out, request_factory()))
+
+
 def test_analyse_incompatible_avec_l_approche():
     assert rules.analysis_incompatible("qualitative", ["régression logistique"])
     assert not rules.analysis_incompatible("quantitative", ["régression logistique"])

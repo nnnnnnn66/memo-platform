@@ -99,9 +99,46 @@ def is_known(value: str, category: str) -> bool:
     return normalize_code(value, category) in _CATEGORIES.get(category, [])
 
 
+# Mots qui DEMENTENT une lecture causale. Le mot « causalite » dans une phrase qui l'ECARTE
+# (« sans pretendre a une causalite », « ne permet pas d'etablir une causalite ») n'est pas une
+# affirmation de causalite : le signaler serait un faux positif. Constat en campagne reelle
+# (agent 8) : le modele ecrivait « sans pretendre a une causalite (aucun dispositif experimental) »
+# — donc correctement — et la campagne levait sur M4 apres ses deux tentatives, le modele ne
+# pouvant pas « corriger » une phrase juste.
+_CAUSAL_NEGATIONS = frozenset({
+    "sans", "pas", "aucun", "aucune", "aucuns", "aucunes", "jamais", "non", "ni",
+    "exclut", "exclure", "ecarte", "ecarter", "refuse", "refuser", "impossible",
+    "interdit", "interdire", "hors",
+})
+# Fenetre mesuree en MOTS (et non en caracteres) : « sans » ou « pas » doit etre dans la meme
+# proposition que le marqueur. Trop large, « Sans surprise, le dispositif demontre une causalite »
+# serait absous a tort.
+_NEGATION_WORDS_BEFORE = 4
+_NEGATION_WORDS_AFTER = 3
+
+
+def _marker_is_denied(norm: str, index: int, length: int) -> bool:
+    """Vrai si le marqueur est accompagne d'un mot qui le dementit."""
+    avant = re.findall(r"[a-z]+", norm[:index])[-_NEGATION_WORDS_BEFORE:]
+    apres = re.findall(r"[a-z]+", norm[index + length:])[:_NEGATION_WORDS_AFTER]
+    return bool((set(avant) | set(apres)) & _CAUSAL_NEGATIONS)
+
+
 def causal_hits(text: str) -> list[str]:
+    """Marqueurs causaux REELLEMENT affirmes (une denegation ne compte pas)."""
     norm = _normalize(text)
-    return [m for m in _CAUSAL_MARKERS if m in norm]
+    hits: list[str] = []
+    for marker in _CAUSAL_MARKERS:
+        start = 0
+        while True:
+            index = norm.find(marker, start)
+            if index < 0:
+                break
+            if not _marker_is_denied(norm, index, len(marker)):
+                hits.append(marker)
+                break
+            start = index + len(marker)
+    return hits
 
 
 def causality_is_justified(strategy_code: str) -> bool:
