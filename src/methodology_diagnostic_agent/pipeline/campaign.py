@@ -53,20 +53,60 @@ class CampaignResult:
     stages: dict = field(default_factory=dict)
 
 
+def _alternatives_overview(diagnosis) -> list[str]:
+    """Récapitule les alternatives DÉJÀ proposées dans chaque catégorie — aucune invention.
+
+    Le champ existait dans le schéma sans jamais être rempli : le vérificateur l'a relevé en
+    campagne réelle (« alternatives_overview vide alors que des alternatives figurent dans chaque
+    catégorie »). On agrège donc ce qui existe déjà, sans rien ajouter.
+    """
+    lignes: list[str] = []
+    choix = [("approche", diagnosis.approche), ("logique", diagnosis.logique),
+             ("type de recherche", diagnosis.type_recherche), ("stratégie", diagnosis.strategie)]
+    choix += [(f"collecte {i}", c) for i, c in enumerate(diagnosis.collecte, 1)]
+    choix += [(f"analyse {i}", c) for i, c in enumerate(diagnosis.analyse, 1)]
+    for nom, choice in choix:
+        alts = [str(a).strip() for a in (choice.alternatives or []) if str(a).strip()]
+        if alts:
+            propositions = ", ".join(f"« {a} »" for a in alts)
+            lignes.append(f"{nom} — « {(choice.proposition or '').strip()} » : "
+                          f"alternative(s) {propositions}")
+    return lignes
+
+
 def _confidence(output: MethodologyOutput) -> Confidence:
-    """Confiance DÉTERMINÉE par les preuves (jamais auto-attribuée au hasard)."""
+    """Confiance DÉTERMINÉE par les preuves (jamais auto-attribuée au hasard).
+
+    La rationale ÉNONCE le calcul terme à terme : le vérificateur signale un `overall` nu,
+    affirmé sans règle (« confidence.overall est affirmée sans règle de calcul explicite ») —
+    leçon déjà rencontrée sur l'agent 4.
+    """
     base = 0.5
+    termes = [f"base {base:.2f}"]
     if output.provisional:
         base -= 0.15
+        termes.append("− 0.15 (diagnostic provisoire)")
     if output.feasibility_controls:
         base -= 0.05
+        termes.append("− 0.05 (faisabilité à contrôler)")
     verified = 0.2 if output.verification_result.verified else 0.0
+    if verified:
+        termes.append("+ 0.20 (vérification indépendante réussie)")
     penalty = 0.06 * len(output.ambiguities) + 0.05 * len(output.missing_information)
+    if penalty:
+        termes.append(f"− {penalty:.2f} ({len(output.ambiguities)} ambiguïté(s), "
+                      f"{len(output.missing_information)} manque(s) bloquant(s))")
     overall = round(max(0.0, min(1.0, base + verified - penalty)), 2)
+    # Les inconnues déclarées sont ANNONCÉES dans la rationale : ne pas les mentionner produisait
+    # « 0 information manquante » en contradiction avec une liste `unknowns` bien remplie (relevé
+    # par le vérificateur). Elles pèsent déjà sur la confiance via `provisional` (inconnues ⇒
+    # diagnostic provisoire), on ne les recompte donc pas dans la pénalité par élément.
+    inconnues = f", {len(output.unknowns)} inconnue(s) déclarée(s)" if output.unknowns else ""
     rationale = (
         f"{'diagnostic provisoire' if output.provisional else 'diagnostic appuyé'} ; "
         f"vérification indépendante : {'réussie' if output.verification_result.verified else 'non acquise'} ; "
-        f"{len(output.ambiguities)} ambiguïté(s), {len(output.missing_information)} information(s) manquante(s)")
+        f"{len(output.ambiguities)} ambiguïté(s), {len(output.missing_information)} information(s) manquante(s)"
+        f"{inconnues} ; calcul : {' '.join(termes)} = {overall:.2f}")
     return Confidence(overall=overall, rationale=rationale)
 
 
@@ -117,12 +157,20 @@ def _assemble(request, pre, analysis, diagnosis_stage_out, missing) -> Methodolo
         diagnosis=diagnosis_stage_out.diagnosis,
         hypotheses_examined=list(diagnosis_stage_out.hypotheses_examined),
         feasibility_controls=list(diagnosis_stage_out.feasibility_controls),
+        unknowns=list(diagnosis_stage_out.unknowns),
         limits_of_this_output=list(diagnosis_stage_out.limits_of_this_output),
         questions_for_human=list(diagnosis_stage_out.questions_for_human),
     )
+    # `unknowns` (déclaration brute du modèle) et `missing_information` (manques DÉDUITS du dossier)
+    # restent deux listes distinctes, comme chez les agents 6 et 7 — où `missing_information` ne
+    # porte que les manques bloquants, la confiance étant pénalisée par élément (0.05). Les
+    # fusionner a été essayé : le vérificateur signalait alors une « incohérence formelle » dans
+    # l'autre sens, et la confiance tombait à 0.1 sur un diagnostic pourtant vérifié 13/13.
     out.provisional = bool(missing)
     out.missing_information = list(missing)
     out.coherence_controls = _coherence_summary(out)
+    # Récapitulatif des alternatives DÉJÀ proposées par catégorie (champ du schéma qui restait vide).
+    out.alternatives_overview = _alternatives_overview(out.diagnosis)
     out.tools_and_documents = [
         "Dossier de recherche transmis par les agents amont (sujet, question, objectifs, hypothèses)",
         "Aucune recherche documentaire en ligne effectuée" if not out.source_evidence
@@ -135,7 +183,10 @@ def _assemble(request, pre, analysis, diagnosis_stage_out, missing) -> Methodolo
             out.missing_information.append(text)
     for text in [str(a).strip() for a in analysis.contradictions if str(a).strip()]:
         out.limits_of_this_output.append("contradiction relevée : " + text)
-    out.provisional = bool(out.missing_information)
+    # Un diagnostic est « provisoire » dès qu'il reste des informations manquantes OU des
+    # inconnues déclarées : c'est ce que le modèle écrit lui-même dans son résumé, et sans quoi
+    # le champ contredisait le texte (relevé par le vérificateur, campagne réelle de l'agent 8).
+    out.provisional = bool(out.missing_information or out.unknowns)
     analysis.elements_manquants = []
     out.analysis.elements_manquants = []
     return out
@@ -225,9 +276,11 @@ def _run_verifier(out, verifier_llm, request, pre, llm, annotations, analysis, s
         out.resume = obj.resume
         out.hypotheses_examined = list(obj.hypotheses_examined)
         out.feasibility_controls = list(obj.feasibility_controls)
+        out.unknowns = list(obj.unknowns)
         out.limits_of_this_output = list(obj.limits_of_this_output)
         out.questions_for_human = list(obj.questions_for_human)
         out.coherence_controls = _coherence_summary(out)
+        out.alternatives_overview = _alternatives_overview(out.diagnosis)
         # Confiance recalculée après reformulation (cohérence interne — leçon de l'agent 7).
         out.confidence = _confidence(out)
         result.verifier_status = "corrections_requested"

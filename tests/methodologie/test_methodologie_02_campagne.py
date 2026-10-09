@@ -4,7 +4,7 @@ import pytest
 
 from methodology_diagnostic_agent.core.errors import PipelineError
 from methodology_diagnostic_agent.pipeline import campaign
-from methodologie_helpers import StubLLM
+from methodologie_helpers import DEFAULT_DIAGNOSIS, StubLLM
 
 
 def test_campagne_nominale(settings, request_factory):
@@ -36,6 +36,68 @@ def test_diagnostic_non_provisoire_si_tout_fourni(settings, request_factory):
     result = campaign.run(request_factory(), settings, StubLLM(), allow_network=False)
     assert result.output.provisional is False
     assert result.output.missing_information == []
+
+
+def test_inconnues_declarees_transmises_et_rendent_provisoire(settings, request_factory):
+    """Des inconnues déclarées doivent être CONSERVÉES et rendre le diagnostic provisoire.
+
+    Relevé par le vérificateur en campagne réelle : `unknowns` et `missing_information` vides
+    alors que l'effectif, les instruments de mesure et l'accès aux documents restaient inconnus,
+    et `provisional = false` en contradiction avec un résumé qui annonçait un « diagnostic
+    provisoire ». Le champ `unknowns` existait dans le schéma mais rien ne le remplissait.
+    """
+    inconnues = ["effectif joignable dans les deux entreprises inconnu",
+                 "aucun indicateur RH objectif de productivité disponible"]
+    diagnosis = {**DEFAULT_DIAGNOSIS, "unknowns": inconnues}
+    result = campaign.run(request_factory(), settings,
+                          StubLLM(diagnosis=diagnosis), allow_network=False)
+    out = result.output
+    assert out.unknowns == inconnues           # transmises telles quelles depuis le modèle
+    assert out.provisional is True             # des inconnues ⇒ diagnostic provisoire
+    # Les deux listes restent DISTINCTES, comme chez les agents 6 et 7 : `unknowns` porte la
+    # déclaration du modèle, `missing_information` les manques bloquants déduits du dossier.
+    # Les fusionner faisait chuter la confiance à 0.1 (pénalité par élément) et déplaçait le
+    # signalement du vérificateur sans le résoudre.
+    assert out.missing_information == []
+    assert "provisoire" in out.confidence.rationale
+
+
+def test_aucune_inconnue_declaree_reste_appuye(settings, request_factory):
+    result = campaign.run(request_factory(), settings, StubLLM(), allow_network=False)
+    assert result.output.unknowns == []
+    assert result.output.provisional is False
+
+
+def test_alternatives_overview_recapitule_les_alternatives_existantes(settings, request_factory):
+    """Le récapitulatif des alternatives agrège ce qui existe — il ne le fabrique pas.
+
+    Champ du schéma resté vide alors que chaque catégorie portait ses alternatives : relevé par
+    le vérificateur en campagne réelle.
+    """
+    result = campaign.run(request_factory(), settings, StubLLM(), allow_network=False)
+    lignes = result.output.alternatives_overview
+    assert lignes                                     # non vide
+    assert any("approche" in ligne for ligne in lignes)
+    assert any("approche mixte" in ligne for ligne in lignes)   # reprise littérale de l'alternative
+    # Aucune catégorie sans alternative n'est inventée.
+    assert all("alternative(s) " in ligne for ligne in lignes)
+
+
+def test_rationale_de_confiance_annonce_les_inconnues(settings, request_factory):
+    """La rationale ne peut pas dire « 0 information manquante » si des inconnues sont déclarées."""
+    diagnosis = {**DEFAULT_DIAGNOSIS, "unknowns": ["effectif joignable inconnu"]}
+    result = campaign.run(request_factory(), settings,
+                          StubLLM(diagnosis=diagnosis), allow_network=False)
+    assert "1 inconnue(s) déclarée(s)" in result.output.confidence.rationale
+
+
+def test_rationale_de_confiance_enonce_le_calcul(settings, request_factory):
+    """Un `overall` nu est signalé par le vérificateur : la rationale doit énoncer le calcul."""
+    result = campaign.run(request_factory(), settings, StubLLM(), allow_network=False)
+    rationale = result.output.confidence.rationale
+    assert "calcul :" in rationale
+    assert "base 0.50" in rationale
+    assert f"= {result.output.confidence.overall:.2f}" in rationale
 
 
 def test_sans_question_needs_clarification(settings, request_factory):
