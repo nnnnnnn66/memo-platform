@@ -140,6 +140,10 @@ Ne jamais construire toute la plateforme d'un coup. Un seul agent à la fois.
       suite complète `pytest -q` = **304 tests**, hors réseau ; campagne réelle DeepSeek jusqu'au
       verdict `verified` (13/13) puis décision étudiante `validated`. Détails et résultats :
       `docs/architecture-agent-06-objectifs-recherche-v1.md`.
+- [x] **Agent 7 — Hypothèses de recherche : implémenté et VALIDÉ en exécution réelle (2026-10-09)** :
+      suite complète `pytest -q` = **341 tests**, hors réseau ; campagne réelle DeepSeek jusqu'au
+      verdict `verified` (13/13) puis décision étudiante `validated`. Détails et résultats :
+      `docs/architecture-agent-07-hypotheses-v1.md`.
 - [ ] **Test de chaîne A4 → A5 sur sortie RÉELLE** : la passation est couverte par un test unitaire
       construit sur la forme de sortie de l'Agent 4 (`subject_reference.original`,
       `problematique_note.texte_complet`, `validation.verified`), mais pas encore par une sortie
@@ -158,9 +162,25 @@ Ne jamais construire toute la plateforme d'un coup. Un seul agent à la fois.
       `missing_information` et faisabilité `uncertain` désormais répercutés dans `limits_of_this_output` ;
       (b) les ambiguïtés relevées par l'analyse remontent au champ `ambiguities` (avec question de
       clarification) et à `clarification_questions`. Le vérificateur ne demande plus de corrections.
-- [ ] **Test de chaîne A5 → A6 sur sortie RÉELLE** : la passation est couverte par un test unitaire
-      construit sur la forme de sortie de l'Agent 5 (`main_research_question`, `subject`,
-      `validation.verified`), mais pas encore par une sortie réelle de bout en bout.
+- [x] **Agent 7 — Hypothèses de recherche : implémenté et VALIDÉ en exécution réelle (2026-10-09)**
+      (`src/research_hypotheses_agent/`, API `/hypotheses/analyze`, profil Hermes `agent-hypotheses`,
+      `run-hypotheses.sh`, port 8070) : pré-cadrage (question + objectifs requis), analyse P1, décision
+      de pertinence P2 (`HYPOTHESES_RECOMMENDED` | `HYPOTHESES_NOT_REQUIRED` |
+      `HYPOTHESES_REQUIRE_CLARIFICATION`), formulation P3 **uniquement si recommandées** (pas
+      d'hypothèses forcées), contrôles codés H1–H8 (hypothèse ≠ question ≠ objectif ≠ fait, causalité
+      non établie, examinabilité, redondance, anti-fusion), vérificateur indépendant (C1–C13), puis
+      **portillon humain**. Campagne réelle : statut `awaiting_human_validation`, vérificateur
+      `verified` (13/13), 0 correction, puis décision étudiante `validated`. 36 tests hors réseau.
+      Paquet autonome, agents 1-6 non modifiés.
+- [x] **Correctifs de l'Agent 7 issus de l'exécution réelle (4 passes avant le verdict)** : confiance
+      recalculée après reformulation ; limites d'hypothèses sorties de `missing_information` ;
+      ambiguïtés d'analyse consignées comme points à clarifier (fin de la contradiction décision ↔
+      questions de clarification et `analysis.ambiguites` ↔ décision) ; « modère » traité comme
+      causalité (H4) et prompt P3 renforcé (discriminance, non-opérationnalisation).
+- [ ] **Test de chaîne A6 → A7 sur sortie RÉELLE** : passation couverte par un test unitaire (forme de
+      sortie de l'Agent 6 : `general_objective`, `specific_objectives`, `validation.verified`), pas
+      encore par une chaîne réelle de bout en bout.
+- [ ] **Agent 7 : architecture à contresigner par le porteur** (portillon §42).
 - [ ] **Agent 6 : architecture à contresigner par le porteur** (portillon §42).
 - [ ] **Agent 5 : architecture à contresigner par le porteur** (portillon §42).
 - [ ] Agent suivant (à définir) — un seul agent à la fois
