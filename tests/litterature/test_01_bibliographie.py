@@ -113,3 +113,67 @@ def test_guillemet_double_non_apparie_retire_du_titre():
 def test_guillemets_apparies_conserves():
     ref = styles.render(_doc(title='The "New" Normal of Work'), "apa7")
     assert '"New"' in ref
+
+
+# --- données réelles : noms d'auteurs tels que les fournisseurs les renvoient -------------------
+# Ces trois cas sont tirés d'une campagne réelle (sujet « télétravail / développeurs d'Abidjan ») où
+# le vérificateur a refusé la bibliographie (contrôle L11). Chaque cas couvre un artefact distinct.
+
+def test_affiliation_prise_pour_un_auteur_ecartee():
+    """OpenAlex met parfois les AFFILIATIONS dans la liste des auteurs (D6, campagne réelle).
+
+    Une organisation peut être auteur ; une ADRESSE ne l'est pas. Ces chaînes produisaient
+    « Université Gamal Abdel Nasser de Conakry, F. D. S. T. E. S., … » dans la bibliographie.
+    """
+    from literature_review_agent.bibliography import normalize
+
+    authors = [
+        "Université Gamal Abdel Nasser de Conakry, Faculté des sciences techniques et santé.",
+        "FBA Diallo",
+        "Service National de Santé au Travail, Km9 - Matam Conakry, Rép. de Guinée.",
+        "Alhousseine Yansané",
+        "A Sow",
+        "MM Barry",
+    ]
+    assert normalize.is_institution(authors[0])
+    assert normalize.is_institution(authors[2])
+    assert not normalize.is_institution("FBA Diallo")
+    assert not normalize.is_institution("Alhousseine Yansané")
+
+    ref = styles.render(_doc(authors=authors, year=2024), "apa7")
+    assert ref.startswith("Diallo, F. B. A., Yansané, A., Sow, A., & Barry, M. M.")
+    assert "Conakry" not in ref.split(" (")[0]
+
+
+def test_nom_de_famille_en_capitales_avant_les_prenoms():
+    """Convention « NOM Prénoms » des sources africaines (D14, campagne réelle).
+
+    « ABBE Hermann » : l'ancien code prenait la fin pour le nom et éclatait le NOM en initiales
+    (« Hermann, A. B. B. E. »). La convention détectée dans le document s'applique à tous ses
+    auteurs : « Gbame Hervé Daniel » → « Gbame, H. D. ».
+    """
+    ref = styles.render(_doc(authors=["Gbame Hervé Daniel", "ABBE Hermann"], year=2022), "apa7")
+    assert ref.startswith("Gbame, H. D. & Abbe, H.")
+
+
+def test_nom_de_famille_en_capitales_apres_les_prenoms_et_compose():
+    """« Boris Noé MANHOULI DANMOU » (D46, campagne réelle) : nom COMPOSÉ en capitales.
+
+    L'ancien code prenait « DANMOU » seul pour le nom et éclatait « MANHOULI » en
+    « M. A. N. H. O. U. L. I. ».
+    """
+    ref = styles.render(_doc(authors=["Boris Noé MANHOULI DANMOU", "Élisée Emmanuel KOUAM TATCHEMO",
+                                      "Léa Clodiane NONGNI"], year=2024), "apa7")
+    assert ref.startswith("Manhouli Danmou, B. N., Kouam Tatchemo, É. E., & Nongni, L. C.")
+
+
+def test_initiales_courtes_devant_le_nom_ne_sont_pas_un_nom_de_famille():
+    """« MM Barry », « FBA Diallo » : forme « initiales + nom », PAS la convention « NOM d'abord ».
+
+    Régression : détecter la convention sur un bloc court provoquait « Fba, D. » et « Mm, B. ».
+    """
+    from literature_review_agent.bibliography.normalize import document_surname_first
+
+    assert not document_surname_first(["FBA Diallo", "MM Barry"])
+    ref = styles.render(_doc(authors=["FBA Diallo", "MM Barry"], year=2024), "apa7")
+    assert ref.startswith("Diallo, F. B. A. & Barry, M. M.")

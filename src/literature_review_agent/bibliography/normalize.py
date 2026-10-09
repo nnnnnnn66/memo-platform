@@ -37,6 +37,63 @@ def _is_initial(token: str) -> bool:
     return 2 <= len(core) <= 3 and core.isupper()
 
 
+def _is_caps_token(token: str) -> bool:
+    """Jeton entièrement en capitales (« ABBE », « MANHOULI ») : nom de famille probable.
+
+    Convention francophone très répandue dans les sources africaines : les NOMS sont écrits en
+    capitales et placés AVANT les prénoms (« ABBE Hermann ») ou après (« Boris Noé MANHOULI DANMOU »).
+    """
+    core = token.strip().strip(".,")
+    return len(core) >= 2 and core.isalpha() and core.isupper()
+
+
+def _is_caps_surname_token(token: str) -> bool:
+    """Capitales longues (≥ 4 lettres) : jamais des initiales, donc un NOM (« MANHOULI »)."""
+    core = token.strip().strip(".,")
+    return len(core) >= 4 and core.isalpha() and core.isupper()
+
+
+def _recase_surname(value: str) -> str:
+    """« MANHOULI DANMOU » → « Manhouli Danmou » (l'APA n'écrit pas les noms en capitales)."""
+    out = []
+    for token in value.split():
+        core = token.strip()
+        if len(core) >= 2 and core.isupper():
+            core = "-".join(part[:1].upper() + part[1:].lower() if part else part
+                            for part in core.split("-"))
+        out.append(core)
+    return " ".join(out)
+
+
+_INSTITUTION_MARKERS = (
+    "université", "universite", "university", "faculté", "faculte", "faculty", "institut",
+    "institute", "école ", "ecole ", "school", "collège", "college", "département", "departement",
+    "department", "laboratoire", "laboratory", "hôpital", "hopital", "hospital", "ministère",
+    "ministere", "ministry", "république", "republique", "republic", "société", "societe",
+    "company", "association", "agence nationale", "agency", "organisation", "organization",
+    "fondation", "foundation", "banque", "bank", "umr ", "cnrs", "inserm", "service national",
+    "ltd", "gmbh", "corp.",
+)
+
+
+def is_institution(value: str) -> bool:
+    """Vrai si la chaîne est une AFFILIATION prise à tort pour un auteur (artefact de fournisseur).
+
+    OpenAlex place parfois les affiliations DANS la liste des auteurs : « Université Gamal Abdel
+    Nasser de Conakry, Faculté des sciences techniques et santé. ». Une organisation peut être
+    auteur (APA), mais une ADRESSE ne l'est pas — ces chaînes polluaient la bibliographie et le
+    vérificateur les comptait comme noms mal formés (contrôle L11).
+    """
+    text = clean_text(value)
+    if not text:
+        return False
+    lowered = text.lower()
+    if any(marker in lowered for marker in _INSTITUTION_MARKERS):
+        return True
+    # Forme d'une adresse postale : plusieurs segments séparés par des virgules, ponctuation finale.
+    return text.endswith(".") and "," in text and len(text.split()) >= 5
+
+
 def clean_title(value: str) -> str:
     """Titre débarrassé du bruit de métadonnée : guillemet double non apparié (« Teams" Client »).
 
@@ -50,31 +107,53 @@ def clean_title(value: str) -> str:
     return re.sub(r"\s+", " ", text).strip(" ,;")
 
 
-def split_name(full_name: str) -> tuple[str, str]:
-    """Sépare « Prénom Nom » (usage des fournisseurs) en (Nom, Prénom).
+def split_name(full_name: str, surname_first: bool = False) -> tuple[str, str]:
+    """Sépare un nom d'auteur en (Nom, Prénom).
 
-    Gère les formes « Nom, Prénom » déjà normalisées, la forme « Nom Initiales »
-    (« Jiang T », « Michels L. M. ») et les particules courantes
-    (« van der Berg », « de La Fontaine », « El Amrani »).
+    Gère les formes rencontrées dans les données réelles :
+      - « Nom, Prénom » déjà normalisée ;
+      - « Nom Initiales » (« Jiang T », « Michels L. M. ») ;
+      - « Prénom Nom » (usage courant des fournisseurs) et les particules
+        (« van der Berg », « de La Fontaine », « El Amrani ») ;
+      - **convention « NOM Prénoms »** des sources africaines/francophones, où le nom de famille
+        est en CAPITALES, en tête (« ABBE Hermann ») ou après les prénoms
+        (« Boris Noé MANHOULI DANMOU »). `surname_first` signale cette convention quand un autre
+        auteur du même document la montre (même source = même convention).
     """
     name = clean_text(full_name)
     if not name:
         return "", ""
     if "," in name:
         last, _, first = name.partition(",")
-        return clean_text(last), clean_text(first)
+        return clean_text(_recase_surname(last)), clean_text(first)
     parts = [p for p in name.split() if p]
     if len(parts) == 1:
-        return parts[0], ""
+        return _recase_surname(parts[0]), ""
 
-    # Forme « Nom Initiales » : un bloc d'initiales en fin de chaîne est le prénom.
+    # 1. Nom de famille EN CAPITALES en tête de chaîne (« ABBE Hermann », « MANHOULI Boris »).
+    head = 0
+    while head < len(parts) and _is_caps_token(parts[head]) and not _is_initial(parts[head]):
+        head += 1
+    if head and head < len(parts) and (surname_first or head == 1):
+        return clean_text(_recase_surname(" ".join(parts[:head]))), clean_text(" ".join(parts[head:]))
+    if surname_first and not head:
+        # Convention du document (NOM d'abord) : le premier jeton est le nom de famille.
+        return clean_text(_recase_surname(parts[0])), clean_text(" ".join(parts[1:]))
+
+    # 2. Capitales longues ailleurs (« Boris Noé MANHOULI DANMOU ») : elles forment le nom.
+    caps = [p for p in parts if _is_caps_surname_token(p)]
+    if caps:
+        given = [p for p in parts if p not in caps]
+        return clean_text(_recase_surname(" ".join(caps))), clean_text(" ".join(given))
+
+    # 3. Forme « Nom Initiales » : un bloc d'initiales en fin de chaîne est le prénom.
     cut = len(parts)
     while cut > 1 and _is_initial(parts[cut - 1]):
         cut -= 1
     if cut < len(parts):
         return clean_text(" ".join(parts[:cut])), clean_text(" ".join(parts[cut:]))
 
-    # On remonte depuis la fin : la dernière particule est le nom, auquel s'ajoutent les
+    # 4. On remonte depuis la fin : la dernière particule est le nom, auquel s'ajoutent les
     # particules (ou mots en minuscules) qui le précèdent.
     index = len(parts) - 1
     while index > 0:
@@ -85,7 +164,7 @@ def split_name(full_name: str) -> tuple[str, str]:
         break
     last = " ".join(parts[index:])
     first = " ".join(parts[:index])
-    return clean_text(last), clean_text(first)
+    return clean_text(_recase_surname(last)), clean_text(first)
 
 
 def initials(first_names: str, style: str = "apa") -> str:
@@ -99,46 +178,71 @@ def initials(first_names: str, style: str = "apa") -> str:
     letters: list[str] = []
     for part in parts:
         core = part.strip().strip(".")
-        if len(core) > 1 and core.isalpha() and core.isupper():
+        if 2 <= len(core) <= 3 and core.isalpha() and core.isupper():
+            # Bloc d'initiales collées (« HR », « LM ») : on l'éclate lettre par lettre.
             letters.extend(core)
         elif core and core[0].isalpha():
+            # Un jeton plus long (« MANHOULI », « Boris ») est un NOM, jamais des initiales :
+            # l'éclater produisait « B. N. M. A. N. H. O. U. L. I. » (constaté en exécution réelle).
             letters.append(core[0].upper())
     if style == "vancouver":
         return "".join(letters)
     return " ".join(f"{letter}." for letter in letters)
 
 
-def author_apa(full_name: str) -> str:
-    last, first = split_name(full_name)
+def document_surname_first(authors: list[str]) -> bool:
+    """Le document suit-il la convention « NOM Prénoms » ?
+
+    Indice pris DANS le document lui-même : un auteur dont le premier jeton est un NOM en
+    capitales — capitales LONGUES, ≥ 4 lettres (« ABBE Hermann »). Un bloc de 1 à 3 capitales est un
+    groupe d'initiales et NE compte pas : « MM Barry » ou « FBA Diallo » sont des formes
+    « initiales + nom » très courantes, pas la convention « NOM d'abord ».
+    """
+    for author in authors or []:
+        parts = [p for p in clean_text(author).split() if p]
+        if len(parts) >= 2 and _is_caps_surname_token(parts[0]) and not _is_caps_token(parts[1]):
+            return True
+    return False
+
+
+def author_apa(full_name: str, surname_first: bool = False) -> str:
+    last, first = split_name(full_name, surname_first)
     if not last:
         return ""
     return f"{last}, {initials(first)}".strip().rstrip(",") if first else last
 
 
-def author_iso(full_name: str) -> str:
-    last, first = split_name(full_name)
+def author_iso(full_name: str, surname_first: bool = False) -> str:
+    last, first = split_name(full_name, surname_first)
     if not last:
         return ""
     return f"{last.upper()}, {first}".strip().rstrip(",") if first else last.upper()
 
 
-def author_vancouver(full_name: str) -> str:
-    last, first = split_name(full_name)
+def author_vancouver(full_name: str, surname_first: bool = False) -> str:
+    last, first = split_name(full_name, surname_first)
     if not last:
         return ""
     return f"{last} {initials(first, 'vancouver')}".strip()
 
 
-def join_authors(authors: list[str], style: str) -> str:
-    """Assemble la liste d'auteurs selon les conventions du style demandé."""
+def join_authors(authors: list[str], style: str, surname_first: bool | None = None) -> str:
+    """Assemble la liste d'auteurs selon les conventions du style demandé.
+
+    Les AFFILIATIONS prises pour des auteurs (artefact de fournisseur) sont écartées : une adresse
+    n'est pas un auteur.
+    """
+    people = [a for a in (authors or []) if a and not is_institution(a)]
+    if surname_first is None:
+        surname_first = document_surname_first(people)
     rendered = []
-    for author in authors or []:
+    for author in people:
         if style == "iso690":
-            rendered.append(author_iso(author))
+            rendered.append(author_iso(author, surname_first))
         elif style == "vancouver":
-            rendered.append(author_vancouver(author))
+            rendered.append(author_vancouver(author, surname_first))
         else:
-            rendered.append(author_apa(author))
+            rendered.append(author_apa(author, surname_first))
     rendered = [r for r in rendered if r]
     if not rendered:
         return ""
