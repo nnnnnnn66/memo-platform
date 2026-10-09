@@ -183,5 +183,20 @@ Ne jamais construire toute la plateforme d'un coup. Un seul agent à la fois.
 - [ ] **Agent 7 : architecture à contresigner par le porteur** (portillon §42).
 - [ ] **Agent 6 : architecture à contresigner par le porteur** (portillon §42).
 - [ ] **Agent 5 : architecture à contresigner par le porteur** (portillon §42).
+- [x] **Agent 8 — Diagnostic méthodologique : implémenté et VALIDÉ en exécution réelle (2026-10-09)** :
+      suite complète `pytest -q` = **386 tests**, hors réseau (dont **45** pour l'agent 8) ; campagne
+      réelle DeepSeek jusqu'au verdict `verified` (13/13, C1–C13), 0 correction, puis décision étudiante
+      `validated`. Détails et résultats : `docs/architecture-agent-08-diagnostic-methodologique-v1.md`.
+- [x] **Agent 8 — Diagnostic méthodologique : documents de référence** →
+      `docs/spec-agent-08-diagnostic-methodologique.md` (SPEC reçue), `docs/elements-agent-08-diagnostic-methodologique.md`
+      (fiche des 19 éléments), `docs/architecture-agent-08-diagnostic-methodologique-v1.md` (15 points, §42) ;
+      profil Hermes `agent-methodologie`, `config/settings-methodologie.yaml`, `run-methodologie.sh` (port 8080).
+- [x] **Correctifs de l'Agent 8 issus de l'exécution réelle** : M4 — une causalité niée n'est pas une
+      causalité affirmée (fenêtre de négation en mots) ; champs `unknowns` et `alternatives_overview`
+      jamais remplis (ajout au contrat du modèle / agrégation déterministe) ; `provisional` cohérent
+      avec la déclaration du modèle ; rationale de confiance énonçant son calcul.
+- [ ] **Agent 8 : architecture à contresigner par le porteur** (portillon §42).
+- [ ] **Test de chaîne A7 → A8 sur sortie RÉELLE** : passation couverte par un test unitaire, pas encore
+      par une chaîne réelle de bout en bout.
 - [ ] Agent suivant (à définir) — un seul agent à la fois
 
