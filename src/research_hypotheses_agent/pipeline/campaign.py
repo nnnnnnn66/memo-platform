@@ -249,8 +249,20 @@ def _run_verifier(out: HypothesesOutput, verifier_llm, request, pre, llm, annota
         # sur le décompte précédent, incohérente avec `missing_information` (constaté au test réel).
         out.confidence = _confidence(out)
         result.verifier_status = "corrections_requested"
-    out.status = HypothesisStatus.verification_failed
-    result.verifier_status = "verification_failed"
+    # La DERNIÈRE reformulation n'était jamais jugée : la boucle sortait sur
+    # `verification_failed` alors que la version corrigée peut passer (leçon du test de chaîne
+    # réel). Arriver ici signifie qu'une reformulation a bien été produite → on la juge.
+    verdict = verifier_module.verify(verifier_llm, request, out)
+    result.verifier = verdict
+    result.verifications += 1
+    if verdict.verdict == VerifierVerdict.verified:
+        out.verification_result.verified = True
+        out.verification_result.verifier_status = "verified"
+        out.status = HypothesisStatus.awaiting_human_validation
+        result.verifier_status = "verified"
+    else:
+        out.status = HypothesisStatus.verification_failed
+        result.verifier_status = "verification_failed"
 
 
 def run(request, settings, llm, verifier_llm=None, allow_network: bool = True, persist=None) -> CampaignResult:

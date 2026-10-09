@@ -20,7 +20,7 @@ limits:
   max_agent_turns: 6
   max_verification_retries: 3
   timeout: 90                        # secondes (appel LLM)
-  max_llm_calls: 44                  # garde-fou global : 1 (P1) + 6 lots × 2 tentatives (P2)
+  max_llm_calls: 47                  # garde-fou global : 1 (P1) + 6 lots × 2 tentatives (P2)
                                      # + 1 (P3) + 1 (P4) + vérificateur + corrections éventuelles
                                      # (synthesis + diagnostic) + 1 VÉRIFICATION FINALE qui juge la
                                      # dernière reformulation (sinon la campagne échouait à tort)

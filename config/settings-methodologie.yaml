@@ -20,8 +20,9 @@ limits:
   max_agent_turns: 8
   max_verification_retries: 3
   timeout: 90                        # secondes (appel LLM)
-  max_llm_calls: 16                  # garde-fou global : P1 + P2 + vérificateur
+  max_llm_calls: 19                  # garde-fou global : P1 + P2 + vérificateur
                                      # + re-tentatives + reformulations sur corrections
+  # +3 : une VÉRIFICATION FINALE juge la dernière reformulation
   # --- clarification documentaire (optionnelle, réseau borné) ---
   max_external_requests: 24          # requêtes × fournisseurs × (1 + retry) si l'option est activée
   source_timeout: 25                 # secondes par requête fournisseur

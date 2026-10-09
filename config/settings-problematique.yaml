@@ -20,8 +20,9 @@ limits:
   max_agent_turns: 6
   max_verification_retries: 3
   timeout: 90                        # secondes (appel LLM)
-  max_llm_calls: 24                  # garde-fou global : P1 + P2 + P3 + P4 + P5 + vérificateur
+  max_llm_calls: 27                  # garde-fou global : P1 + P2 + P3 + P4 + P5 + vérificateur
                                      # + re-tentatives éventuelles (2 tentatives par étage)
+  # +3 : une VÉRIFICATION FINALE juge la dernière reformulation
   # --- lecture du corpus amont (étape 3) ---
   max_documents_read: 60             # documents du corpus amont indexés
   max_context_chars: 60000           # texte total transmis au modèle

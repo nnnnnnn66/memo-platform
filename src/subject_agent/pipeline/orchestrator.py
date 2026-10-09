@@ -74,10 +74,12 @@ def analyze_subject(request: SubjectRequest, settings, llm, verifier_llm=None) -
 
     # Vérificateur indépendant — uniquement si l'agent se déclare prêt.
     if output.status == SubjectStatus.ready_for_verification:
+        reformulated = False
         for v in range(1, settings.limits.max_verification_retries + 1):
             verdict = subject_verifier.verify(verifier_llm, request, output)
             result.verifier = verdict
             result.verifications = v
+            reformulated = False
             if verdict.verdict == VerifierVerdict.verified:
                 output.validation.verified = True
                 output.validation.verifier_status = "verified"
@@ -95,9 +97,24 @@ def analyze_subject(request: SubjectRequest, settings, llm, verifier_llm=None) -
                 attempts += extra_attempts
                 result.output = output
                 result.verifier_status = "corrections_requested"
+                reformulated = True
             except PipelineError:
                 result.verifier_status = "verification_failed"
                 break
         else:
             result.verifier_status = "verification_failed"
+
+        # La DERNIÈRE reformulation n'était jamais jugée : la boucle sortait sur
+        # `verification_failed` alors que la version corrigée peut passer (leçon du test de chaîne
+        # réel). Une vérification finale tranche, sans nouvelle reformulation.
+        if reformulated:
+            verdict = subject_verifier.verify(verifier_llm, request, output)
+            result.verifier = verdict
+            result.verifications += 1
+            if verdict.verdict == VerifierVerdict.verified:
+                output.validation.verified = True
+                output.validation.verifier_status = "verified"
+                result.verifier_status = "verified"
+            else:
+                result.verifier_status = "verification_failed"
     return result

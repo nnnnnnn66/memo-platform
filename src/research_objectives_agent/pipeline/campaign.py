@@ -226,8 +226,20 @@ def _run_verifier(out: ObjectivesOutput, verifier_llm, request, question_text, p
         out.missing_information, out.limits_of_this_output = _derived(
             request, pre, out.feasibility_assessment, out.scope_and_boundaries)
         result.verifier_status = "corrections_requested"
-    out.status = ObjectiveStatus.verification_failed
-    result.verifier_status = "verification_failed"
+    # La DERNIÈRE reformulation n'était jamais jugée : la boucle sortait sur
+    # `verification_failed` alors que la version corrigée peut passer (leçon du test de chaîne
+    # réel). Arriver ici signifie qu'une reformulation a bien été produite → on la juge.
+    verdict = verifier_module.verify(verifier_llm, request, out, question_text)
+    result.verifier = verdict
+    result.verifications += 1
+    if verdict.verdict == VerifierVerdict.verified:
+        out.verification_result.verified = True
+        out.verification_result.verifier_status = "verified"
+        out.status = ObjectiveStatus.awaiting_human_validation
+        result.verifier_status = "verified"
+    else:
+        out.status = ObjectiveStatus.verification_failed
+        result.verifier_status = "verification_failed"
 
 
 def run(request, settings, llm, verifier_llm=None, allow_network: bool = True, persist=None) -> CampaignResult:

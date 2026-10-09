@@ -387,10 +387,12 @@ def run(request, settings, llm, verifier_llm=None, index=None, registry=None, fe
     # [15] vérificateur indépendant
     if out.status == ProblemStatus.ready_for_verification:
         previous: set[str] | None = None
+        reformulated = False
         for verification in range(1, settings.limits.max_verification_retries + 1):
             verdict = verifier_module.verify(verifier_llm, request, out, index)
             result.verifier = verdict
             result.verifications = verification
+            reformulated = False
             if verdict.verdict == VerifierVerdict.verified:
                 out.validation.verified = True
                 out.validation.verifier_status = "verified"
@@ -425,11 +427,26 @@ def run(request, settings, llm, verifier_llm=None, index=None, registry=None, fe
                 result.statements_removed = total_removed
                 result.output = out
                 result.verifier_status = "corrections_requested"
+                reformulated = True
             except PipelineError:
                 result.verifier_status = "verification_failed"
                 break
         else:
             result.verifier_status = "verification_failed"
+
+        # La DERNIÈRE reformulation n'était jamais jugée : la boucle sortait sur
+        # `verification_failed` alors que la version corrigée peut passer (leçon du test de chaîne
+        # réel). Une vérification finale tranche, sans nouvelle reformulation.
+        if reformulated:
+            verdict = verifier_module.verify(verifier_llm, request, out, index)
+            result.verifier = verdict
+            result.verifications += 1
+            if verdict.verdict == VerifierVerdict.verified:
+                out.validation.verified = True
+                out.validation.verifier_status = "verified"
+                result.verifier_status = "verified"
+            else:
+                result.verifier_status = "verification_failed"
 
     checkpoint("problematique_output", out)
     return result
