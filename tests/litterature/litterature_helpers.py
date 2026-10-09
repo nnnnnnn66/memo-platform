@@ -313,13 +313,15 @@ class SmartStubLLM:
     modèle réel.
     """
 
-    def __init__(self, keywords: dict | None = None, verifier: dict | None = None,
+    def __init__(self, keywords: dict | None = None,
+                 verifier: dict | list[dict] | None = None,
                  diagnosis: dict | None = None, with_fake_quote: bool = False):
         self.keywords = keywords or KEYWORDS
         self.verifier = verifier or VERIFIER_VERIFIED
         self.diagnosis = diagnosis or DIAGNOSIS
         self.with_fake_quote = with_fake_quote
         self.calls = 0
+        self.verifier_calls = 0
         self.sent = []
 
     # --- helpers ---
@@ -360,6 +362,12 @@ class SmartStubLLM:
         # L'ordre compte : le prompt du vérificateur mentionne aussi la synthèse et les
         # comparaisons, il doit donc être testé en premier.
         if "vérificateur" in directive:
+            # `verifier` peut être un verdict unique ou une SÉQUENCE de verdicts : la séquence
+            # permet de tester la boucle de vérification (corrections… puis verdict final).
+            if isinstance(self.verifier, list):
+                index = min(self.verifier_calls, len(self.verifier) - 1)
+                self.verifier_calls += 1
+                return as_json(self.verifier[index])
             return as_json(self.verifier)
         if "concepts, mots-clés et stratégie" in directive:
             return as_json(self.keywords)

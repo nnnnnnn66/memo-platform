@@ -128,6 +128,8 @@ def select_corpus(corpus: Corpus, limits, analyses: dict | None = None) -> tuple
     """
     analyses = analyses or {}
     retained, rejected_relevance, rejected_no_term, not_analysed, over_max = [], 0, 0, 0, 0
+    rejected_duplicate_title = 0
+    seen_titles: set[str] = set()
     for record in sorted(corpus.records, key=lambda r: r.relevance, reverse=True):
         if record.doc_id not in analyses:
             not_analysed += 1
@@ -138,8 +140,19 @@ def select_corpus(corpus: Corpus, limits, analyses: dict | None = None) -> tuple
         if record.relevance < MIN_RELEVANCE:
             rejected_relevance += 1
             continue
+        # Même TITRE qu'un document déjà retenu : c'est le même travail vu par deux fournisseurs
+        # (prépublication vs version publiée, notice de dépôt vs article) — les DOI diffèrent, donc
+        # le dédoublonnage par DOI les laisse passer et le corpus final contenait deux fois la même
+        # référence (contrôle R7 refusait la sortie). On garde la version la plus pertinente, déjà
+        # rencontrée ; les `doc_id` des documents retenus ne sont pas renumérotés.
+        title_key = " ".join((record.title or "").lower().split())
+        if title_key and title_key in seen_titles:
+            rejected_duplicate_title += 1
+            continue
         if len(retained) < limits.max_documents:
             retained.append(record)
+            if title_key:
+                seen_titles.add(title_key)
         else:
             # Pertinent mais au-delà du plafond du corpus : compté, jamais silencieusement perdu
             # (sinon le total ne se réconcilie pas avec le nombre de documents collectés).
@@ -161,6 +174,7 @@ def select_corpus(corpus: Corpus, limits, analyses: dict | None = None) -> tuple
         "rejected_no_concept_match": rejected_no_term,
         "not_analysed_over_budget": not_analysed,
         "not_retained_over_max": over_max,
+        "rejected_duplicate_title": rejected_duplicate_title,
         "collected_total": len(corpus.records),
     }
     return retained, sufficiency, stats

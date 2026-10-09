@@ -370,6 +370,12 @@ def run(request, settings, llm, verifier_llm=None, registry: Registry | None = N
             f"{selection_stats['not_retained_over_max']} document(s) pertinent(s) n'ont pas été "
             f"retenus : plafond du corpus atteint ({settings.limits.max_documents})"
         )
+    if selection_stats.get("rejected_duplicate_title"):
+        limits_notes.append(
+            f"{selection_stats['rejected_duplicate_title']} document(s) au titre identique à un "
+            "document déjà retenu (même travail vu par deux fournisseurs, DOI distincts) ont été "
+            "écartés du corpus pour éviter les doublons"
+        )
     if scope_corrected:
         limits_notes.append(
             f"{scope_corrected} document(s) annoncé(s) en texte intégral par le modèle sans texte "
@@ -437,10 +443,12 @@ def run(request, settings, llm, verifier_llm=None, registry: Registry | None = N
     # [16] vérificateur indépendant
     if output.status == ReviewStatus.ready_for_verification:
         previous: set[str] | None = None
+        reformulated = False
         for verification in range(1, settings.limits.max_verification_retries + 1):
             verdict = verifier_module.verify(verifier_llm, request, output, corpus)
             result.verifier = verdict
             result.verifications = verification
+            reformulated = False
             if verdict.verdict == VerifierVerdict.verified:
                 output.validation.verified = True
                 output.validation.verifier_status = "verified"
@@ -468,11 +476,27 @@ def run(request, settings, llm, verifier_llm=None, registry: Registry | None = N
                 output.unknowns = synthesis.unknowns
                 result.output = output
                 result.verifier_status = "corrections_requested"
+                reformulated = True
             except PipelineError:
                 result.verifier_status = "verification_failed"
                 break
         else:
             result.verifier_status = "verification_failed"
+
+        # La DERNIÈRE reformulation n'était jamais jugée : la boucle s'arrêtait sur
+        # `verification_failed` alors que la version corrigée peut parfaitement passer (vérifié en
+        # rejouant le vérificateur seul sur la sortie finale — verdict `verified`). Une vérification
+        # finale tranche, sans nouvelle reformulation (le budget de re-tentatives reste borné).
+        if reformulated:
+            verdict = verifier_module.verify(verifier_llm, request, output, corpus)
+            result.verifier = verdict
+            result.verifications += 1
+            if verdict.verdict == VerifierVerdict.verified:
+                output.validation.verified = True
+                output.validation.verifier_status = "verified"
+                result.verifier_status = "verified"
+            else:
+                result.verifier_status = "verification_failed"
 
     checkpoint("review_output", output)
     return result

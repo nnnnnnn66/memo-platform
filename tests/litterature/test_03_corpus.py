@@ -136,6 +136,41 @@ def test_selection_ecarte_le_non_pertinent():
     assert [r.doc_id for r in retained] == [by_title["Telework and productivity"]]
 
 
+def test_selection_ecarte_le_titre_en_double():
+    """Même travail vu par deux fournisseurs (titre identique, DOI et auteurs distincts).
+
+    Le dédoublonnage du collecteur compare titre ET auteurs : une prépublication et sa version
+    publiée passent donc toutes les deux. Le corpus final contenait deux fois la même référence et
+    le contrôle R7 refusait la sortie (constaté au test de chaîne réel).
+    """
+    import dataclasses
+
+    from literature_review_agent.core.config import Settings
+    from literature_review_agent.pipeline import scoring_stage
+
+    limits = dataclasses.replace(Settings().limits, max_documents=10, min_documents_useful=1)
+    titre = "Part-time or full-time teleworking? A systematic review"
+
+    corpus = Corpus()
+    corpus.add(_record(title=titre, abstract="teleworking productivity review",
+                       doi="10.1/a", url="https://doi.org/10.1/a", authors=["Jane Doe"]))
+    corpus.add(_record(title=titre.upper(), abstract="teleworking productivity review",
+                       doi="10.2/b", url="https://doi.org/10.2/b", authors=["John Roe"],
+                       provider="openalex"))
+    corpus.rank(["teleworking", "productivity"], ["en"])
+    by_doi = {r.doi: r.doc_id for r in corpus.records}
+    assert len(by_doi) == 2  # les deux notices existent bien dans le corpus collecté
+
+    analyses = {by_doi["10.1/a"]: {"relevance": 0.9}, by_doi["10.2/b"]: {"relevance": 0.8}}
+    scoring_stage.apply_analyses(corpus, analyses)
+    retained, _suff, stats = scoring_stage.select_corpus(corpus, limits, analyses)
+
+    assert len(retained) == 1
+    assert stats["rejected_duplicate_title"] == 1
+    # La version la plus pertinente est conservée, avec son identifiant D'ORIGINE (jamais renommé).
+    assert retained[0].doc_id == by_doi["10.1/a"]
+
+
 def test_comptages_limites_aux_documents_retenus():
     """Régression : les répartitions portaient sur tout le corpus collecté (84) au lieu des
     documents réellement retenus (7), rendant les statistiques incohérentes."""

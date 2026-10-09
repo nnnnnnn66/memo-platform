@@ -37,6 +37,34 @@ def test_campagne_complete_aboutit(settings, request_factory):
     assert result.stages["retrieval"]["documents_collected"] >= 2
 
 
+def test_derniere_reformulation_est_jugee(settings, request_factory):
+    """La dernière reformulation demandée par le vérificateur doit être JUGÉE.
+
+    Bug réel (trouvé au test de chaîne) : la boucle s'arrêtait sur `verification_failed` après la
+    dernière re-tentative, sans jamais rejouer le vérificateur sur la version corrigée — celle-ci
+    pouvait parfaitement passer (vérifié en rejouant le vérificateur seul : verdict `verified`).
+    """
+    import dataclasses
+
+    from litterature_helpers import VERIFIER_VERIFIED
+
+    def corr(code: str) -> dict:
+        return {"agent": "literature_review_verifier", "version": "1.0",
+                "verdict": "corrections_requested",
+                "controls": [{"code": code, "resultat": "echec", "detail": ""}],
+                "corrections": [f"{code}: corriger ce point"], "flags": []}
+
+    settings.limits = dataclasses.replace(settings.limits, max_llm_calls=40)
+    llm = SmartStubLLM(verifier=[corr("L9"), corr("L8"), corr("L7"), VERIFIER_VERIFIED])
+    result = _run(settings, request_factory(), llm=llm)
+
+    # 4 appels : 3 verdicts de correction (les re-tentatives) puis 1 verdict FINAL, qui juge la
+    # dernière reformulation. Sans le correctif, il n'y en avait que 3 et la campagne échouait.
+    assert llm.verifier_calls == 4
+    assert result.verifier_status == "verified"
+    assert result.output.validation.verified is True
+
+
 def test_sources_citees_existent_dans_le_corpus(settings, request_factory):
     result = _run(settings, request_factory())
     known = set(result.output.documents_by_id())
