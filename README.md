@@ -195,8 +195,16 @@ Ne jamais construire toute la plateforme d'un coup. Un seul agent à la fois.
       causalité affirmée (fenêtre de négation en mots) ; champs `unknowns` et `alternatives_overview`
       jamais remplis (ajout au contrat du modèle / agrégation déterministe) ; `provisional` cohérent
       avec la déclaration du modèle ; rationale de confiance énonçant son calcul.
-- [ ] **Agent 8 : architecture à contresigner par le porteur** (portillon §42).
-- [ ] **Test de chaîne A7 → A8 sur sortie RÉELLE** : passation couverte par un test unitaire, pas encore
-      par une chaîne réelle de bout en bout.
+- [x] **Agent 8 — test de chaîne A7 → A8 sur sorties RÉELLES (2026-10-09)** : les sorties réelles des
+      agents 5, 6 et 7 (`question_output.json`, `objectives_output.json`, `hypotheses_output.json`
+      de `workspace/etudiant-demo/session-demo/`) sont ingérées **telles quelles** dans la campagne de
+      l'agent 8 → `awaiting_human_validation`, vérificateur `verified` (12/13, C11 signalé), 0
+      correction, puis décision étudiante `validated`. **Bug de chaîne réel trouvé et corrigé** : les
+      sorties des agents 5-7 portent la vérification dans `verification_result`, alors que l'entrée de
+      l'agent 8 n'acceptait que `validation` (clé des agents 1-4) → toute sortie réelle des agents 5-7
+      était déclarée « non vérifiée » (mêmes symptômes que la passation 3 → 4). L'entrée accepte
+      désormais les deux formes ; 2 tests de non-régression (dont l'ingestion du fichier réel).
+      Script : `/root/.hermes/cache/scratch/e2e_chaine_a7_a8.py`.
+- [x] **Agent 8 : architecture contresignée par le porteur de projet le 2026-10-09** (portillon §42).
 - [ ] Agent suivant (à définir) — un seul agent à la fois
 

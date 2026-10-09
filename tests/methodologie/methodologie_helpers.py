@@ -109,3 +109,19 @@ def upstream_hypotheses(verified=True, agent="research_hypotheses_agent", with_h
         "validation": {"verified": verified,
                        "verifier_status": "verified" if verified else "pending"},
     }
+
+
+def upstream_agents_5_7(verified=True, with_hypotheses=True):
+    """Forme RÉELLE des sorties des agents 5 à 7 : `verification_result`, PAS de clé `validation`.
+
+    C'est exactement ce que produisent `question_output.json`, `objectives_output.json` et
+    `hypotheses_output.json` (constaté sur disque). Un contrat d'entrée qui n'accepte que
+    `validation` déclare ces sorties « non vérifiées » — bug de chaîne réel (mêmes symptômes que
+    la passation 3 -> 4 : la sortie existait mais n'arrivait pas).
+    """
+    payload = upstream_hypotheses(verified=verified, with_hypotheses=with_hypotheses)
+    payload.pop("validation", None)
+    payload["status"] = "validated"
+    payload["verification_result"] = {"verified": verified,
+                                      "verifier_status": "verified" if verified else "pending"}
+    return payload

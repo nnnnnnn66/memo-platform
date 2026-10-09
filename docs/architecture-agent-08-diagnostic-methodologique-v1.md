@@ -5,7 +5,7 @@
 > Éléments de l'agent : `docs/elements-agent-08-diagnostic-methodologique.md` (profil Hermes
 > `agent-methodologie` + paquet `src/methodology_diagnostic_agent/`). **Cadre autonome** : aucun agent
 > existant n'est modifié et aucun code n'est partagé avec eux (duplication contrôlée assumée).
-> ⚠️ Architecture à contresigner par le porteur de projet.
+> ✅ **Architecture contresignée par le porteur de projet le 2026-10-09** (portillon §42).
 
 ---
 
