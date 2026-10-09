@@ -5,6 +5,8 @@ le texte réellement lu (ou dans le résumé quand le texte intégral n'a pas é
 affirmation inventée ne peut pas franchir cette barrière.
 """
 
+import re
+
 from ..diagnosis import matrix
 from ..schemas.output import CorpusSufficiency, ReviewOutput, ReviewStatus
 
@@ -17,6 +19,41 @@ FORBIDDEN_MARKERS = [
     "objectifs de recherche",
     "plan de mémoire",
 ]
+
+# R2 — anti-fusion. Un test de SOUS-CHAÎNE brut déclenchait de fausses alertes qui refusaient la
+# campagne entière : « la question reste problématique », « la problématique de la mesure de la
+# productivité » sont des tournures normales dans une revue de littérature en français (constaté en
+# exécution réelle : `R2: fusion interdite détectée (marqueur « problématique »)` sur une synthèse
+# par ailleurs vérifiée). Le signalement n'est donc déclenché que sur un indice de PRODUCTION ou
+# d'APPROPRIATION ; le jugement de fond reste au vérificateur indépendant (contrôle L10).
+_DET = r"(?:la|le|les|l['’]|une?|cette|ce|ces)"
+_FUSION_PATTERNS = [
+    # 1. marqueur en tête de ligne (titre de section, puce, numérotation)
+    r"(?im)^[ \t]*(?:[-*+>#]|\d+[.)])?[ \t]*(?:\*\*|__)?[ \t]*{m}\b",
+    # 2. appropriation explicite
+    r"\b(?:notre|nos|ma|mon|mes)[ \t]+{m}\b",
+    # 3. « la problématique de ce mémoire »
+    r"\b{det}[ \t]+{m}[ \t]+(?:de|du|des|d['’])[ \t]+"
+    r"(?:ce|cet|cette|ces|la présente|mon|ma|notre)[ \t]*(?:mémoire|recherche|étude|thèse|travail|revue)",
+    # 4. élément annoncé comme PRODUIT (« la problématique retenue », « les hypothèses suivantes »)
+    r"\b{det}[ \t]+{m}\b[^.!?]{{0,40}}\b"
+    r"(?:retenue?s?|proposée?s?|formulée?s?|principale?s?|suivante?s?|émise?s?)\b",
+    # 5. verbe de production portant sur l'élément
+    r"\b(?:nous|je)[ \t]+(?:proposons|formulons|retenons|définissons|posons|avançons)\b"
+    r"[^.]{{0,60}}\b{m}\b",
+]
+
+
+def fusion_markers(text: str) -> list[str]:
+    """Marqueurs de fusion RÉELLEMENT produits (et non une simple occurrence du mot)."""
+    lowered = (text or "").lower()
+    found: list[str] = []
+    for marker in FORBIDDEN_MARKERS:
+        escaped = re.escape(marker)
+        patterns = [pattern.format(m=escaped, det=_DET) for pattern in _FUSION_PATTERNS]
+        if any(re.search(pattern, lowered) for pattern in patterns):
+            found.append(marker)
+    return found
 
 _CORPUS_FIELDS = ("convergences", "divergences", "limits", "gaps")
 
@@ -45,10 +82,8 @@ def validate_semantics(output: ReviewOutput, request, source_texts: dict,
         violations.append("R1: subject_reference.original ne correspond pas au sujet reçu")
 
     # R2 — anti-fusion : aucune production de l'étape suivante
-    blob = _free_texts(output).lower()
-    for marker in FORBIDDEN_MARKERS:
-        if marker in blob:
-            violations.append(f"R2: fusion interdite détectée (marqueur « {marker} »)")
+    for marker in fusion_markers(_free_texts(output)):
+        violations.append(f"R2: fusion interdite détectée (marqueur « {marker} »)")
 
     # R3 — tous les doc_id cités existent dans le corpus retenu
     cited: set[str] = set()

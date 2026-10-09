@@ -130,6 +130,35 @@ def test_marqueurs_interdits_detectes(marker):
     assert any("fusion interdite" in violation for violation in violations)
 
 
+@pytest.mark.parametrize("text", [
+    "La question reste problématique dans la littérature récente.",
+    "La problématique de la mesure de la productivité n'est pas résolue par ces travaux.",
+    "Cette étude éclaire la question de recherche sans y répondre.",
+    "Les auteurs soulignent une situation problématique sur le terrain étudié.",
+])
+def test_usage_ordinaire_des_mots_metier_non_signale(text):
+    """« problématique » et « question de recherche » sont des mots français ordinaires.
+
+    Un test de sous-chaîne brut refusait la campagne entière sur une synthèse par ailleurs vérifiée
+    (`R2: fusion interdite détectée (marqueur « problématique »)`). Seul un indice de PRODUCTION ou
+    d'appropriation doit déclencher R2.
+    """
+    from literature_review_agent.pipeline.business_validation import fusion_markers
+
+    assert fusion_markers(text) == []
+
+
+@pytest.mark.parametrize("text", [
+    "**Problématique** : l'organisation du travail à distance.",
+    "Notre problématique porte sur l'organisation du travail.",
+    "Nous formulons ici la question de recherche principale du mémoire.",
+])
+def test_production_effective_de_l_element_suivant_signalee(text):
+    from literature_review_agent.pipeline.business_validation import fusion_markers
+
+    assert fusion_markers(text)
+
+
 def test_documents_count_incoherent_detecte():
     from literature_review_agent.schemas.input import CampaignRequest
 
