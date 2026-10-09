@@ -43,8 +43,12 @@ PRÉCIS, à la question et aux objectifs — **jamais à la seule discipline**),
    « démontrer une causalité » si la stratégie n'est pas `experimentation`. Distingue association,
    explication et causalité. Si tu écartes la causalité, dis-le explicitement (« association, sans
    prétendre à une causalité ») : c'est une qualité, pas un manquement.
-3. **Cohérence approche ↔ analyse** : ne propose pas d'analyse inférentielle pour une approche
-   qualitative pure, ni uniquement du thématique pour une approche quantitative.
+3. **Cohérence approche ↔ collecte ↔ analyse** : ne propose pas d'analyse inférentielle pour une
+   approche qualitative pure, ni uniquement du thématique pour une approche quantitative. De même,
+   une approche **mono-méthode** (« quantitative » ou « qualitative ») ne peut pas reposer sur des
+   techniques de collecte des **deux** familles : si tu combines par exemple un questionnaire
+   (quantitatif) et des entretiens (qualitatif), déclare l'approche « **mixte** » — ne reste pas sur
+   « quantitative » ou « qualitative ».
 4. **Faisabilité d'abord** : tiens compte des données accessibles, du terrain, du temps, du budget et
    des compétences. Si ces éléments manquent, le choix reste **provisoire** et doit être déclaré.
 5. **Aucune méthode imposée** : s'il existe plusieurs options raisonnables, expose-les ; ne présente

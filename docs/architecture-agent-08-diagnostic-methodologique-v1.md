@@ -37,8 +37,8 @@ réseau*.
    │        question ; hypothèses examinables ; contrôles de faisabilité ; inconnues ; limites ; questions
 [7] CONTRÔLES DÉTERMINISTES (M1–M7) ── codes canoniques (M1), justification de chaque choix (M2),
    │        anti-fusion des catégories (M3), causalité sans dispositif (M4), compatibilité
-   │        approche ↔ analyse (M5), conditions de la stratégie / collecte non vide (M6), hypothèses du
-   │        dossier traitées (M7) — avec boucle de re-tentative correctrice
+   │        approche ↔ collecte et analyse (M5), conditions de la stratégie / collecte non vide (M6),
+   │        hypothèses du dossier traitées (M7) — avec boucle de re-tentative correctrice
 [8] ASSEMBLAGE (déterministe) ── provisoire DÉCLARÉ, `missing_information` dérivée, récapitulatif des
    │        alternatives, contrôles de cohérence lisibles, outils/documents réellement consultés,
    │        confiance calculée terme à terme
@@ -112,7 +112,7 @@ Points non négociables :
 | `pipeline/prerequisites.py` | Pré-cadrage (SPEC §5, §14) : **sujet ET question de recherche** essentiels (champ direct ou `upstream_*.validation.verified`). Manque essentiel → `needs_clarification`, AVANT tout appel LLM. |
 | `pipeline/analysis_stage.py` | LLM P1 : phénomène, visée RÉELLE, nature du travail, éléments disponibles/manquants, contradictions, provenance. |
 | `pipeline/diagnosis_stage.py` | LLM P2 : les six catégories avec proposition/justification/alternatives/conditions/limites + articulation + réponse à la question. |
-| `analysis/methodology_rules.py` | Cœur déterministe : énumérations canoniques, normalisation tolérante, marqueurs causaux (avec fenêtre de négation en mots), compatibilité approche ↔ analyse, anti-fusion. |
+| `analysis/methodology_rules.py` | Cœur déterministe : énumérations canoniques, normalisation tolérante, marqueurs causaux (avec fenêtre de négation en mots), compatibilité approche ↔ collecte ET approche ↔ analyse, anti-fusion. |
 | `pipeline/diagnosis_checks.py` | Applique `methodology_rules` (M1–M7) avec boucle de re-tentative correctrice ; la campagne lève si les violations subsistent après la DERNIÈRE tentative. |
 | `pipeline/business_validation.py` | R1–R5 : socle fourni (sujet + question), cohérence du statut de diagnostic, provisoire déclaré si manques, anti auto-vérification, `validated` réservé au portillon humain. |
 | `pipeline/decision_stage.py` | Portillon humain : accepté (exige `verified`) → `validated` ; modifié → contrôles M1–M7 puis re-vérification ; refusé → `blocked`. |
@@ -296,9 +296,10 @@ validation** : la validation est humaine.
 
 ## 11. Stratégie de tests
 
-`tests/methodologie/` (45 tests, hors réseau) : règles déterministes (M1–M7, causalité niée), campagne
-(nominal, provisoire, échec, corrections), décision (acceptée / modifiée / refusée), sécurité, API,
-chaîne amont. Module d'aide `methodologie_helpers.py`. Puis test réel (voir « État réel »).
+`tests/methodologie/` (49 tests, hors réseau) : règles déterministes (M1–M7, causalité niée, cohérence
+approche ↔ collecte), campagne (nominal, provisoire, échec, corrections), décision (acceptée / modifiée /
+refusée), sécurité, API, chaîne amont. Module d'aide `methodologie_helpers.py`. Puis test réel (voir
+« État réel »).
 
 ## 12. Dépendances
 
@@ -354,8 +355,8 @@ Aucune base vectorielle : la cohérence du dossier se contróle par règles cod�
 
 ### Tests hors réseau
 
-- `pytest -q tests/methodologie` → **45 tests**, tous verts.
-- Suite complète du dépôt (`pytest -q`) → **386 tests**, hors réseau.
+- `pytest -q tests/methodologie` → **49 tests**, tous verts.
+- Suite complète du dépôt (`pytest -q`) → **390 tests**, hors réseau.
 
 ### Résultats en exécution réelle (modèle DeepSeek `deepseek-flash`)
 
@@ -376,6 +377,18 @@ signalements conservés.
 
 ### Correctifs issus de l'exécution réelle
 
+- **Chaîne A7 → A8 (bug réel trouvé et corrigé)** : les sorties réelles des agents 5-7 portent la
+  vérification dans `verification_result`, alors que l'entrée de l'agent 8 n'acceptait que `validation`
+  (clé des agents 1-4) → toute sortie réelle des agents 5-7 était déclarée « non vérifiée »
+  (`MISSING_INFORMATION`). L'entrée accepte désormais les deux formes ; 2 tests de non-régression, dont
+  l'ingestion du fichier réel `hypotheses_output.json`.
+- **Cohérence approche ↔ collecte (M5 étendu)** : le vérificateur a relevé « un volet entretiens est
+  listé alors que l'approche est déclarée quantitative mono-méthode ». M5 contrôle désormais aussi les
+  techniques de **collecte** : une approche mono-méthode ne peut pas mêler collecte qualitative et
+  quantitative → il faut déclarer l'approche **« mixte »**. Prompt P2 aligné.
+- **Libellés de cohérence lisibles par l'étudiant** : `coherence_controls` exposait des codes internes
+  (« M1–M3 : contrôle déterministe ») — signalé par le vérificateur comme « peu lisibles ». Reformulés en
+  français clair, sans code interne.
 - **M4 — causalité niée (faux positif)** : `causal_hits` cherchait « causalite » en sous-chaîne, donc une
   phrase qui **écarte** la causalité (« sans prétendre à une causalité (aucun dispositif expérimental) »)
   déclenchait la règle ; le modèle ne pouvait pas « corriger » une phrase juste → la campagne levait.

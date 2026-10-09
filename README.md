@@ -184,7 +184,7 @@ Ne jamais construire toute la plateforme d'un coup. Un seul agent à la fois.
 - [ ] **Agent 6 : architecture à contresigner par le porteur** (portillon §42).
 - [ ] **Agent 5 : architecture à contresigner par le porteur** (portillon §42).
 - [x] **Agent 8 — Diagnostic méthodologique : implémenté et VALIDÉ en exécution réelle (2026-10-09)** :
-      suite complète `pytest -q` = **386 tests**, hors réseau (dont **45** pour l'agent 8) ; campagne
+      suite complète `pytest -q` = **390 tests**, hors réseau (dont **49** pour l'agent 8) ; campagne
       réelle DeepSeek jusqu'au verdict `verified` (13/13, C1–C13), 0 correction, puis décision étudiante
       `validated`. Détails et résultats : `docs/architecture-agent-08-diagnostic-methodologique-v1.md`.
 - [x] **Agent 8 — Diagnostic méthodologique : documents de référence** →
@@ -198,13 +198,21 @@ Ne jamais construire toute la plateforme d'un coup. Un seul agent à la fois.
 - [x] **Agent 8 — test de chaîne A7 → A8 sur sorties RÉELLES (2026-10-09)** : les sorties réelles des
       agents 5, 6 et 7 (`question_output.json`, `objectives_output.json`, `hypotheses_output.json`
       de `workspace/etudiant-demo/session-demo/`) sont ingérées **telles quelles** dans la campagne de
-      l'agent 8 → `awaiting_human_validation`, vérificateur `verified` (12/13, C11 signalé), 0
-      correction, puis décision étudiante `validated`. **Bug de chaîne réel trouvé et corrigé** : les
+      l'agent 8 → `awaiting_human_validation`, vérificateur `verified` (13/13, C1–C13), 0 correction,
+      puis décision étudiante `validated`. **Bug de chaîne réel trouvé et corrigé** : les
       sorties des agents 5-7 portent la vérification dans `verification_result`, alors que l'entrée de
       l'agent 8 n'acceptait que `validation` (clé des agents 1-4) → toute sortie réelle des agents 5-7
       était déclarée « non vérifiée » (mêmes symptômes que la passation 3 → 4). L'entrée accepte
       désormais les deux formes ; 2 tests de non-régression (dont l'ingestion du fichier réel).
       Script : `/root/.hermes/cache/scratch/e2e_chaine_a7_a8.py`.
+- [x] **Agent 8 — correctifs de la chaîne réelle (2026-10-09)** : (a) **C11 vérifié** — le `echec` observé
+      était un aléa du vérificateur LLM, non reproductible (passe suivante : 13/13) ; (b) **M5 étendu à la
+      collecte** — une approche mono-méthode ne peut pas mêler collecte qualitative et quantitative
+      (relevé : « entretiens sous approche quantitative ») → déclarer « mixte » ; prompt P2 aligné ;
+      (c) **`coherence_controls` en français clair** — les libellés d'outillage (« M1–M3 ») n'étaient pas
+      lisibles par l'étudiant. Reste **assumé** (choix de conception D5) : la séparation
+      `missing_information` (manques bloquants) / `unknowns` (inconnues non bloquantes), que le
+      vérificateur signale encore sans la remettre en cause.
 - [x] **Agent 8 : architecture contresignée par le porteur de projet le 2026-10-09** (portillon §42).
 - [ ] Agent suivant (à définir) — un seul agent à la fois
 

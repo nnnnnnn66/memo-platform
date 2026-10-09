@@ -40,7 +40,7 @@
 | Knowledge | `llm/prompts/*.md`, `docs/spec-agent-08-diagnostic-methodologique.md`, (`sources/providers.yaml`) | CRÉÉ |
 | RAG | Aucune base vectorielle en V1 ; clarification documentaire = API publiques (`sources/`) | CRÉÉ |
 | Tools | `pipeline/` (input, sécurité, P1–P2, contrôles déterministes, validations, vérificateur, orchestrateur) | CRÉÉ |
-| Tool spécifique | `analysis/methodology_rules.py` (énumérations des six catégories, causalité, compatibilité approche ↔ analyse) + `sources/adapters/*.py` | CRÉÉ |
+| Tool spécifique | `analysis/methodology_rules.py` (énumérations des six catégories, causalité, compatibilité approche ↔ collecte ET approche ↔ analyse) + `sources/adapters/*.py` | CRÉÉ |
 | Permissions | `core/limits.py`, `core/security_rules.py` | CRÉÉ — READ session + RESEARCH public, WRITE workspace, DELETE/DEPLOY/SEND non |
 | Memory | `workspace/<student_id>/<session_id>/{analysis,diagnosis_proposal,methodology_output}.json` + `workspace/methodologie-cache.db` | CRÉÉ |
 | Skills | `llm/prompts/{p1_analysis,p2_diagnosis,verifier}_system.md` | CRÉÉ |
@@ -97,7 +97,7 @@
 
 | Preuve | Où |
 |---|---|
-| Tests hors réseau | `tests/methodologie/` (45 tests : règles, campagne, décision, sécurité, API, chaîne amont) |
-| Contrôles déterministes seuls | causalité niée ≠ causalité affirmée (M4), catégories fusionnées refusées (M3), hypothèses du dossier non traitées (M7), diagnostic provisoire non déclaré (R3) |
+| Tests hors réseau | `tests/methodologie/` (49 tests : règles, campagne, décision, sécurité, API, chaîne amont) |
+| Contrôles déterministes seuls | causalité niée ≠ causalité affirmée (M4), catégories fusionnées refusées (M3), approche mono-méthode mais collecte des deux familles (M5), hypothèses du dossier non traitées (M7), diagnostic provisoire non déclaré (R3) |
 | Test réel complet | script hors dépôt + section « État réel » de l'architecture |
 | Traces | `workspace/audit-methodologie.db`, artefacts par session |

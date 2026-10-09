@@ -81,6 +81,32 @@ def test_analyse_incompatible_avec_l_approche():
     assert rules.analysis_incompatible("quantitative", ["analyse thématique"])
 
 
+def test_collecte_incompatible_avec_l_approche():
+    """Relevé en campagne réelle : questionnaire + entretiens sous une approche quantitative."""
+    # mono-méthode déclarée mais collecte des deux familles → approche « mixte » exigée.
+    assert rules.collecte_incompatible("quantitative", ["Questionnaire", "Entretiens semi-directifs"])
+    assert rules.collecte_incompatible("qualitative", ["Entretiens", "Questionnaire"])
+    # incohérences franches.
+    assert rules.collecte_incompatible("quantitative", ["Entretiens semi-directifs"])
+    assert rules.collecte_incompatible("qualitative", ["Questionnaire structuré"])
+    # cohérences acceptées.
+    assert not rules.collecte_incompatible("quantitative", ["Questionnaire structuré"])
+    assert not rules.collecte_incompatible("qualitative", ["Entretiens semi-directifs"])
+    assert not rules.collecte_incompatible("mixte", ["Questionnaire", "Entretiens semi-directifs"])
+
+
+def test_collecte_sous_approche_mono_refusee(request_factory):
+    params = _baseline()
+    params["collecte"] = [_choice(proposition="Questionnaire structuré"),
+                          _choice(proposition="Entretiens semi-directifs")]
+    out = _output(**params)
+    assert any(v.startswith("M5") for v in diagnosis_checks.apply(out, request_factory()))
+    # Correction attendue : déclarer l'approche « mixte » → plus de violation M5.
+    params["approche"] = _choice("mixte", "Approche mixte")
+    out = _output(**params)
+    assert not any(v.startswith("M5") for v in diagnosis_checks.apply(out, request_factory()))
+
+
 def test_categories_identiques_signalees():
     assert rules.same_text("Approche quantitative par questionnaire", "Approche quantitative par questionnaire")
     assert not rules.same_text("Approche quantitative", "Démarche inductive")

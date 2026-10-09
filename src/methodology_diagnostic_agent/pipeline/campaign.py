@@ -126,18 +126,25 @@ def _clarification_output(request, questions: list[str], notes: list[str]) -> Me
 
 
 def _coherence_summary(output: MethodologyOutput) -> list[str]:
-    """Contrôles de cohérence rendus lisibles pour le dossier de preuve (SPEC §16)."""
+    """Contrôles de cohérence rendus lisibles pour l'étudiant (SPEC §16).
+
+    Formulés en français clair : les codes internes (M1–M7) parlaient au développeur, pas à
+    l'étudiant — signalé par le vérificateur en campagne réelle (« libellés d'outillage peu
+    lisibles »).
+    """
     diag = output.diagnosis
     checks = [
-        "Catégories distinctes et justifiées (M1–M3) : contrôle déterministe",
-        f"Approche « {diag.approche.code} » ↔ analyses proposées (M5) : contrôle déterministe",
-        "Causalité (M4) : "
-        + ("dispositif expérimental déclaré" if rules.causality_is_justified(diag.strategie.code)
-           else "aucune lecture causale sans dispositif adéquat"),
+        "Les six catégories (approche, logique de raisonnement, type de recherche, stratégie, "
+        "collecte, analyse) sont distinctes et chacune est justifiée.",
+        f"Cohérence vérifiée entre l'approche « {diag.approche.code} », les techniques de collecte "
+        "et les méthodes d'analyse.",
+        "Causalité : "
+        + ("un dispositif expérimental est déclaré." if rules.causality_is_justified(diag.strategie.code)
+           else "aucune lecture causale n'est proposée sans dispositif expérimental."),
     ]
     if output.hypotheses_examined:
-        checks.append(f"Hypothèses prises en charge par la méthodologie : "
-                      f"{len(output.hypotheses_examined)}")
+        checks.append("Hypothèses du dossier prises en charge par la méthodologie proposée : "
+                      f"{len(output.hypotheses_examined)}.")
     return checks
 
 

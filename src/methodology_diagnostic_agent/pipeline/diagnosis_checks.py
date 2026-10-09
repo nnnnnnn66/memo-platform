@@ -48,7 +48,10 @@ def apply(output, request) -> list[str]:
             f"« {diag.strategie.code or 'non précisée'} ») : parler d'association, ou justifier un "
             "dispositif permettant la causalité")
 
-    # M5 — compatibilité approche ↔ analyse.
+    # M5 — compatibilité approche ↔ collecte ET approche ↔ analyse.
+    for issue in rules.collecte_incompatible(diag.approche.code,
+                                             [c.proposition for c in diag.collecte]):
+        violations.append("M5: " + issue)
     for issue in rules.analysis_incompatible(diag.approche.code,
                                              [c.proposition for c in diag.analyse]):
         violations.append("M5: " + issue)

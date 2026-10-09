@@ -58,6 +58,17 @@ _INFERENTIAL = ["inferentielle", "test statistique", "regression", "correlation"
 _QUALITATIVE_ANALYSIS = ["thematique", "analyse de contenu", "analyse narrative", "codage",
                          "analyse du discours", "analyse interpretative"]
 
+# Techniques de COLLECTE qualitatives vs quantitatives (cohérence approche ↔ collecte).
+# Le vérificateur a relevé en campagne réelle : « un volet entretiens est listé alors que l'approche
+# est déclarée quantitative mono-méthode » — questionnaire (quantitatif) + entretiens (qualitatif)
+# sous une approche mono-méthode : c'est une approche MIXTE qu'il faut déclarer (SPEC §7.A).
+_QUALITATIVE_COLLECT = ["entretien", "entretiens", "focus group", "groupe de discussion",
+                        "observation", "observations", "recit de vie", "recits de vie",
+                        "analyse documentaire qualitative", "histoire de vie"]
+_QUANTITATIVE_COLLECT = ["questionnaire", "questionnaires", "sondage", "sondages", "echelle",
+                         "echelles", "releve", "releves", "base de donnees", "bases de donnees",
+                         "donnees secondaires", "donnees statistiques"]
+
 # Verbe/mot-clé de causalité (SPEC §10.8-10.9 : ne pas démontrer une causalité sans dispositif).
 _CAUSAL_MARKERS = ["cause", "provoque", "entraine", "est a l'origine", "effet causal",
                    "demontre une causalite", "demontrer une causalite", "causalite"]
@@ -157,6 +168,34 @@ def analysis_incompatible(approach_code: str, analyse_texts: list[str]) -> list[
             and not any(m in blob for m in _INFERENTIAL):
         issues.append(
             "approche quantitative mais uniquement des analyses qualitatives proposées")
+    return issues
+
+
+def collecte_incompatible(approach_code: str, collecte_texts: list[str]) -> list[str]:
+    """Cohérence approche ↔ techniques de COLLECTE (SPEC §7.A, §10.4-10.5).
+
+    Une approche mono-méthode ne peut pas reposer sur des techniques des deux familles : la présence
+    conjointe de collecte qualitative (entretiens, observation…) et quantitative (questionnaire,
+    relevés…) exige de déclarer l'approche « mixte ». Relevé par le vérificateur en campagne réelle.
+    """
+    blob = _normalize(" ; ".join(collecte_texts))
+    qual = any(m in blob for m in _QUALITATIVE_COLLECT)
+    quan = any(m in blob for m in _QUANTITATIVE_COLLECT)
+    issues: list[str] = []
+    if approach_code == "quantitative":
+        if qual and not quan:
+            issues.append("approche quantitative mais uniquement des techniques de collecte "
+                          "qualitatives proposées")
+        elif qual and quan:
+            issues.append("collecte à la fois qualitative et quantitative sous une approche "
+                          "quantitative mono-méthode : déclarer l'approche « mixte »")
+    elif approach_code == "qualitative":
+        if quan and not qual:
+            issues.append("approche qualitative mais uniquement des techniques de collecte "
+                          "quantitatives proposées")
+        elif qual and quan:
+            issues.append("collecte à la fois qualitative et quantitative sous une approche "
+                          "qualitative mono-méthode : déclarer l'approche « mixte »")
     return issues
 
 
