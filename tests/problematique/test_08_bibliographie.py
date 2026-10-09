@@ -26,3 +26,25 @@ def test_esperluette_et_virgule_serielle():
     assert authors_apa(["Elsamani Y", "Kajikawa Y"]) == "Elsamani, Y. & Kajikawa, Y."
     assert authors_apa(["Mutiganda JC", "Wiitavaara B", "Heiden M"]) == (
         "Mutiganda, J. C., Wiitavaara, B., & Heiden, M.")
+
+
+# --- données réelles : noms d'auteurs renvoyés tels quels par les fournisseurs --------------------
+# Cas relevés par le vérificateur sur une campagne réelle (chaîne agent 1→5).
+
+def test_noms_d_auteurs_reels_rendus_correctement():
+    from problematization_agent.bibliography.styles import format_author
+
+    cas = {
+        "Conradie Wj": "Conradie, W. J.",                     # initiales collées, 2e abaissée
+        "Seán Ó Riain": "Ó Riain, S.",                        # particule « Ó » (nom composé)
+        "Margaret\u2010Anne Storey": "Storey, M.-A.",         # prénom composé, tiret typographique
+        "Jean\u2010Marc Peretti": "Peretti, J.-M.",
+        "Mutiganda JC": "Mutiganda, J. C.",                   # bloc d'initiales en capitales
+        "Boris Noé MANHOULI DANMOU": "Manhouli Danmou, B. N.",  # nom de famille en capitales, composé
+        "FBA Diallo": "Diallo, F. B. A.",                     # initiales devant le nom
+        "MM Barry": "Barry, M. M.",
+        "Kai\u2010Kristian Kemell": "Kemell, K.-K.",
+        "Li": "Li",                                           # nom court avec voyelle : jamais des initiales
+    }
+    for source, attendu in cas.items():
+        assert format_author(source) == attendu, source
