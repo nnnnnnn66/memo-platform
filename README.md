@@ -136,10 +136,31 @@ Ne jamais construire toute la plateforme d'un coup. Un seul agent à la fois.
       contigu. Un défaut déterministe (donc du code, pas du prompt). F5 vérifie désormais chaque
       élément d'une délimitation composée (« X, Y », « X et Y ») ; une délimitation dont UN élément
       n'est nulle part reste signalée. 2 tests ajoutés. Suite : `pytest -q` = 269 tests.
+- [x] **Agent 6 — Objectifs de recherche : implémenté et VALIDÉ en exécution réelle (2026-10-09)** :
+      suite complète `pytest -q` = **304 tests**, hors réseau ; campagne réelle DeepSeek jusqu'au
+      verdict `verified` (13/13) puis décision étudiante `validated`. Détails et résultats :
+      `docs/architecture-agent-06-objectifs-recherche-v1.md`.
 - [ ] **Test de chaîne A4 → A5 sur sortie RÉELLE** : la passation est couverte par un test unitaire
       construit sur la forme de sortie de l'Agent 4 (`subject_reference.original`,
       `problematique_note.texte_complet`, `validation.verified`), mais pas encore par une sortie
       réelle de bout en bout (la leçon « les payloads fabriqués à la main ne prouvent rien »).
-- [ ] **Agent 5 : architecture à contresigner par le porteur** (portillon §42).
+- [x] **Agent 6 — Objectifs de recherche : implémenté et VALIDÉ en exécution réelle (2026-10-09)**
+      (`src/research_objectives_agent/`, API `/objectives/analyze`, profil Hermes `agent-objectifs`,
+      `run-objectifs.sh`, port 8060) : pré-cadrage (question de recherche validée requise), analyse
+      P1 de la question, objectif général P2, objectifs spécifiques P3 (+ alignement et faisabilité),
+      contrôles codés O1–O9 (verbe d'action, **aucun résultat présupposé**, objectif ≠ hypothèse ≠
+      activité administrative, redondance, délimitation/année sans source, anti-fusion), clarification
+      documentaire bornée (désactivée par défaut), vérificateur indépendant (C1–C13), puis
+      **portillon humain**. Campagne réelle (4 passes) : statut `awaiting_human_validation`,
+      vérificateur `verified` (13/13), 0 correction, puis décision étudiante `validated`. 34 tests
+      hors réseau. Paquet autonome, agents 1-5 non modifiés.
+- [x] **Correctifs de l'Agent 6 issus de l'exécution réelle** : (a) champs dérivés cohérents —
+      `missing_information` et faisabilité `uncertain` désormais répercutés dans `limits_of_this_output` ;
+      (b) les ambiguïtés relevées par l'analyse remontent au champ `ambiguities` (avec question de
+      clarification) et à `clarification_questions`. Le vérificateur ne demande plus de corrections.
+- [ ] **Test de chaîne A5 → A6 sur sortie RÉELLE** : la passation est couverte par un test unitaire
+      construit sur la forme de sortie de l'Agent 5 (`main_research_question`, `subject`,
+      `validation.verified`), mais pas encore par une sortie réelle de bout en bout.
+- [ ] **Agent 6 : architecture à contresigner par le porteur** (portillon §42).
 - [ ] Agent suivant (à définir) — un seul agent à la fois
 
