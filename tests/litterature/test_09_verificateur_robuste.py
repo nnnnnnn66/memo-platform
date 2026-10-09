@@ -60,3 +60,23 @@ def test_verificateur_echoue_proprement_apres_toutes_les_tentatives():
 
     assert exc.value.state == ErrorState.VERIFICATION_FAILED
     assert llm.calls == 3
+
+
+def _record(doc_id: str):
+    return SimpleNamespace(doc_id=doc_id, title="T", authors=["A B"], year=2021, venue="V",
+                           provider="openalex", doi="", is_oa=True,
+                           full_text={"downloaded": True})
+
+
+def test_verificateur_recoit_les_documents_reellement_utilises():
+    """Régression (chaîne réelle) : le vérificateur recevait le corpus COLLECTÉ, tronqué à ses
+    60 premiers documents (D1…D60). Tout document retenu au-delà — cas réel de D68 — était alors
+    accusé d'être « absent du corpus fourni ». On transmet désormais les documents réellement
+    utilisés (la liste `retained`), et la fonction accepte cette liste.
+    """
+    llm = _Stub([VERDICT])
+    request = CampaignRequest(student_id="s9", subject_text="Télétravail et productivité")
+    output = SimpleNamespace(model_dump_json=lambda indent=2: '{"status": "ready_for_verification"}')
+
+    verifier.verify(llm, request, output, [_record("D68"), _record("D2"), _record("D60")])
+    assert "D68" in llm.sent[0], "le document retenu doit figurer dans le bloc envoyé au vérificateur"

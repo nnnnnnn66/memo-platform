@@ -445,7 +445,7 @@ def run(request, settings, llm, verifier_llm=None, registry: Registry | None = N
         previous: set[str] | None = None
         reformulated = False
         for verification in range(1, settings.limits.max_verification_retries + 1):
-            verdict = verifier_module.verify(verifier_llm, request, output, corpus)
+            verdict = verifier_module.verify(verifier_llm, request, output, retained)
             result.verifier = verdict
             result.verifications = verification
             reformulated = False
@@ -488,7 +488,7 @@ def run(request, settings, llm, verifier_llm=None, registry: Registry | None = N
         # rejouant le vérificateur seul sur la sortie finale — verdict `verified`). Une vérification
         # finale tranche, sans nouvelle reformulation (le budget de re-tentatives reste borné).
         if reformulated:
-            verdict = verifier_module.verify(verifier_llm, request, output, corpus)
+            verdict = verifier_module.verify(verifier_llm, request, output, retained)
             result.verifier = verdict
             result.verifications += 1
             if verdict.verdict == VerifierVerdict.verified:

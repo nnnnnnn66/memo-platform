@@ -22,19 +22,24 @@ _PARTICLES = {"de", "du", "des", "van", "von", "der", "den", "la", "le", "el", "
               "bin", "ben", "st", "st.", "mac", "mc"}
 
 
+def _has_vowel(token: str) -> bool:
+    return any(letter in "aeiouy" for letter in token.lower())
+
+
 def _is_initial(token: str) -> bool:
     """Vrai si le jeton est un bloc d'initiales de prénom.
 
-    Couvre « T », « T. » et les blocs collés sans points de certains fournisseurs
-    (« Yurtseven HR », « Michels LM »). Un nom en casse mixte (« Li », « Wu ») n'est
-    jamais pris pour des initiales.
+    Couvre « T », « T. », les blocs collés en capitales (« Yurtseven HR », « Michels LM ») et les
+    blocs collés **en casse mixte sans voyelle** : le fournisseur abaisse parfois la seconde
+    initiale (« Conradie Wj » = « Conradie, W. J. » plus loin dans les métadonnées). Un nom court
+    contenant une voyelle (« Li », « Wu ») reste un nom — jamais des initiales.
     """
     core = token.strip().strip(".")
     if not core or not core.isalpha():
         return False
     if len(core) == 1:
         return True
-    return 2 <= len(core) <= 3 and core.isupper()
+    return 2 <= len(core) <= 3 and (core.isupper() or not _has_vowel(core))
 
 
 def _is_caps_token(token: str) -> bool:
@@ -178,9 +183,10 @@ def initials(first_names: str, style: str = "apa") -> str:
     letters: list[str] = []
     for part in parts:
         core = part.strip().strip(".")
-        if 2 <= len(core) <= 3 and core.isalpha() and core.isupper():
-            # Bloc d'initiales collées (« HR », « LM ») : on l'éclate lettre par lettre.
-            letters.extend(core)
+        if 2 <= len(core) <= 3 and (core.isupper() or not _has_vowel(core)):
+            # Bloc d'initiales collées (« HR », « LM », « Wj ») : on l'éclate lettre par lettre
+            # (en capitales : le fournisseur abaisse parfois la seconde, « Wj »).
+            letters.extend(core.upper())
         elif core and core[0].isalpha():
             # Un jeton plus long (« MANHOULI », « Boris ») est un NOM, jamais des initiales :
             # l'éclater produisait « B. N. M. A. N. H. O. U. L. I. » (constaté en exécution réelle).

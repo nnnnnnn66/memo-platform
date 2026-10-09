@@ -177,3 +177,17 @@ def test_initiales_courtes_devant_le_nom_ne_sont_pas_un_nom_de_famille():
     assert not document_surname_first(["FBA Diallo", "MM Barry"])
     ref = styles.render(_doc(authors=["FBA Diallo", "MM Barry"], year=2024), "apa7")
     assert ref.startswith("Diallo, F. B. A. & Barry, M. M.")
+
+
+def test_initiales_collees_en_casse_mixte_reconnues():
+    """« Conradie Wj » = nom « Conradie » + initiales « W. J. » (donnée OpenAlex réelle, D2).
+
+    Le fournisseur abaisse parfois la seconde initiale. L'ancien code prenait alors « Wj » pour le
+    nom de famille et rendait « Wj, C. ». Un bloc sans voyelle est un groupe d'initiales ; un nom
+    court AVEC voyelle (« Li », « Wu ») reste un nom.
+    """
+    from literature_review_agent.bibliography.normalize import _is_initial
+
+    assert _is_initial("Wj") and not _is_initial("Li") and not _is_initial("Wu")
+    ref = styles.render(_doc(authors=["Conradie Wj", "Jeremias Jesaja De Klerk"], year=2019), "apa7")
+    assert ref.startswith("Conradie, W. J. & De Klerk, J. J.")

@@ -91,7 +91,13 @@ def verify(llm, request, output, corpus, max_attempts: int = 3) -> VerifierOutpu
     ses tokens de raisonnement, donc une vérification longue peut être coupée en plein JSON.
     """
     system = load_system()
-    base = "\n\n".join([_student_block(request), _corpus_block(corpus.records),
+    # `corpus` peut être le collecteur (attribut `records`) ou directement la liste des documents
+    # transmis. Les identifiants sont attribués à la COLLECTE (D1…D250) : n'envoyer que les 60
+    # premiers faisait passer tout document retenu au-delà pour inexistant — le vérificateur
+    # accusait alors la revue de citer un document « absent du corpus fourni » (constaté en
+    # exécution réelle sur D68). On transmet donc exactement les documents réellement utilisés.
+    records = getattr(corpus, "records", corpus)
+    base = "\n\n".join([_student_block(request), _corpus_block(records),
                         _outputs_block(output)])
     extra = ""
     for attempt in range(1, max_attempts + 1):
