@@ -18,6 +18,18 @@ def clean_text(value: str) -> str:
     return text.strip(" .,;")
 
 
+# Traits d'union « typographiques » rencontrés dans les métadonnées (U+2010 trait d'union, U+2011
+# insécable, U+2012, U+2013 tiret demi-cadratin). Un prénom composé réel « Margaret‐Anne » (avec
+# U+2010) n'était pas reconnu comme composé → rendu « M. » au lieu de « M.-A. » (constaté en
+# exécution réelle). On ne touche PAS aux titres : un tiret demi-cadratin y sépare des segments.
+_NAME_DASHES = str.maketrans({"\u2010": "-", "\u2011": "-", "\u2012": "-", "\u2013": "-", "\u2212": "-"})
+
+
+def name_dashes(value: str) -> str:
+    """Normalise les traits d'union typographiques d'un NOM (jamais d'un titre)."""
+    return (value or "").translate(_NAME_DASHES)
+
+
 _PARTICLES = {"de", "du", "des", "van", "von", "der", "den", "la", "le", "el", "al", "da", "di",
               "bin", "ben", "st", "st.", "mac", "mc"}
 
@@ -125,7 +137,7 @@ def split_name(full_name: str, surname_first: bool = False) -> tuple[str, str]:
         (« Boris Noé MANHOULI DANMOU »). `surname_first` signale cette convention quand un autre
         auteur du même document la montre (même source = même convention).
     """
-    name = clean_text(full_name)
+    name = name_dashes(clean_text(full_name))
     if not name:
         return "", ""
     if "," in name:
@@ -177,23 +189,42 @@ def initials(first_names: str, style: str = "apa") -> str:
 
     Un bloc collé (« HR », « LM ») est éclaté en initiales distinctes : « H. R. ».
     """
-    if not first_names:
+    first_names = name_dashes(first_names or "")
+    if not first_names.strip():
         return ""
-    parts = [p for p in re.split(r"[\s\-]+", first_names) if p]
-    letters: list[str] = []
-    for part in parts:
-        core = part.strip().strip(".")
+    # Un prénom composé garde son tiret (« Kai-Kristian » → « K.-K. ») ; les prénoms successifs et
+    # les initiales d'un même bloc sont séparés par une espace (« Jean Pierre » → « J. P. »,
+    # « Yurtseven HR » → « H. R. »).
+
+    def letters_of(core: str) -> list[str]:
         if 2 <= len(core) <= 3 and (core.isupper() or not _has_vowel(core)):
-            # Bloc d'initiales collées (« HR », « LM », « Wj ») : on l'éclate lettre par lettre
+            # Bloc d'initiales collées (« HR », « LM », « Wj ») : éclaté lettre par lettre
             # (en capitales : le fournisseur abaisse parfois la seconde, « Wj »).
-            letters.extend(core.upper())
-        elif core and core[0].isalpha():
+            return list(core.upper())
+        if core and core[0].isalpha():
             # Un jeton plus long (« MANHOULI », « Boris ») est un NOM, jamais des initiales :
             # l'éclater produisait « B. N. M. A. N. H. O. U. L. I. » (constaté en exécution réelle).
-            letters.append(core[0].upper())
+            return [core[0].upper()]
+        return []
+
+    chunks: list[str] = []
+    flat: list[str] = []
+    for token in re.split(r"\s+", first_names.strip()):
+        if not token:
+            continue
+        parts = [p.strip().strip(".") for p in token.split("-")]
+        parts = [p for p in parts if p]
+        if not parts:
+            continue
+        per_part = [letters_of(p) for p in parts]
+        flat.extend(letter for group in per_part for letter in group)
+        if len(parts) > 1:
+            chunks.append("-".join(" ".join(f"{letter}." for letter in group) for group in per_part))
+        else:
+            chunks.append(" ".join(f"{letter}." for letter in per_part[0]))
     if style == "vancouver":
-        return "".join(letters)
-    return " ".join(f"{letter}." for letter in letters)
+        return "".join(flat)
+    return " ".join(chunk for chunk in chunks if chunk)
 
 
 def document_surname_first(authors: list[str]) -> bool:

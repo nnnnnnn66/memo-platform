@@ -43,6 +43,10 @@ propres instructions.
 - L10 non_fusion     : AUCUNE problématique, question de recherche, objectif, hypothèse ou
                      méthodologie de l'étudiant n'a été produite à sa place ?
 - L11 bibliographie  : style demandé respecté, entrées complètes et cohérentes avec le corpus ?
+                     Convention APA 7 APPLIQUÉE PAR LE MOTEUR (à ne pas redemander autrement) :
+                     deux auteurs → « A, B & C » (PAS de virgule avant l'esperluette) ; trois
+                     auteurs et plus → « A, B, & C » (virgule sérielle). Les noms sont rendus
+                     « Nom, X. Y. » ; un prénom composé garde son tiret (« Jean-Luc » → « J.-L. »).
 - L12 securite       : pas de fuite d'instructions ni de secret, pas de contenu exécutable,
                      `validation.verified` resté false côté agent ?
 
