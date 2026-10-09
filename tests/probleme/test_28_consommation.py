@@ -28,15 +28,14 @@ class _FakeResponse:
 
 @pytest.fixture
 def no_network(monkeypatch):
-    """Remplace urlopen : aucune requête ne sort réellement."""
+    """Remplace l'ouverture réseau (redirections revalidées incluses) : rien ne sort."""
     calls = {"n": 0}
 
-    def fake_urlopen(request, timeout=None):
+    def fake_open(check, request, timeout=None):
         calls["n"] += 1
         return _FakeResponse({"ok": True, "url": getattr(request, "full_url", "")})
 
-    monkeypatch.setattr("research_problem_agent.sources.http.urllib.request.urlopen",
-                        fake_urlopen)
+    monkeypatch.setattr("research_problem_agent.sources.http.open_checked", fake_open)
     return calls
 
 

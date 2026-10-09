@@ -16,6 +16,31 @@ from ..core.logging import get_logger
 log = get_logger("sources.http")
 
 
+class _CheckedRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Revalide CHAQUE saut d'une redirection HTTP (anti-SSRF).
+
+    `urllib.request.urlopen` suit les redirections par défaut : le contrôle d'hôte (liste blanche
+    des fournisseurs, refus des adresses privées) n'était appliqué qu'à l'URL INITIALE. Un
+    fournisseur — ou un lien qu'il renvoie — pouvait donc rediriger la requête vers un service
+    interne (127.0.0.1, 169.254.169.254, réseau privé) sans repasser par la liste blanche.
+    Démontré en local : urlopen suit une redirection vers un autre hôte sans contrôle.
+    """
+
+    def __init__(self, check) -> None:
+        super().__init__()
+        self._check = check
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        self._check(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def open_checked(check, request, timeout):
+    """Ouvre la requête en revalidant chaque redirection (même contrôle que l'URL initiale)."""
+    opener = urllib.request.build_opener(_CheckedRedirectHandler(check))
+    return opener.open(request, timeout=timeout)
+
+
 class ApiFetcher:
     def __init__(self, sources_cfg: dict, limits, allowed_hosts: set[str]) -> None:
         self.cfg = sources_cfg or {}
@@ -67,7 +92,7 @@ class ApiFetcher:
                 **(headers or {}),
             })
             try:
-                with urllib.request.urlopen(request, timeout=self.limits.source_timeout) as resp:
+                with open_checked(self._check_url, request, self.limits.source_timeout) as resp:
                     raw = resp.read(max_bytes + 1)
                 self.requests += cost
                 break

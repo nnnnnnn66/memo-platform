@@ -135,7 +135,8 @@ def test_non_pdf_refuse(settings, monkeypatch):
         def __exit__(self, *exc):
             return False
 
-    monkeypatch.setattr(http_module.urllib.request, "urlopen", lambda *a, **k: _Resp())
+    monkeypatch.setattr(http_module, "open_checked",
+                        lambda check, request, timeout=None: _Resp())
     monkeypatch.setattr(http_module, "_is_public_ip", lambda host: True)
     downloader = _downloader(settings)
     with pytest.raises(PipelineError) as exc:
@@ -157,7 +158,8 @@ def test_plafond_de_telechargements(settings, monkeypatch):
         def __exit__(self, *exc):
             return False
 
-    monkeypatch.setattr(http_module.urllib.request, "urlopen", lambda *a, **k: _Resp())
+    monkeypatch.setattr(http_module, "open_checked",
+                        lambda check, request, timeout=None: _Resp())
     monkeypatch.setattr(http_module, "_is_public_ip", lambda host: True)
     downloader = _downloader(settings)
     for _ in range(settings.limits.max_downloads):
@@ -186,13 +188,13 @@ def test_nouvelle_tentative_sur_429(settings, monkeypatch):
 
     calls = {"n": 0}
 
-    def fake_urlopen(*args, **kwargs):
+    def fake_open(check, request, timeout=None):
         calls["n"] += 1
         if calls["n"] <= 2:
-            raise urllib.error.HTTPError(args[0].full_url, 429, "Too Many Requests", {}, None)
+            raise urllib.error.HTTPError(request.full_url, 429, "Too Many Requests", {}, None)
         return _Resp()
 
-    monkeypatch.setattr(http_module.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(http_module, "open_checked", fake_open)
     monkeypatch.setattr(http_module.time, "sleep", lambda _s: None)
 
     cfg = dict(settings.sources)
@@ -210,10 +212,10 @@ def test_429_persistant_declare_l_echec(settings, monkeypatch):
 
     import literature_review_agent.sources.http as http_module
 
-    def fake_urlopen(*args, **kwargs):
-        raise urllib.error.HTTPError(args[0].full_url, 429, "Too Many Requests", {}, None)
+    def fake_open(check, request, timeout=None):
+        raise urllib.error.HTTPError(request.full_url, 429, "Too Many Requests", {}, None)
 
-    monkeypatch.setattr(http_module.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(http_module, "open_checked", fake_open)
     monkeypatch.setattr(http_module.time, "sleep", lambda _s: None)
 
     cfg = dict(settings.sources)

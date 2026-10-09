@@ -10,4 +10,8 @@ fi
 source .venv/bin/activate
 pip install -q -r requirements.txt
 export PYTHONPATH="src:${PYTHONPATH:-}"
-exec uvicorn research_objectives_agent.main:app --host 0.0.0.0 --port "${PORT:-8060}"
+# Écoute par défaut sur la BOUCLE LOCALE (127.0.0.1) : les routes des agents ne portent AUCUNE
+# authentification — une exposition sur 0.0.0.0 les rendrait utilisables par n'importe qui
+# (consommation de la clé LLM, lecture/écriture des espaces de session). Pour exposer
+# volontairement : HOST=0.0.0.0 ./run-xxx.sh (à réserver à un accès maîtrisé).
+exec uvicorn research_objectives_agent.main:app --host "${HOST:-127.0.0.1}" --port "${PORT:-8060}"

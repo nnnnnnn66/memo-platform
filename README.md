@@ -214,5 +214,19 @@ Ne jamais construire toute la plateforme d'un coup. Un seul agent à la fois.
       `missing_information` (manques bloquants) / `unknowns` (inconnues non bloquantes), que le
       vérificateur signale encore sans la remettre en cause.
 - [x] **Agent 8 : architecture contresignée par le porteur de projet le 2026-10-09** (portillon §42).
+- [x] **Audit de sécurité (2026-10-10)** — quatre points vérifiés, quatre corrections :
+      1. **SSRF par redirection HTTP (corrigé)** : le client réseau ne contrôlait que l'URL
+         initiale ; `urlopen` suivait ensuite les redirections SANS repasser par la liste blanche
+         (démontré en local : une redirection vers un service interne était bien suivie, y compris
+         `169.254.169.254`). Chaque saut est désormais revalidé (`open_checked`, tous les agents).
+      2. **Permissions du fichier de secrets (corrigé)** : `~/.hermes/.env` était lisible par tous
+         (`644`) → passé en `600`.
+      3. **Exposition réseau des API (corrigé)** : les scripts `run-*.sh` écoutaient sur `0.0.0.0`
+         alors qu'aucune route n'a d'authentification → écoute par défaut sur `127.0.0.1`
+         (`HOST=0.0.0.0` pour exposer volontairement).
+      4. **Vérifiés sans faille** : aucun secret dans le dépôt, aucun `eval`/`exec`/`subprocess`,
+         traversée de chemin neutralisée (`workspace/<étudiant>/<session>` reste dans la racine).
+      ⚠️ Reste à décider par le porteur : pare-feu inactif sur le serveur (aucune règle iptables,
+      ufw inactif) — à activer en gardant l'accès SSH ouvert.
 - [ ] Agent suivant (à définir) — un seul agent à la fois
 
