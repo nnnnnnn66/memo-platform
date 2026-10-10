@@ -13,13 +13,13 @@
 <div class="sommaire">
   {% for m in memoires %}
     <a class="etape-ligne" href="/memoire/{{ m.session }}">
-      <span class="etape-num">{{ m.faites }}/13</span>
+      <span class="etape-num">{{ m.faites }}/{{ m.total }}</span>
       <span class="etape-corps">
         <span class="etape-titre">{{ m.sujet }}</span>
         <span class="etape-note">Étape en cours : {{ m.libelle }}</span>
       </span>
-      <span class="pastille pastille-{{ 'validee' if m.faites == 13 else 'attente' }}">
-        {{ 'parcours terminé' if m.faites == 13 else 'en cours' }}
+      <span class="pastille pastille-{{ 'validee' if m.faites == m.total else 'attente' }}">
+        {{ 'parcours terminé' if m.faites == m.total else 'en cours' }}
       </span>
     </a>
   {% endfor %}

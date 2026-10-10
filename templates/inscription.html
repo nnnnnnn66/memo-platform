@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block titre %}Créer mon accès{% endblock %}
+{% block connexion %}
+<div class="connexion-page">
+  <div class="connexion-boite">
+    <div class="marque">Mémoire <span>accompagnement</span></div>
+    <h1>Créez votre accès.</h1>
+    <p class="connexion-intro">
+      Votre adresse e-mail, c'est votre identité sur la plateforme : elle vous servira à revenir
+      sur votre mémoire à tout moment. Aucune invitation n'est nécessaire.
+    </p>
+
+    {% if message %}<div class="message message-{{ message.type }}">{{ message.texte }}</div>{% endif %}
+
+    <form method="post" action="/inscription" class="carte">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="champ">
+        <label for="email">Votre adresse e-mail</label>
+        <input type="email" id="email" name="email" required autocomplete="email"
+               placeholder="prenom.nom@exemple.com" value="{{ email or '' }}" autofocus>
+      </div>
+      <div class="champ">
+        <label for="mot_de_passe">Choisissez un mot de passe</label>
+        <input type="password" id="mot_de_passe" name="mot_de_passe" required minlength="10"
+               autocomplete="new-password">
+        <p class="aide-champ">
+          10 caractères minimum. Il protège votre travail : sans lui, quiconque connaît votre
+          adresse pourrait lire votre mémoire.
+        </p>
+      </div>
+      <div class="champ">
+        <label for="confirmation">Confirmez</label>
+        <input type="password" id="confirmation" name="confirmation" required minlength="10"
+               autocomplete="new-password">
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-principal" type="submit">Créer mon accès</button>
+      </div>
+    </form>
+
+    <p class="aide-champ" style="margin-top:18px">
+      Vous avez déjà un accès ? <a href="/connexion">Se connecter</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

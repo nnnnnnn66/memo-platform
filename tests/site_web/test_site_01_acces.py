@@ -150,6 +150,92 @@ def test_la_deconnexion_detruit_la_session(site):
     assert client.get("/mes-memoires").status_code == 303
 
 
+# -------------------------------------------------------------------- inscription
+def test_l_inscription_par_email_cree_le_compte_et_ouvre_une_session(site):
+    """Aucune invitation : l'adresse e-mail suffit à créer son accès."""
+    client, _, reglages = site
+
+    reponse = client.post("/inscription", data={
+        "csrf": csrf_du(client), "email": "etudiante@exemple.com",
+        "mot_de_passe": "un-mot-de-passe-solide", "confirmation": "un-mot-de-passe-solide"})
+
+    assert reponse.status_code == 303
+    assert reponse.headers["location"] == "/mes-memoires"
+    assert "session" in reponse.headers.get("set-cookie", "")
+    assert comptes.compte(reglages.base_comptes, "etudiante@exemple.com") is not None
+
+
+def test_l_email_est_l_identifiant_de_connexion(site):
+    client, _, reglages = site
+    client.post("/inscription", data={
+        "csrf": csrf_du(client), "email": "Etudiante@Exemple.com",
+        "mot_de_passe": "un-mot-de-passe-solide", "confirmation": "un-mot-de-passe-solide"})
+    client.cookies.clear()
+
+    # L'adresse est normalisée en minuscules, et c'est elle qui sert à se connecter.
+    reponse = client.post("/connexion", data={
+        "csrf": csrf_du(client), "identifiant": "etudiante@exemple.com",
+        "mot_de_passe": "un-mot-de-passe-solide"})
+
+    assert reponse.status_code == 303
+    assert reponse.headers["location"] == "/mes-memoires"
+
+
+def test_l_inscription_refuse_une_adresse_invalide(site):
+    client, _, reglages = site
+
+    reponse = client.post("/inscription", data={
+        "csrf": csrf_du(client), "email": "pas-une-adresse",
+        "mot_de_passe": "un-mot-de-passe-solide", "confirmation": "un-mot-de-passe-solide"})
+
+    assert reponse.status_code == 303
+    assert reponse.headers["location"].startswith("/inscription")
+    assert comptes.nombre_comptes(reglages.base_comptes) == 0
+
+
+def test_l_inscription_refuse_une_adresse_deja_prise(site):
+    client, _, reglages = site
+    creer_compte(reglages, "etudiante@exemple.com")
+
+    reponse = client.post("/inscription", data={
+        "csrf": csrf_du(client), "email": "etudiante@exemple.com",
+        "mot_de_passe": "un-mot-de-passe-solide", "confirmation": "un-mot-de-passe-solide"})
+
+    assert reponse.status_code == 303
+    assert "existe" in reponse.headers["location"]
+    assert comptes.nombre_comptes(reglages.base_comptes) == 1
+
+
+def test_l_inscription_exige_un_mot_de_passe_solide(site):
+    client, _, reglages = site
+
+    reponse = client.post("/inscription", data={
+        "csrf": csrf_du(client), "email": "etudiante@exemple.com",
+        "mot_de_passe": "court", "confirmation": "court"})
+
+    assert reponse.status_code == 303
+    assert comptes.nombre_comptes(reglages.base_comptes) == 0
+
+
+def test_un_mot_de_passe_seul_ne_suffit_pas_pour_ouvrir_le_dossier_d_un_autre(site):
+    """Le mot de passe n'est pas une formalité : sans lui, n'importe qui lirait ce mémoire."""
+    client, _, reglages = site
+    creer_compte(reglages, "etudiante@exemple.com", "son-vrai-mot-de-passe")
+    ouvrir_memoire(reglages, "etudiante@exemple.com", "son-memoire")
+
+    mauvais = client.post("/connexion", data={
+        "csrf": csrf_du(client), "identifiant": "etudiante@exemple.com",
+        "mot_de_passe": "devine"})
+    assert mauvais.status_code == 303
+    assert client.get("/memoire/son-memoire").status_code == 303
+
+    bon = client.post("/connexion", data={
+        "csrf": csrf_du(client), "identifiant": "etudiante@exemple.com",
+        "mot_de_passe": "son-vrai-mot-de-passe"})
+    assert bon.status_code == 303
+    assert client.get("/memoire/son-memoire").status_code == 200
+
+
 # ---------------------------------------------------------------- en-têtes servis
 def test_les_en_tetes_de_protection_sont_servis(site):
     client, _, _ = site

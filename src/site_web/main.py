@@ -306,6 +306,52 @@ async def page_connexion(request: Request, message: str = ""):
         premiere_visite=False, identifiant=""))
 
 
+# ------------------------------------------------------------------ inscription
+# L'identité de l'étudiant, c'est SON ADRESSE E-MAIL : aucune invitation n'est nécessaire. Le mot
+# de passe, lui, n'est pas négociable — sans lui, quiconque connaît l'adresse d'un étudiant lirait
+# son mémoire. (Avec la connexion Google, le mot de passe disparaîtra : Google fournira l'adresse.)
+_MOTIF_EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$")
+
+
+@app.get("/inscription", response_class=HTMLResponse)
+async def page_inscription(request: Request, message: str = ""):
+    return GABARITS.TemplateResponse(
+        request, "inscription.html", _contexte(
+        request, page="connexion",
+        message=_message("erreur", message) if message else None, email=""))
+
+
+@app.post("/inscription")
+async def inscription(request: Request, email: str = Form(""), mot_de_passe: str = Form(""),
+                      confirmation: str = Form(""), csrf: str = Form("")):
+    if not csrf_valide(request.cookies.get("session", ""), csrf):
+        return RedirectResponse("/inscription?message=L'envoi du formulaire a échoué. Réessayez.",
+                                status_code=303)
+    email = email.strip().lower()
+    if not _MOTIF_EMAIL.match(email):
+        return RedirectResponse("/inscription?message=Cette adresse e-mail ne semble pas valide.",
+                                status_code=303)
+    if not comptes.identifiant_libre(REGLAGES.base_comptes, email):
+        return RedirectResponse(
+            "/inscription?message=Un accès existe déjà pour cette adresse. Connectez-vous.",
+            status_code=303)
+    if mot_de_passe != confirmation:
+        return RedirectResponse("/inscription?message=Les deux mots de passe diffèrent.",
+                                status_code=303)
+    valide, explication = securite.mot_de_passe_valide(mot_de_passe)
+    if not valide:
+        return RedirectResponse(f"/inscription?message={explication}", status_code=303)
+
+    comptes.creer_compte(REGLAGES.base_comptes, email, securite.hacher(mot_de_passe), email=email)
+    comptes.consigner(REGLAGES.base_comptes, "compte créé", email)
+    jeton_session = comptes.ouvrir_session(REGLAGES.base_comptes, email,
+                                           REGLAGES.duree_session_heures)
+    reponse = RedirectResponse("/mes-memoires", status_code=303)
+    reponse.set_cookie("session", jeton_session, httponly=True, samesite="lax",
+                       max_age=REGLAGES.duree_session_heures * 3600)
+    return reponse
+
+
 @app.get("/invitation/{jeton}", response_class=HTMLResponse)
 async def page_invitation(request: Request, jeton: str):
     if not comptes.invitation_valide(REGLAGES.base_comptes, jeton):
@@ -389,7 +435,8 @@ async def page_mes_memoires(request: Request, message: str = ""):
     for memoire in comptes.mes_memoires(REGLAGES.base_comptes, identifiant):
         etat = ORCHESTRATEUR.dossier(identifiant, memoire["session"])
         validees = sum(1 for e in etat.get("avancement", []) if e.get("statut") == "validee")
-        memoires.append({**memoire, "faites": validees, "libelle": etat.get("libelle", "")})
+        memoires.append({**memoire, "faites": validees, "total": len(etat.get("etapes", [])) or 1,
+                         "libelle": etat.get("libelle", "")})
     return GABARITS.TemplateResponse(
         request, "mes_memoires.html", _contexte(
         request, page="memoires", memoires=memoires, formulaire={},
@@ -511,6 +558,7 @@ async def page_etape(request: Request, session: str, n: int = 0, message: str = 
         request, page="parcours", memoire=memoire,
         etape={"numero": detail["numero"], "libelle": detail["libelle"],
                "statut": detail["statut"], "ouverte": detail.get("ouverte", False)},
+        total_etapes=detail.get("total_etapes", 0),
         proposition=detail.get("resultat"),
         inconnues=detail.get("inconnues", []),
         limites=detail.get("limites", []),

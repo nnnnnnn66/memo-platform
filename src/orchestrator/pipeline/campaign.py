@@ -253,6 +253,9 @@ def etape_detail(settings: Settings, etudiant: str, session: str,
     return {
         "numero": numero,
         "libelle": etape.libelle,
+        # Nombre réel d'étapes de la carte (l'étape réservée n'en fait pas partie) : le site
+        # affiche « étape 3 sur 12 », jamais un total écrit à la main qui finirait par mentir.
+        "total_etapes": len(settings.etapes),
         "statut": ligne.get("statut", state.STATUT_A_FAIRE),
         "ouverte": numero == ouverte,
         "verdict": verdict,

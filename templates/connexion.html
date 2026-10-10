@@ -35,9 +35,9 @@
     <form method="post" action="/connexion" class="carte">
       <input type="hidden" name="csrf" value="{{ csrf }}">
       <div class="champ">
-        <label for="identifiant">Votre identifiant</label>
-        <input type="text" id="identifiant" name="identifiant" required autocomplete="username"
-               autofocus value="{{ identifiant or '' }}">
+        <label for="identifiant">Votre adresse e-mail</label>
+        <input type="email" id="identifiant" name="identifiant" required autocomplete="username"
+               placeholder="prenom.nom@exemple.com" autofocus value="{{ identifiant or '' }}">
       </div>
       <div class="champ">
         <label for="mot_de_passe">Votre mot de passe</label>
@@ -51,8 +51,8 @@
     {% endif %}
 
     <p class="aide-champ" style="margin-top:18px">
-      L'accès se fait sur invitation. Si vous n'avez pas reçu la vôtre, demandez-la à votre
-      encadreur.
+      Pas encore d'accès ? <a href="/inscription">Créer votre accès en 20 secondes</a> —
+      votre adresse e-mail suffit, aucune invitation n'est nécessaire.
     </p>
   </div>
 </div>

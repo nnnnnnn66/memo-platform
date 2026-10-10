@@ -4,8 +4,9 @@
 site:
   # Le site ne parle QU'À l'orchestrateur, jamais aux agents.
   orchestrateur_url: http://127.0.0.1:8000
-  # Accès sur invitation : aucun compte ne se crée sans invitation valide.
-  invitations_requises: true
+  # Deux façons d'entrer : l'inscription libre par adresse e-mail (par défaut), ou l'invitation
+  # (mettre true pour fermer la plateforme à un groupe donné).
+  invitations_requises: false
 
 securite:
   duree_session_heures: 12
