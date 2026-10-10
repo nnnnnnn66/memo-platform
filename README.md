@@ -228,15 +228,30 @@ Ne jamais construire toute la plateforme d'un coup. Un seul agent à la fois.
          traversée de chemin neutralisée (`workspace/<étudiant>/<session>` reste dans la racine).
       ⚠️ Reste à décider par le porteur : pare-feu inactif sur le serveur (aucune règle iptables,
       ufw inactif) — à activer en gardant l'accès SSH ouvert.
-- [x] **TEST DE CHAÎNE RÉEL Agent 1 → 5 : CHAÎNE COMPLÈTE VÉRIFIÉE (2026-10-10)** — chaque agent
+- [x] **TEST DE CHAÎNE RÉEL Agent 1 → 8 : CHAÎNE COMPLÈTE VÉRIFIÉE (2026-10-10)** — chaque agent
       reçoit la sortie RÉELLE du précédent, jusqu'au verdict du vérificateur :
-      **A1 `verified`, A2 `verified`, A3 `verified`, A4 `verified`, A5 `verified`**.
+      **A1 `verified`, A2 `verified`, A3 `verified`, A4 `verified`, A5 `verified`, A6 `verified`,
+      A7 `verified`, A8 `verified`**.
       Script pérennisé (il avait déjà été perdu une fois en zone temporaire) :
-      `scripts/e2e_chaine.py` (reprise par étape : `depuis=N`), sorties d'étape dans
+      `scripts/e2e_chaine.py` (étapes 1 à 8, reprise par étape : `depuis=N`), sorties d'étape dans
       `workspace/chaine-live/stage<N>.json`, + `scripts/replay_verif_litterature.py` (rejoue le seul
       vérificateur de l'agent 3 sur une sortie déjà produite, en ~1 min au lieu de 25).
-      Ce test a révélé **9 défauts réels** qu'aucun test unitaire ne voyait (voir les correctifs
+      Ce test a révélé **16 défauts réels** qu'aucun test unitaire ne voyait (voir les correctifs
       des 2026-10-09/10 : blocs d'initiales, capitales, affiliations, tirets typographiques,
       corpus tronqué du vérificateur, dernière reformulation non jugée, R7, R2, prompt P3).
+- [x] **Extension de la chaîne aux agents 6, 7 et 8 (2026-10-10)** — quatre défauts de passation
+      supplémentaires, tous invisibles en tests unitaires parce que les fixtures portaient les clés
+      ATTENDUES et non les clés RÉELLEMENT produites (fixtures désormais copiées de sorties réelles) :
+      (a) les agents 6 et 7 n'acceptaient la vérification amont que sous `validation`, alors que les
+      agents 5 à 7 la publient sous `verification_result` → sortie pourtant validée déclarée « non
+      vérifiée » ; (b) l'agent 6 lisait `upstream_problem.research_problem` (l'agent 2 publie
+      `identified_problem.statement`) et `upstream_problematic.validated_problematic` (l'agent 4
+      publie `problematique_note.texte_complet`) → `AttributeError` à la passation 2 → 6 ;
+      (c) l'agent 7 mourait sur 17 erreurs de validation, le modèle renvoyant des OBJETS dans
+      `theoretical_or_literature_support` (`list[str]`) → normalisation défensive + prompt précisé ;
+      (d) l'agent 8 refusait la liste d'objets d'hypothèses de l'agent 7 et la revue de littérature
+      structurée de l'agent 3 → conversion en texte (la formulation est conservée, jamais le seul
+      identifiant). Outil de diagnostic ajouté : `scripts/probe_agent7.py` (capture la réponse BRUTE
+      du modèle pour distinguer un JSON mal formé d'un schéma non respecté). **425 tests.**
 - [ ] Agent suivant (à définir) — un seul agent à la fois
 
