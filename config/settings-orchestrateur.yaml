@@ -1,0 +1,201 @@
+# Orchestrateur V1 — configuration PROPRE à cette pièce.
+# (Aucun secret ici : les clés vivent uniquement dans ~/.hermes/.env.)
+
+transport:
+  # http   : l'orchestrateur appelle les agents comme des SERVICES (127.0.0.1:port) — usage réel.
+  # direct : le pipeline de l'agent est importé dans le processus — utilisé par les tests
+  #          hors réseau (un agent simulé remplace l'appel HTTP).
+  mode: http
+  hote: 127.0.0.1
+  # La revue de littérature télécharge et LIT des PDF : une campagne peut durer longtemps.
+  timeout: 1800
+
+quota:
+  # Nombre d'analyses qu'un étudiant peut lancer par jour. Protection du solde LLM du porteur :
+  # sans quota, une plateforme ouverte épuise le portefeuille en quelques heures.
+  analyses_par_jour: 20
+
+paths:
+  workspace: workspace                      # workspace/<etudiant>/<session>/
+  state_db: workspace/orchestrateur.db      # état des dossiers (SQLite stdlib)
+
+# Champs de BASE transmis à chaque agent, en plus des sorties amont.
+# Règle : on ne devine JAMAIS un champ. Cette liste est explicite parce que plusieurs agents
+# refusent les champs inconnus (`extra=forbid`) : envoyer un champ non déclaré ferait échouer
+# l'étape. `subject_text` vient du sujet du dossier ; les autres sont lus dans le contexte fourni
+# à la création du dossier (discipline, pays, période…).
+base:
+  - student_id
+  - session_id
+  - subject_text
+  - research_problem
+  - discipline
+  - academic_level
+  - country
+  - geographical_scope
+  - period
+
+# ORDRE DU PARCOURS (source de vérité) et PONT ENTRE ÉTAPES.
+# `upstream` : champ attendu par l'agent  ←  numéro de l'étape dont on reprend la SORTIE RÉELLE.
+# Jamais de payload fabriqué à la main : on ne transmet que ce qu'une étape a réellement produit.
+etapes:
+  - numero: 1
+    agent: subject_agent
+    libelle: "Sujet"
+    port: 8010
+    prefixe: /subject
+    route_analyse: /subject/analyze
+    upstream: {}
+
+  - numero: 2
+    agent: research_problem_agent
+    libelle: "Problème de recherche"
+    port: 8020
+    prefixe: /problem
+    route_analyse: /problem/analyze
+    upstream:
+      upstream_subject: 1
+
+  - numero: 3
+    agent: literature_review_agent
+    libelle: "Revue de littérature"
+    port: 8030
+    prefixe: /literature
+    route_analyse: /literature/review
+    upstream:
+      upstream_subject: 1
+      upstream_problem: 2
+
+  - numero: 4
+    agent: problematization_agent
+    libelle: "Problématique"
+    port: 8040
+    prefixe: /problematique
+    route_analyse: /problematique/analyze
+    upstream:
+      upstream_subject: 1
+      upstream_problem: 2
+      upstream_literature: 3
+
+  - numero: 5
+    agent: research_question_agent
+    libelle: "Question de recherche"
+    port: 8050
+    prefixe: /question
+    route_analyse: /question/analyze
+    upstream:
+      upstream_subject: 1
+      upstream_problem: 2
+      upstream_problematic: 4
+
+  - numero: 6
+    agent: research_objectives_agent
+    libelle: "Objectifs"
+    port: 8060
+    prefixe: /objectives
+    route_analyse: /objectives/analyze
+    upstream:
+      upstream_subject: 1
+      upstream_problem: 2
+      upstream_problematic: 4
+      upstream_question: 5
+
+  - numero: 7
+    agent: research_hypotheses_agent
+    libelle: "Hypothèses"
+    port: 8070
+    prefixe: /hypotheses
+    route_analyse: /hypotheses/analyze
+    upstream:
+      upstream_subject: 1
+      upstream_problem: 2
+      upstream_problematic: 4
+      upstream_question: 5
+      upstream_objectives: 6
+
+  - numero: 8
+    agent: methodology_diagnostic_agent
+    libelle: "Orientation méthodologique"
+    port: 8080
+    prefixe: /methodology
+    route_analyse: /methodology/analyze
+    upstream:
+      upstream_subject: 1
+      upstream_problem: 2
+      upstream_problematic: 4
+      upstream_question: 5
+      upstream_objectives: 6
+      upstream_hypotheses: 7
+
+  - numero: 9
+    agent: methodology_agent
+    libelle: "Méthodologie"
+    port: 8090
+    prefixe: /methodology/protocol
+    route_analyse: /methodology/protocol/analyze
+    upstream:
+      upstream_subject: 1
+      upstream_problem: 2
+      upstream_literature: 3
+      upstream_problematic: 4
+      upstream_question: 5
+      upstream_objectives: 6
+      upstream_hypotheses: 7
+      upstream_methodology_diagnostic: 8
+
+  - numero: 10
+    agent: research_results_analysis_agent
+    libelle: "Résultats et analyse"
+    port: 8100
+    prefixe: /results
+    route_analyse: /results/analyze
+    upstream:
+      upstream_subject: 1
+      upstream_problem: 2
+      upstream_literature: 3
+      upstream_problematic: 4
+      upstream_question: 5
+      upstream_objectives: 6
+      upstream_hypotheses: 7
+      upstream_methodology_diagnostic: 8
+      upstream_methodology: 9
+
+  - numero: 11
+    agent: research_conclusion_agent
+    libelle: "Conclusion"
+    port: 8110
+    prefixe: /conclusion
+    route_analyse: /conclusion/write
+    upstream:
+      upstream_subject: 1
+      upstream_problem: 2
+      upstream_literature: 3
+      upstream_problematic: 4
+      upstream_question: 5
+      upstream_objectives: 6
+      upstream_hypotheses: 7
+      upstream_methodology_diagnostic: 8
+      upstream_methodology: 9
+      upstream_results: 10
+
+  # Étape 13 : vérification GLOBALE de la cohérence. Elle reçoit les 11 sorties réelles — c'est
+  # exactement le même pont que les autres étapes, aucun cas particulier dans le code.
+  - numero: 13
+    agent: research_coherence_verifier
+    libelle: "Vérification globale de la cohérence"
+    port: 8130
+    prefixe: /coherence
+    route_analyse: /coherence/audit
+    finale: true
+    upstream:
+      upstream_subject: 1
+      upstream_problem: 2
+      upstream_literature: 3
+      upstream_problematic: 4
+      upstream_question: 5
+      upstream_objectives: 6
+      upstream_hypotheses: 7
+      upstream_methodology_diagnostic: 8
+      upstream_methodology: 9
+      upstream_results: 10
+      upstream_conclusion: 11
