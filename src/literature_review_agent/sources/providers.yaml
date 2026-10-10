@@ -28,6 +28,30 @@ providers:
     pdf: true
     enabled: true
 
+  # Complète OpenAlex/Crossref : découverte de travaux liés, couverture plus large.
+  # Gratuit SANS clé (quota bas). Clé facultative : SEMANTIC_SCHOLAR_API_KEY (en-tête x-api-key).
+  - id: semanticscholar
+    label: "Semantic Scholar"
+    family: publications
+    source_type: scientific
+    host: api.semanticscholar.org
+    adapter: semantic_scholar
+    pdf: true
+    enabled: true
+
+  # Textes INTÉGRAUX en accès ouvert (et non de simples notices) : utile pour l'étape
+  # « trouver et récupérer les textes intégraux ».
+  # DÉSACTIVÉ tant que la clé gratuite n'est pas posée (inscription : core.ac.uk/services/api).
+  # Clé attendue dans ~/.hermes/.env sous CORE_API_KEY (jamais dans ce fichier), puis enabled: true.
+  - id: core
+    label: "CORE - textes intégraux en accès ouvert"
+    family: publications
+    source_type: scientific
+    host: api.core.ac.uk
+    adapter: core
+    pdf: true
+    enabled: false
+
   - id: europepmc
     label: "Europe PMC"
     family: publications
