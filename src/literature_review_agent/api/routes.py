@@ -1,8 +1,9 @@
 """Endpoints HTTP de l'Agent Revue de littérature. Aucune logique métier ici."""
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import FileResponse
 
+from ..bibliography import export
 from ..core.errors import ErrorState, PipelineError
 from ..core.logging import get_logger
 from ..pipeline import campaign, input_controller
@@ -92,6 +93,25 @@ async def get_review(request: Request, student_id: str, session_id: str) -> dict
     if data is None:
         raise HTTPException(status_code=404, detail={"error": "NOT_FOUND"})
     return data
+
+
+@router.get("/literature/{student_id}/{session_id}/bibliographie")
+async def download_bibliography(request: Request, student_id: str, session_id: str,
+                                format: str = "bibtex") -> Response:
+    """Bibliographie exportable (BibTeX, RIS, CSV).
+
+    Livrable du document d'opérationnalisation : l'étudiant doit pouvoir réutiliser les références.
+    L'export est une RECOPIE déterministe des métadonnées réellement collectées : aucun champ
+    inventé, aucun appel réseau, aucun modèle.
+    """
+    settings = request.app.state.settings
+    data = workspace.load(settings.workspace_dir, student_id, session_id, "review_output")
+    if data is None:
+        raise HTTPException(status_code=404, detail={"error": "NOT_FOUND"})
+    documents = ((data.get("corpus") or {}).get("documents") or [])
+    nom, mime, contenu = export.export(documents, format)
+    return Response(content=contenu, media_type=mime,
+                    headers={"Content-Disposition": f'attachment; filename="{nom}"'})
 
 
 @router.get("/literature/{student_id}/{session_id}/documents")

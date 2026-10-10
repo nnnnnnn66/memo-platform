@@ -76,6 +76,28 @@ qu'après validation.
 
 ---
 
+### 3.4 Téléchargements offerts à l'étudiant (exigence explicite)
+
+L'étudiant doit pouvoir **télécharger lui-même** les éléments de son travail, à tout moment :
+
+| Ce qu'il télécharge | D'où cela vient | État technique |
+|---|---|---|
+| **Les documents scientifiques** (PDF réellement récupérés en accès ouvert) | Agent 3 — revue de littérature | ✅ déjà exposé : `GET /literature/{étudiant}/{session}/documents` (manifeste) puis `/…/{doc_id}/file` |
+| **Le lien officiel** des documents non récupérables (payants, protégés) | Agent 3 | ✅ le manifeste indique l'accès et le lien officiel |
+| **Sa bibliographie** en BibTeX, RIS ou CSV | Agent 3 | ✅ ajouté : `GET /literature/{étudiant}/{session}/bibliographie?format=bibtex|ris|csv` |
+| **Le résultat d'une étape** (texte proposé, inconnues, limites, verdict) | chaque agent | ✅ chaque agent expose déjà sa sortie ; à **présenter** dans le site |
+| **Son dossier complet** (les 13 étapes, réponses, sources, validations) | orchestrateur | à construire (agrégation) |
+
+**Règles** :
+- Un lien ne doit être annoncé **que s'il a été vérifié** (le fichier existe et s'ouvre réellement).
+- Un document sans PDF récupérable doit **quand même** offrir son **lien officiel**, accompagné de la mention « texte intégral non récupéré » — jamais un lien mort, jamais un faux.
+- Les fichiers d'un étudiant ne sont accessibles **qu'à lui** (isolation par compte).
+
+> **À DÉCIDER PAR LE PORTEUR** : l'étudiant peut-il télécharger **tout son dossier d'un coup**
+> (archive), ou élément par élément ?
+
+---
+
 ## 4. Parcours utilisateur type
 
 1. L'étudiant s'inscrit, crée « mon mémoire » (titre provisoire, discipline, niveau).
