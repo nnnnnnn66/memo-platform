@@ -228,5 +228,15 @@ Ne jamais construire toute la plateforme d'un coup. Un seul agent à la fois.
          traversée de chemin neutralisée (`workspace/<étudiant>/<session>` reste dans la racine).
       ⚠️ Reste à décider par le porteur : pare-feu inactif sur le serveur (aucune règle iptables,
       ufw inactif) — à activer en gardant l'accès SSH ouvert.
+- [x] **TEST DE CHAÎNE RÉEL Agent 1 → 5 : CHAÎNE COMPLÈTE VÉRIFIÉE (2026-10-10)** — chaque agent
+      reçoit la sortie RÉELLE du précédent, jusqu'au verdict du vérificateur :
+      **A1 `verified`, A2 `verified`, A3 `verified`, A4 `verified`, A5 `verified`**.
+      Script pérennisé (il avait déjà été perdu une fois en zone temporaire) :
+      `scripts/e2e_chaine.py` (reprise par étape : `depuis=N`), sorties d'étape dans
+      `workspace/chaine-live/stage<N>.json`, + `scripts/replay_verif_litterature.py` (rejoue le seul
+      vérificateur de l'agent 3 sur une sortie déjà produite, en ~1 min au lieu de 25).
+      Ce test a révélé **9 défauts réels** qu'aucun test unitaire ne voyait (voir les correctifs
+      des 2026-10-09/10 : blocs d'initiales, capitales, affiliations, tirets typographiques,
+      corpus tronqué du vérificateur, dernière reformulation non jugée, R7, R2, prompt P3).
 - [ ] Agent suivant (à définir) — un seul agent à la fois
 
