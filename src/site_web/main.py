@@ -17,7 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from .clients.orchestrateur import ErreurSite, Orchestrateur
-from .core import courriel, securite
+from .core import securite
 from .core.config import charger
 from .storage import comptes
 
@@ -318,18 +318,16 @@ async def page_inscription(request: Request, message: str = ""):
     return GABARITS.TemplateResponse(
         request, "inscription.html", _contexte(
         request, page="connexion",
-        message=_message("erreur", message) if message else None, email="",
-        envoi_courriel=courriel.est_configure()))
+        message=_message("erreur", message) if message else None, email=""))
 
 
 @app.post("/inscription")
 async def inscription(request: Request, email: str = Form(""), mot_de_passe: str = Form(""),
                       confirmation: str = Form(""), csrf: str = Form("")):
-    """Inscription : l'adresse suffit.
+    """Inscription : l'adresse + un mot de passe CHOISI PAR L'ÉTUDIANT et confirmé.
 
-    Quand l'envoi de courrier est configuré, la plateforme FABRIQUE le mot de passe et l'envoie à
-    l'adresse : recevoir ce courrier prouve que l'adresse appartient bien à la personne. Tant qu'il
-    ne l'est pas, l'étudiant choisit lui-même son mot de passe (le site reste utilisable).
+    C'est lui qui protège son travail : personne d'autre ne peut ouvrir son mémoire sans ce mot
+    de passe. La confirmation sert à éviter une faute de frappe qui l'enfermerait dehors.
     """
     if not csrf_valide(request.cookies.get("session", ""), csrf):
         return RedirectResponse("/inscription?message=L'envoi du formulaire a échoué. Réessayez.",
@@ -338,40 +336,14 @@ async def inscription(request: Request, email: str = Form(""), mot_de_passe: str
     if not _MOTIF_EMAIL.match(email):
         return RedirectResponse("/inscription?message=Cette adresse e-mail ne semble pas valide.",
                                 status_code=303)
-
-    par_courriel = courriel.est_configure()
-
-    if par_courriel:
-        # Le mot de passe est FABRIQUÉ par la plateforme et envoyé à l'adresse : le recevoir prouve
-        # que l'adresse est bien celle de l'étudiant.
-        if comptes.identifiant_libre(REGLAGES.base_comptes, email):
-            mot_de_passe = securite.mot_de_passe_aleatoire()
-            comptes.creer_compte(REGLAGES.base_comptes, email, securite.hacher(mot_de_passe),
-                                 email=email)
-            sujet, texte = courriel.courrier_acces(email, mot_de_passe, _adresse_publique(request))
-            try:
-                courriel.envoyer(email, sujet, texte)
-                comptes.consigner(REGLAGES.base_comptes, "mot de passe envoyé par courrier", email)
-            except courriel.ErreurCourriel as erreur:
-                comptes.consigner(REGLAGES.base_comptes, "échec d'envoi du courrier", email)
-                return RedirectResponse(f"/inscription?message={erreur}", status_code=303)
-        # Réponse IDENTIQUE que l'adresse ait déjà un compte ou non : la page ne permet jamais de
-        # découvrir quelles adresses sont inscrites sur la plateforme.
-        return RedirectResponse(
-            "/connexion?message=Si cette adresse est valide, un courrier vient de lui être envoyé "
-            "avec son mot de passe. Pensez à regarder dans les courriers indésirables.",
-            status_code=303)
-
-    # Aucun compte d'envoi : l'étudiant choisit lui-même son mot de passe (le site reste utilisable).
-    # Une adresse DÉJÀ inscrite est refusée ici — surtout ne jamais ouvrir de session sans preuve :
-    # ce serait permettre à quiconque d'entrer avec l'adresse d'un autre.
     if not comptes.identifiant_libre(REGLAGES.base_comptes, email):
         return RedirectResponse(
             "/inscription?message=Un accès existe déjà pour cette adresse. Connectez-vous.",
             status_code=303)
     if mot_de_passe != confirmation:
-        return RedirectResponse("/inscription?message=Les deux mots de passe diffèrent.",
-                                status_code=303)
+        return RedirectResponse(
+            "/inscription?message=Les deux mots de passe ne sont pas identiques : "
+            "recommencez en les tapant à l'identique.", status_code=303)
     valide, explication = securite.mot_de_passe_valide(mot_de_passe)
     if not valide:
         return RedirectResponse(f"/inscription?message={explication}", status_code=303)

@@ -4,20 +4,12 @@
 <div class="connexion-page">
   <div class="connexion-boite">
     <div class="marque">Mémoire <span>accompagnement</span></div>
-    {% if envoi_courriel %}
-    <h1>Votre mémoire<br>commence ici.</h1>
-    <p class="connexion-intro">
-      Indiquez votre adresse e-mail : votre mot de passe vous sera <strong>envoyé par
-      courrier</strong> à cette adresse. C'est ce qui garantit que votre travail reste le vôtre —
-      personne d'autre ne peut ouvrir votre mémoire.
-    </p>
-    {% else %}
     <h1>Créez votre accès.</h1>
     <p class="connexion-intro">
-      Votre adresse e-mail, c'est votre identité sur la plateforme : elle vous servira à revenir
-      sur votre mémoire à tout moment. Aucune invitation n'est nécessaire.
+      Votre adresse e-mail, c'est votre identité sur la plateforme. Choisissez ensuite votre mot
+      de passe : <strong>c'est lui qui protège votre travail</strong> — personne d'autre ne pourra
+      ouvrir votre mémoire. Aucune invitation n'est nécessaire.
     </p>
-    {% endif %}
 
     {% if message %}<div class="message message-{{ message.type }}">{{ message.texte }}</div>{% endif %}
 
@@ -28,26 +20,22 @@
         <input type="email" id="email" name="email" required autocomplete="email"
                placeholder="prenom.nom@exemple.com" value="{{ email or '' }}" autofocus>
       </div>
-      {% if not envoi_courriel %}
       <div class="champ">
-        <label for="mot_de_passe">Choisissez un mot de passe</label>
+        <label for="mot_de_passe">Choisissez votre mot de passe</label>
         <input type="password" id="mot_de_passe" name="mot_de_passe" required minlength="10"
                autocomplete="new-password">
         <p class="aide-champ">
-          10 caractères minimum. Il protège votre travail : sans lui, quiconque connaît votre
-          adresse pourrait lire votre mémoire.
+          10 caractères minimum. Retenez-le : c'est lui qui protège votre travail.
         </p>
       </div>
       <div class="champ">
-        <label for="confirmation">Confirmez</label>
+        <label for="confirmation">Confirmez votre mot de passe</label>
         <input type="password" id="confirmation" name="confirmation" required minlength="10"
                autocomplete="new-password">
+        <p class="aide-champ">Le même mot de passe, tapé une seconde fois : on évite la faute de frappe.</p>
       </div>
-      {% endif %}
       <div class="form-actions">
-        <button class="btn btn-principal" type="submit">
-          {% if envoi_courriel %}Recevoir mon mot de passe{% else %}Créer mon accès{% endif %}
-        </button>
+        <button class="btn btn-principal" type="submit">Créer mon accès</button>
       </div>
     </form>
 

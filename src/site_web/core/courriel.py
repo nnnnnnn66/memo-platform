@@ -1,12 +1,15 @@
-"""Courriers du site — bibliothèque standard uniquement (`smtplib`, aucun service payant).
+"""Courriers électroniques du site — bibliothèque standard (`smtplib`), aucun service payant.
 
-**Pourquoi le mot de passe part par courrier.** À l'inscription, l'étudiant ne donne QUE son
-adresse : la plateforme fabrique un mot de passe et l'envoie à cette adresse. Recevoir ce courrier
-est la seule preuve que l'adresse appartient bien à la personne — sans cela, quiconque pourrait
-s'inscrire avec l'adresse d'un autre.
+**État : module PRÊT mais non branché.** L'inscription ne l'utilise pas : à l'inscription,
+l'étudiant choisit lui-même son mot de passe et le confirme (décision du porteur de projet).
 
-Ce module ne lève jamais d'exception non maîtrisée vers la page : une panne d'envoi devient un
-message clair pour l'étudiant, et le compte reste utilisable (le mot de passe pourra être renvoyé).
+Il existe pour la seule chose que le site ne sait pas encore faire : **« mot de passe oublié »**.
+Aujourd'hui, un étudiant qui perd son mot de passe n'a plus aucun moyen d'entrer — c'est le
+prochain trou à combler, et tout est déjà là : il suffira d'un écran, d'une route, et du compte
+d'envoi posé par `/root/poser-compte-envoi.sh` (variables MEMO_SMTP_* dans ~/.hermes/.env).
+
+Ce module ne lève jamais d'exception non maîtrisée vers une page : une panne d'envoi devient un
+message clair pour l'étudiant.
 """
 
 import os
