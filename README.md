@@ -270,7 +270,24 @@ Ne jamais construire toute la plateforme d'un coup. Un seul agent à la fois.
       `docs/architecture-agent-09-methodologie-v1.md`.
 - [x] **CHAÎNE RÉELLE 1 → 9 VÉRIFIÉE (2026-10-10)** — les neuf agents enchaînés sur leurs sorties
       réelles donnent tous `verified` (`scripts/e2e_chaine.py depuis=9`). **497 tests.**
-- [ ] Agent suivant : **Agent 10 — Résultats et analyse** (`research_results_analysis_agent`) —
-      SPEC reçue (`docs/spec-agent-10-resultats-analyse.md`), architecture à présenter (portillon §42)
-      puis à valider avant implémentation. Un seul agent à la fois.
+- [x] **Agent 10 — Résultats et analyse (étape 10) : construit et vérifié en exécution réelle
+      (2026-10-10)** — paquet autonome `src/research_results_analysis_agent/`, API
+      `POST /results/analyze` (port 8100, `run-resultats.sh`), profil `agent-resultats`,
+      `config/settings-resultats.yaml`. Architecture autorisée d'avance par le porteur.
+      Traite les **données réellement collectées** conformément à la méthodologie validée de
+      l'étape 9 : inventaire et qualité, analyse, interprétation prudente, examen des hypothèses,
+      limites, rédaction de la section et **synthèse pour l'étape 11**. Principe fondateur :
+      **les chiffres viennent du CODE** — le moteur déterministe `analysis/data_engine.py`
+      (bibliothèque standard, aucun réseau) calcule effectifs, fréquences, moyennes, médianes,
+      étendues et croisements ; le modèle ne fait que LIRE et INTERPRÉTER, et la **garde numérique**
+      (contrôle Q2) refuse tout chiffre absent des résultats calculés. Sans données exploitables,
+      l'agent produit un **plan d'analyse** et aucun résultat. Campagne réelle : **`verified`,
+      106 résultats calculés, 6 appels LLM**, puis décision étudiante `accepted` → `validated`.
+      Docs : `docs/spec-agent-10-resultats-analyse.md`,
+      `docs/elements-agent-10-resultats-analyse.md`,
+      `docs/architecture-agent-10-resultats-analyse-v1.md`.
+- [x] **CHAÎNE RÉELLE 1 → 10 VÉRIFIÉE (2026-10-10)** — les dix agents enchaînés sur leurs sorties
+      réelles donnent tous `verified` (`scripts/e2e_chaine.py depuis=10`). **559 tests.**
+- [ ] Agent suivant : **Agent 11 — Conclusion** (à définir par le porteur) — consomme la
+      `synthese_pour_conclusion` de l'étape 10. Un seul agent à la fois.
 

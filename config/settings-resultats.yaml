@@ -1,0 +1,41 @@
+# Agent Résultats et analyse (étape 10) — configuration PROPRE à cet agent.
+# (Aucun secret ici : les clés vivent uniquement dans ~/.hermes/.env.)
+
+llm:
+  provider: deepseek                 # deepseek | google
+  deepseek:
+    base_url: https://api.deepseek.com/v1
+    model: deepseek-flash
+    api_key_env: DEEPSEEK_API_KEY
+  google:
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    model: gemini-2.5-flash
+    api_key_env: GOOGLE_API_KEY
+  temperature: 0.2
+
+limits:
+  max_input_size: 80000              # jeux de données + méthodologie de l'étape 9 + corpus
+  max_output_tokens: 32000           # modèle raisonneur : les tokens de raisonnement consomment
+                                     # ce budget ; une limite basse coupe les JSON en plein
+  max_agent_turns: 8
+  max_verification_retries: 3
+  timeout: 90                        # secondes (appel LLM)
+  max_llm_calls: 22                  # P1 + P2 + P3 + P4 + vérificateur + re-tentatives
+                                     # + reformulations sur corrections
+  # --- aucun réseau : l'étape 10 n'analyse que les données fournies ---
+  max_external_requests: 0
+  source_timeout: 25
+  max_clarification_queries: 0
+  max_results_per_query: 0
+  cache_ttl_hours: 336
+
+paths:
+  workspace: workspace                             # workspace/<student_id>/<session_id>/
+  audit_db: workspace/audit-resultats.db           # journal d'audit (SQLite stdlib)
+  cache_db: workspace/resultats-cache.db           # inutilisé en V1 (aucun réseau)
+
+sources:
+  enabled: false
+
+security:
+  fail_on_injection: false                         # true = bloquer ; false = annoter et continuer

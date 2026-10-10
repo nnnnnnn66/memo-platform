@@ -35,6 +35,31 @@ OBSERVATIONS = ("Des équipes de développement peinent à tenir leurs délais ;
 DEPENDANCES_ETUDIANT = ("Mémoire de Master 2, six mois de terrain, budget limité ; accès aux "
                        "entreprises par un réseau professionnel.")
 
+#: Jeu de données FOURNI par l'« étudiant » du test (données d'enquête brutes). C'est une ENTRÉE du
+#: système, jamais une sortie d'agent : l'agent 10 n'en invente aucune valeur, il la CALCULE.
+DATASET_ETUDIANT = """repondant,ville,jours_teletravail,coordination,productivite_declaree
+D01,Abidjan,3,4,7
+D02,Abidjan,1,3,5
+D03,Bouaké,0,3,6
+D04,Abidjan,4,5,8
+D05,Bouaké,,2,5
+D06,Abidjan,2,4,6
+D07,Abidjan,5,5,8
+D08,Bouaké,1,2,4
+D09,Abidjan,3,4,7
+D10,Abidjan,0,3,5
+D11,Bouaké,2,3,6
+D12,Abidjan,4,5,8
+D13,Abidjan,1,2,4
+D14,Bouaké,3,4,7
+D15,Abidjan,2,3,6
+D16,Abidjan,4,4,7
+D17,Bouaké,0,2,4
+D18,Abidjan,3,5,8
+D19,Abidjan,2,3,5
+D20,Bouaké,1,3,6
+"""
+
 START = int(sys.argv[1].split("=")[1]) if len(sys.argv) > 1 and "=" in sys.argv[1] else 1
 
 
@@ -384,18 +409,66 @@ def main() -> int:
         print("appels LLM       :", res.llm_calls, flush=True)
     else:
         results[9] = load(9)
-        print("[9/9] reprise : sortie de l'agent 9 relue depuis le disque", flush=True)
+        print("[9/10] reprise : sortie de l'agent 9 relue depuis le disque", flush=True)
+    if results[9].get("verifier_status") != "verified":
+        print(">>> ARRÊT : l'agent 9 n'est pas vérifié.", flush=True)
+        return 9
+
+    # ---------------- ÉTAPE 10 : Agent Résultats et analyse ----------------
+    if START <= 10:
+        banner("[10/10] Agent Résultats et analyse — modèle réel")
+        from research_results_analysis_agent.core.config import get_settings as settings10
+        from research_results_analysis_agent.llm.client import LLMClient as Client10
+        from research_results_analysis_agent.pipeline import campaign as campaign10
+        from research_results_analysis_agent.schemas.input import Dataset, ResultsAnalysisRequest
+
+        s = settings10()
+        llm = Client10(s.llm_credentials(), s.limits)
+        methodology = dict(results[9]["output"])
+        methodology.setdefault("student_validation", {"decision": "accepted", "comment": ""})
+        # Jeu de données FOURNI par l'« étudiant » du test : c'est une ENTRÉE, jamais une sortie
+        # d'agent. L'agent 10 n'en invente aucune valeur — il la calcule.
+        body = ResultsAnalysisRequest(
+            student_id=STUDENT, session_id=SESSION, subject_text=SUJET,
+            discipline="Sciences de gestion", academic_level="Master 2",
+            data_origin="Questionnaire administré auprès de développeurs en télétravail.",
+            data_period="2024",
+            collection_notes="Questionnaires administrés en ligne et en présentiel ; "
+                             "une réponse incomplète conservée telle quelle.",
+            datasets=[Dataset(nom="enquete-developpeurs", format="csv", contenu=DATASET_ETUDIANT,
+                              source="Questionnaire administré par l'étudiant", periode="2024",
+                              description="Réponses brutes, sans nettoyage préalable.")],
+            upstream_subject=results[1]["output"], upstream_problem=results[2]["output"],
+            upstream_literature=results[3]["output"], upstream_problematic=results[4]["output"],
+            upstream_question=results[5]["output"], upstream_objectives=results[6]["output"],
+            upstream_hypotheses=results[7]["output"],
+            upstream_methodology_diagnostic=results[8]["output"],
+            upstream_methodology=methodology)
+        res = campaign10.run(body, s, llm, allow_network=False)
+        results[10] = {"output": res.output.model_dump(mode="json"),
+                       "verifier_status": res.verifier_status, "llm_calls": res.llm_calls,
+                       "verifier": res.verifier.model_dump(mode="json") if res.verifier else None}
+        save(10, results[10])
+        print("statut           :", res.output.status.value)
+        print("document         :", res.output.document_status.value)
+        print("vérificateur     :", res.verifier_status)
+        print("calculs          :", len(res.output.computed_results.resultats), "résultats calculés")
+        print("synthèse         :", len(res.output.synthese_pour_conclusion), "point(s) pour l'étape 11")
+        print("appels LLM       :", res.llm_calls, flush=True)
+    else:
+        results[10] = load(10)
+        print("[10/10] reprise : sortie de l'agent 10 relue depuis le disque", flush=True)
 
     # ---------------- BILAN ----------------
     banner("BILAN DE LA CHAÎNE (sorties réelles)")
     ok = True
-    for stage in range(1, 10):
+    for stage in range(1, 11):
         status = results[stage].get("verifier_status")
         flag = "OK " if status == "verified" else "!! "
         if status != "verified":
             ok = False
         print(f"  {flag}Agent {stage} : {status}")
-    print("\nBILAN :", "CHAÎNE COMPLÈTE VÉRIFIÉE (1 → 9)" if ok else
+    print("\nBILAN :", "CHAÎNE COMPLÈTE VÉRIFIÉE (1 → 10)" if ok else
           "CHAÎNE INCOMPLÈTE (voir ci-dessus)")
     print("sorties :", OUT)
     return 0 if ok else 9
