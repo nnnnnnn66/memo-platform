@@ -97,3 +97,57 @@ async def decider(request: Request, etudiant: str, session: str,
         return campaign.decider(settings, etudiant, session, body.decision, body.commentaire)
     except OrchestratorError as erreur:
         raise _erreur(erreur) from erreur
+
+
+@router.get("/dossiers/{etudiant}/{session}/etape")
+async def detail_etape(request: Request, etudiant: str, session: str, n: int = 0) -> dict:
+    """Le détail d'une étape pour l'affichage : proposition, inconnues, limites, questions,
+    verdict — c'est ce que le site montre à l'étudiant, sans rien réécrire."""
+    settings = request.app.state.settings
+    try:
+        return campaign.etape_detail(settings, etudiant, session, n or None)
+    except OrchestratorError as erreur:
+        raise _erreur(erreur) from erreur
+
+
+@router.get("/dossiers/{etudiant}/{session}/documents")
+async def documents_du_dossier(request: Request, etudiant: str, session: str) -> dict:
+    """Les textes retrouvés pour l'étudiant (manifeste normalisé, prêt à afficher)."""
+    settings = request.app.state.settings
+    try:
+        return campaign.documents(settings, etudiant, session)
+    except OrchestratorError as erreur:
+        raise _erreur(erreur) from erreur
+
+
+@router.get("/dossiers/{etudiant}/{session}/documents/{doc_id}/fichier")
+async def fichier_du_document(request: Request, etudiant: str, session: str, doc_id: str):
+    """Le texte intégral d'un document (accès ouvert uniquement), relayé tel quel."""
+    from fastapi.responses import Response
+
+    settings = request.app.state.settings
+    try:
+        contenu = campaign.fichier_document(settings, etudiant, session, doc_id)
+    except OrchestratorError as erreur:
+        raise _erreur(erreur) from erreur
+    return Response(content=contenu, media_type="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="{doc_id}.pdf"'})
+
+
+@router.get("/dossiers/{etudiant}/{session}/bibliographie")
+async def bibliographie_du_dossier(request: Request, etudiant: str, session: str,
+                                   format: str = "bibtex"):
+    """Export bibliographique relayé tel quel (BibTeX, RIS ou CSV)."""
+    from fastapi.responses import Response
+
+    settings = request.app.state.settings
+    try:
+        contenu = campaign.bibliographie(settings, etudiant, session, format)
+    except OrchestratorError as erreur:
+        raise _erreur(erreur) from erreur
+    extensions = {"bibtex": ("application/x-bibtex", "bib"), "ris":
+                  ("application/x-research-info-systems", "ris"), "csv": ("text/csv", "csv")}
+    type_mime, extension = extensions.get(format, ("application/octet-stream", "txt"))
+    return Response(content=contenu, media_type=type_mime,
+                    headers={"Content-Disposition":
+                             f'attachment; filename="bibliographie.{extension}"'})

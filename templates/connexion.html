@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block titre %}Connexion{% endblock %}
+{% block connexion %}
+<div class="connexion-page">
+  <div class="connexion-boite">
+    <div class="marque">Mémoire <span>accompagnement</span></div>
+    <h1>Votre travail,<br>étape par étape.</h1>
+    <p class="connexion-intro">
+      La plateforme vous accompagne dans la construction méthodologique de votre mémoire :
+      elle questionne, structure, repère les manques et les incohérences. Elle n'écrit pas à
+      votre place.
+    </p>
+
+    {% if message %}<div class="message message-{{ message.type }}">{{ message.texte }}</div>{% endif %}
+
+    {% if premiere_visite %}
+    <form method="post" action="/activer" class="carte">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="champ">
+        <label for="mot_de_passe">Choisissez votre mot de passe</label>
+        <input type="password" id="mot_de_passe" name="mot_de_passe" required
+               minlength="10" autocomplete="new-password" autofocus>
+        <p class="aide-champ">10 caractères minimum. Vous seul le connaîtrez.</p>
+      </div>
+      <div class="champ">
+        <label for="confirmation">Confirmez</label>
+        <input type="password" id="confirmation" name="confirmation" required
+               minlength="10" autocomplete="new-password">
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-principal" type="submit">Créer mon accès</button>
+      </div>
+    </form>
+    {% else %}
+    <form method="post" action="/connexion" class="carte">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="champ">
+        <label for="identifiant">Votre identifiant</label>
+        <input type="text" id="identifiant" name="identifiant" required autocomplete="username"
+               autofocus value="{{ identifiant or '' }}">
+      </div>
+      <div class="champ">
+        <label for="mot_de_passe">Votre mot de passe</label>
+        <input type="password" id="mot_de_passe" name="mot_de_passe" required
+               autocomplete="current-password">
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-principal" type="submit">Entrer</button>
+      </div>
+    </form>
+    {% endif %}
+
+    <p class="aide-champ" style="margin-top:18px">
+      L'accès se fait sur invitation. Si vous n'avez pas reçu la vôtre, demandez-la à votre
+      encadreur.
+    </p>
+  </div>
+</div>
+{% endblock %}

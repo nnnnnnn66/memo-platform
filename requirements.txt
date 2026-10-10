@@ -11,3 +11,8 @@ pytest-asyncio
 # pdfminer.six — licence MIT, pur Python, aucune dépendance système (ni poppler, ni OCR).
 # Choisi après épreuve sur documents réels (arXiv, PLOS) : extraction fiable et rapide.
 pdfminer.six
+# --- Site web de la plateforme ---
+# jinja2 : gabarits HTML rendus côté serveur (licence BSD, aucune dépendance système).
+# python-multipart : lecture des formulaires HTML par FastAPI (licence Apache 2.0).
+jinja2
+python-multipart

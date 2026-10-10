@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block titre %}{{ memoire.sujet }} — Mon parcours{% endblock %}
+{% block contenu %}
+
+<div class="tete-page">
+  <div>
+    <p class="surtitre">Mémoire</p>
+    <h1>{{ memoire.sujet }}</h1>
+    <p class="etape-note" style="margin-top:8px">
+      {{ memoires_avancement.faites }} étape{{ 's' if memoires_avancement.faites != 1 }} validée{{ 's' if memoires_avancement.faites != 1 }}
+      sur {{ memoires_avancement.total }} — prochaine étape : {{ memoire.libelle }}
+    </p>
+  </div>
+  <div class="actions">
+    <a class="btn btn-secondaire" href="/memoire/{{ memoire.session }}/export">Exporter mon dossier</a>
+    <a class="btn btn-secondaire" href="/memoire/{{ memoire.session }}/documents">Mes documents</a>
+  </div>
+</div>
+
+<div class="avancement">
+  <div class="jauge"><i style="width: {{ memoires_avancement.pourcent }}%"></i></div>
+  <b>{{ memoires_avancement.pourcent }} %</b>
+</div>
+
+{% if quota %}
+<p class="etape-note" style="margin-bottom:20px">
+  Il vous reste <strong>{{ quota.restant }}</strong> analyse{{ 's' if quota.restant != 1 }}
+  aujourd'hui{% if quota.restant == 0 %} — vous pourrez reprendre demain{% endif %}.
+</p>
+{% endif %}
+
+<h2 class="sr-only">Les treize étapes</h2>
+<nav class="sommaire" aria-label="Les étapes de votre mémoire">
+  {% for e in etapes %}
+    {% if e.ouverte %}
+      <a class="etape-ligne ouverte" href="/memoire/{{ memoire.session }}/etape">
+    {% elif e.statut == 'validee' %}
+      <a class="etape-ligne" href="/memoire/{{ memoire.session }}/etape?n={{ e.numero }}">
+    {% else %}
+      <span class="etape-ligne fermee">
+    {% endif %}
+        <span class="etape-num">{{ e.numero }}</span>
+        <span class="etape-corps">
+          <span class="etape-titre">{{ e.libelle }}</span>
+          <span class="etape-note">{{ e.note }}</span>
+        </span>
+        <span class="pastille pastille-{{ e.classe }}">{{ e.etiquette }}</span>
+    {% if e.ouverte or e.statut == 'validee' %}</a>{% else %}</span>{% endif %}
+  {% endfor %}
+</nav>
+
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block titre %}Mes documents — {{ memoire.sujet }}{% endblock %}
+{% block contenu %}
+
+<div class="tete-page">
+  <div>
+    <p class="surtitre">Étape 3 — revue de littérature</p>
+    <h1>Mes documents</h1>
+    <p class="etape-note" style="margin-top:8px">
+      Les textes retrouvés pour vous, et la bibliographie de votre mémoire.
+    </p>
+  </div>
+  <div class="actions">
+    <a class="btn btn-discret" href="/memoire/{{ memoire.session }}">← Mon parcours</a>
+  </div>
+</div>
+
+<div class="carte">
+  <div class="titre-section">
+    <h3>Ma bibliographie</h3>
+    <span class="compte">{{ resume.references or documents | length }} référence{{ 's' if (resume.references or documents | length) != 1 }}</span>
+  </div>
+  <p class="aide-champ" style="margin-bottom:16px">
+    Téléchargez-la au format de votre logiciel : Zotero et Mendeley lisent le BibTeX et le RIS,
+    le CSV s'ouvre dans un tableur.
+  </p>
+  <div class="decision" style="border:0;padding:0;margin:0">
+    <a class="btn btn-principal" href="/memoire/{{ memoire.session }}/bibliographie?format=bibtex">BibTeX</a>
+    <a class="btn btn-secondaire" href="/memoire/{{ memoire.session }}/bibliographie?format=ris">RIS</a>
+    <a class="btn btn-secondaire" href="/memoire/{{ memoire.session }}/bibliographie?format=csv">CSV</a>
+  </div>
+</div>
+
+<h2 class="titre-section" style="margin-top:34px">Textes disponibles</h2>
+{% if documents %}
+<div class="sommaire">
+  {% for d in documents %}
+    <div class="etape-ligne">
+      <span class="etape-num">{{ loop.index }}</span>
+      <span class="etape-corps">
+        <span class="etape-titre">{{ d.titre }}</span>
+        <span class="etape-note">
+          {{ d.auteurs }}{% if d.annee %} — {{ d.annee }}{% endif %}
+          {% if d.revue %} — {{ d.revue }}{% endif %}
+        </span>
+      </span>
+      {% if d.telechargeable %}
+        <a class="btn btn-secondaire" href="/memoire/{{ memoire.session }}/documents/{{ d.doc_id }}/fichier">
+          Télécharger le texte intégral
+        </a>
+      {% elif d.lien %}
+        <a class="btn btn-secondaire" href="{{ d.lien }}" target="_blank" rel="noopener noreferrer">
+          Voir chez l'éditeur
+        </a>
+      {% else %}
+        <span class="pastille pastille-a-faire">non accessible librement</span>
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="vide">
+  <h3>Aucun document pour l'instant</h3>
+  <p>Les textes apparaîtront ici après la revue de littérature (étape 3).</p>
+</div>
+{% endif %}
+
+{% endblock %}

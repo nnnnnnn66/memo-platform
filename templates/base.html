@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titre %}Accompagnement du mémoire{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='polices.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+</head>
+<body>
+{% if compte %}
+<header class="entete">
+  <div class="entete-in">
+    <a class="marque" href="/mes-memoires">Mémoire <span>accompagnement</span></a>
+    <nav>
+      <a href="/mes-memoires" class="{% if page == 'memoires' %}actif{% endif %}">Mes mémoires</a>
+      {% if admin %}<a href="/tableau-de-bord" class="{% if page == 'admin' %}actif{% endif %}">Tableau de bord</a>{% endif %}
+      <a href="/deconnexion">Déconnexion</a>
+    </nav>
+  </div>
+</header>
+{% endif %}
+
+{% if page == 'connexion' %}
+  {% block connexion %}{% endblock %}
+{% else %}
+<main class="page">
+  {% if message %}<div class="message message-{{ message.type }}">{{ message.texte }}</div>{% endif %}
+  {% block contenu %}{% endblock %}
+</main>
+<footer class="pied">
+  Accompagnement méthodologique du mémoire — vos dossiers vous appartiennent.
+</footer>
+{% endif %}
+</body>
+</html>

@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block titre %}Mes mémoires{% endblock %}
+{% block contenu %}
+
+<div class="tete-page">
+  <div>
+    <p class="surtitre">Vos travaux</p>
+    <h1>Mes mémoires</h1>
+  </div>
+</div>
+
+{% if memoires %}
+<div class="sommaire">
+  {% for m in memoires %}
+    <a class="etape-ligne" href="/memoire/{{ m.session }}">
+      <span class="etape-num">{{ m.faites }}/13</span>
+      <span class="etape-corps">
+        <span class="etape-titre">{{ m.sujet }}</span>
+        <span class="etape-note">Étape en cours : {{ m.libelle }}</span>
+      </span>
+      <span class="pastille pastille-{{ 'validee' if m.faites == 13 else 'attente' }}">
+        {{ 'parcours terminé' if m.faites == 13 else 'en cours' }}
+      </span>
+    </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="vide">
+  <h3>Vous n'avez pas encore de mémoire</h3>
+  <p>Créez-en un pour commencer : l'accompagnement vous posera les questions utiles, étape par
+     étape.</p>
+</div>
+{% endif %}
+
+<h2 class="titre-section" style="margin-top:44px">Nouveau mémoire</h2>
+<form method="post" action="/mes-memoires" class="carte">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="champ">
+    <label for="sujet">Votre sujet (même provisoire)</label>
+    <input type="text" id="sujet" name="sujet" required
+           placeholder="Ex. : les effets du télétravail sur la productivité des salariés"
+           value="{{ formulaire.sujet or '' }}">
+    <p class="aide-champ">Un titre provisoire suffit : la première étape sert justement à le cadrer.</p>
+  </div>
+  <div class="grille grille-2" style="margin-top:18px">
+    <div class="champ">
+      <label for="discipline">Discipline</label>
+      <input type="text" id="discipline" name="discipline" placeholder="Ex. : Sciences de gestion"
+             value="{{ formulaire.discipline or '' }}">
+    </div>
+    <div class="champ">
+      <label for="country">Pays du terrain</label>
+      <input type="text" id="country" name="country" placeholder="Ex. : Côte d'Ivoire"
+             value="{{ formulaire.country or '' }}">
+    </div>
+    <div class="champ">
+      <label for="geographical_scope">Zone précise</label>
+      <input type="text" id="geographical_scope" name="geographical_scope"
+             placeholder="Ex. : Abidjan" value="{{ formulaire.geographical_scope or '' }}">
+    </div>
+    <div class="champ">
+      <label for="period">Période étudiée</label>
+      <input type="text" id="period" name="period" placeholder="Ex. : 2020-2024"
+             value="{{ formulaire.period or '' }}">
+    </div>
+  </div>
+  <div class="champ">
+    <label for="research_problem">Le problème que vous observez <span
+      style="font-weight:400;color:var(--encre-tenue)">(facultatif)</span></label>
+    <textarea id="research_problem" name="research_problem" rows="3"
+      placeholder="Ex. : les entreprises constatent des effets contrastés du télétravail sans comprendre pourquoi.">{{ formulaire.research_problem or '' }}</textarea>
+  </div>
+  <div class="form-actions">
+    <button class="btn btn-principal" type="submit">Créer mon mémoire</button>
+    <span class="aide-champ" style="margin:0">Vous pourrez tout compléter plus tard.</span>
+  </div>
+</form>
+
+{% endblock %}

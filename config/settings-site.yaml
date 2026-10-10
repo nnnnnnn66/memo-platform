@@ -1,0 +1,18 @@
+# Site web de la plateforme — configuration PROPRE au site.
+# (Aucun secret ici : les clés vivent uniquement dans ~/.hermes/.env, chez les agents.)
+
+site:
+  # Le site ne parle QU'À l'orchestrateur, jamais aux agents.
+  orchestrateur_url: http://127.0.0.1:8000
+  # Accès sur invitation : aucun compte ne se crée sans invitation valide.
+  invitations_requises: true
+
+securite:
+  duree_session_heures: 12
+  # Limitation des tentatives de connexion (repris du test de sécurité du lab).
+  max_tentatives: 5
+  blocage_minutes: 15
+
+paths:
+  base_comptes: workspace/site.db      # comptes, invitations, sessions, journal du site
+  templates: templates

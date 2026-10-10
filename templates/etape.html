@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% from "partials/rendu.html" import rendre %}
+{% block titre %}Étape {{ etape.numero }} — {{ etape.libelle }}{% endblock %}
+{% block contenu %}
+
+<div class="tete-page">
+  <div>
+    <p class="surtitre">
+      Étape {{ etape.numero }} sur 13{% if etape.statut == 'proposee' %} — en attente de votre décision{% endif %}
+    </p>
+    <h1>{{ etape.libelle }}</h1>
+  </div>
+  <div class="actions">
+    <a class="btn btn-discret" href="/memoire/{{ memoire.session }}">← Toutes les étapes</a>
+  </div>
+</div>
+
+{% if etape.statut == 'proposee' %}
+  <div class="etape-grille">
+    <div class="proposition">
+      {% if proposition %}
+        {{ rendre(proposition) }}
+      {% else %}
+        <p class="etape-note">La proposition de cette étape n'a pas encore été produite.</p>
+      {% endif %}
+    </div>
+
+    <aside class="marge">
+      {% if inconnues %}
+      <div class="encadre encadre-inconnu">
+        <span class="etiquette">Ce que l'on ne sait pas encore</span>
+        <ul>{% for element in inconnues %}<li>{{ element }}</li>{% endfor %}</ul>
+      </div>
+      {% endif %}
+
+      {% if limites %}
+      <div class="encadre encadre-limite">
+        <span class="etiquette">Limites de cette proposition</span>
+        <ul>{% for element in limites %}<li>{{ element }}</li>{% endfor %}</ul>
+      </div>
+      {% endif %}
+
+      {% if signalements %}
+      <div class="encadre encadre-alerte">
+        <span class="etiquette">Points signalés par la vérification</span>
+        <ul>{% for element in signalements %}<li>{{ element }}</li>{% endfor %}</ul>
+      </div>
+      {% endif %}
+
+      {% if verdict %}
+      <div class="encadre encadre-verifie">
+        <span class="etiquette">Vérification indépendante</span>
+        <p>{{ verdict_texte }}</p>
+      </div>
+      {% endif %}
+    </aside>
+  </div>
+
+  <form method="post" action="/memoire/{{ memoire.session }}/etape/decision">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="n" value="{{ etape.numero }}">
+
+    {% if questions %}
+    <div class="carte" style="margin-top:30px">
+      <h3>Questions posées par l'accompagnement</h3>
+      <p class="aide-champ" style="margin-bottom:18px">
+        Répondez à ce que vous pouvez : ces réponses nourrissent les étapes suivantes.
+      </p>
+      {% for question in questions %}
+      <div class="champ">
+        <label for="q{{ loop.index }}">{{ question }}</label>
+        <textarea id="q{{ loop.index }}" name="reponse" rows="3"></textarea>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="decision">
+      <button class="btn btn-principal" type="submit" name="decision" value="accepted">
+        Je valide cette étape
+      </button>
+      <button class="btn btn-secondaire" type="submit" name="decision" value="modified">
+        Demander une révision
+      </button>
+      <p class="aide">
+        Valider ouvre l'étape suivante. Demander une révision laisse cette étape ouverte afin de
+        l'améliorer. Rien n'est validé sans votre clic.
+      </p>
+    </div>
+  </form>
+
+{% elif etape.statut in ('validee', 'a_reviser') %}
+  <div class="message message-{{ 'succes' if etape.statut == 'validee' else 'erreur' }}">
+    {% if etape.statut == 'validee' %}
+      Vous avez validé cette étape. Vous pouvez relire la proposition ci-dessous.
+    {% else %}
+      Vous avez demandé une révision de cette étape : elle reste ouverte.
+    {% endif %}
+  </div>
+  <div class="carte">
+    {% if proposition %}{{ rendre(proposition) }}{% else %}<p>Proposition non disponible.</p>{% endif %}
+  </div>
+
+{% elif etape.statut == 'echec' %}
+  <div class="message message-erreur">
+    Cette étape n'a pas pu aboutir. Rien n'a été validé ; votre dossier est conservé et vous
+    pouvez la relancer.
+  </div>
+  {% if etape.ouverte %}{% include "partials/lancer.html" %}{% endif %}
+
+{% elif etape.ouverte %}
+  {% include "partials/lancer.html" %}
+
+{% else %}
+  <div class="vide">
+    <h3>{{ etape.libelle }} est fermée pour l'instant</h3>
+    <p>Validez d'abord les étapes précédentes — l'accompagnement avance dans l'ordre.</p>
+    <p><a class="btn btn-secondaire" href="/memoire/{{ memoire.session }}">Revenir à mon parcours</a></p>
+  </div>
+{% endif %}
+
+{% endblock %}

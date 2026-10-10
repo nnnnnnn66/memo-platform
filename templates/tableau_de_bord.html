@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block titre %}Tableau de bord{% endblock %}
+{% block contenu %}
+
+<div class="tete-page">
+  <div>
+    <p class="surtitre">Administration</p>
+    <h1>Tableau de bord</h1>
+    <p class="etape-note" style="margin-top:8px">
+      L'état réel de la plateforme : quels services répondent, et qui a accès.
+    </p>
+  </div>
+</div>
+
+<div class="carte">
+  <div class="titre-section">
+    <h2>Les services</h2>
+    <span class="compte">{{ agents.en_ligne }} en ligne sur {{ agents.total }}</span>
+  </div>
+  <ul class="liste-nette">
+    {% for a in agents.agents %}
+    <li>
+      <span>
+        <strong>{{ a.libelle or a.agent }}</strong>
+        {% if a.etape %}<span class="etape-note" style="display:inline"> — étape {{ a.etape }}</span>{% endif %}
+      </span>
+      <span class="pastille pastille-{{ 'validee' if a.en_ligne else 'echec' }}">
+        {{ 'en ligne' if a.en_ligne else 'éteint' }}
+      </span>
+      {% if a.ecarts %}
+        <span class="pastille pastille-a-reviser">{{ a.ecarts | length }} écart{{ 's' if a.ecarts | length != 1 }}</span>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% if agents.en_ligne < agents.total %}
+  <p class="aide-champ" style="margin-top:14px">
+    Un service éteint n'empêche pas les étudiants de consulter leur dossier : seule l'étape
+    concernée est indisponible, et elle l'annonce clairement.
+  </p>
+  {% endif %}
+</div>
+
+<h2 class="titre-section" style="margin-top:34px">Invitations</h2>
+<div class="carte">
+  <p class="aide-champ" style="margin-bottom:16px">
+    L'accès se fait sur invitation : créez-en une, transmettez le lien, elle ne sert qu'une fois.
+  </p>
+  <form method="post" action="/tableau-de-bord/invitation">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="champ">
+      <label for="email">Adresse de l'étudiant <span style="font-weight:400;color:var(--encre-tenue)">(facultatif — pour vous repérer)</span></label>
+      <input type="email" id="email" name="email" placeholder="prenom.nom@exemple.edu">
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-principal" type="submit">Créer une invitation</button>
+    </div>
+  </form>
+
+  {% if invitations %}
+  <ul class="liste-nette" style="margin-top:22px">
+    {% for i in invitations %}
+    <li>
+      <span class="mono">{{ i.email or 'sans adresse' }}</span>
+      <span class="pastille pastille-{{ 'a-faire' if i.utilise_le else 'validee' }}">
+        {{ 'utilisée' if i.utilise_le else 'disponible' }}
+      </span>
+      <span class="quand">/invitation/{{ i.jeton[:12] }}…</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="etape-note" style="margin-top:18px">Aucune invitation pour l'instant.</p>
+  {% endif %}
+</div>
+
+<h2 class="titre-section" style="margin-top:34px">Activité récente</h2>
+<div class="carte">
+  <p class="etape-note" style="margin-bottom:14px">{{ comptes_total }} compte{{ 's' if comptes_total != 1 }} étudiant{{ 's' if comptes_total != 1 }} sur la plateforme.</p>
+  {% if evenements %}
+  <ul class="liste-nette">
+    {% for e in evenements %}
+    <li>
+      <span>{{ e.action }}{% if e.detail %} — <span class="etape-note" style="display:inline">{{ e.detail }}</span>{% endif %}</span>
+      <span class="quand">{{ e.quand[:16].replace('T', ' ') }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="etape-note">Rien pour l'instant.</p>
+  {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,38 @@
+{# Rend la proposition d'un agent comme un DOCUMENT : titres, paragraphes, listes, et pour les
+   listes d'objets des FICHES (jamais des titres répétés). Aucune clé technique à l'écran, et le
+   texte n'est jamais interprété : il est affiché tel quel. #}
+{% macro rendre(valeur, profondeur=0) %}
+  {% if valeur is mapping %}
+    {% for cle, val in valeur.items() %}
+      {% if cle not in CLES_TECHNIQUES and val not in (none, '', [], {}) %}
+        {% if profondeur == 0 %}<h3>{{ cle | etiquette }}</h3>{% else %}<h4>{{ cle | etiquette }}</h4>{% endif %}
+        {{ rendre(val, profondeur + 1) }}
+      {% endif %}
+    {% endfor %}
+  {% elif valeur is sequence and valeur is not string %}
+    {% if valeur and valeur[0] is mapping %}
+      <div class="fiches">
+        {% for element in valeur %}
+          {% set titre = element | titre_element %}
+          <div class="fiche">
+            {% if titre %}<p class="fiche-titre">{{ titre }}</p>{% endif %}
+            <dl class="fiche-champs">
+              {% for cle, val in element.items() %}
+                {% if cle not in CLES_TECHNIQUES and val != titre and val not in (none, '', [], {}) %}
+                  <dt>{{ cle | etiquette }}</dt>
+                  <dd>{{ val | aplatir }}</dd>
+                {% endif %}
+              {% endfor %}
+            </dl>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <ul>{% for element in valeur %}<li>{{ element | aplatir }}</li>{% endfor %}</ul>
+    {% endif %}
+  {% elif valeur is number %}
+    <p class="mono">{{ valeur }}</p>
+  {% else %}
+    <p>{{ valeur }}</p>
+  {% endif %}
+{% endmacro %}

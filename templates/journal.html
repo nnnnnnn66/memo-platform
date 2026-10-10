@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block titre %}Journal — {{ memoire.sujet }}{% endblock %}
+{% block contenu %}
+
+<div class="tete-page">
+  <div>
+    <p class="surtitre">Traçabilité</p>
+    <h1>Journal de mon mémoire</h1>
+    <p class="etape-note" style="margin-top:8px">
+      Ce qui s'est passé, dans l'ordre : ce que la plateforme a produit et ce que vous avez décidé.
+    </p>
+  </div>
+  <div class="actions">
+    <a class="btn btn-discret" href="/memoire/{{ memoire.session }}">← Mon parcours</a>
+  </div>
+</div>
+
+<h2 class="titre-section">Avancement des étapes</h2>
+<div class="carte">
+  {% if avancement %}
+  <ul class="liste-nette">
+    {% for ligne in avancement | reverse %}
+    <li>
+      <span><strong>Étape {{ ligne.numero }}</strong> — {{ ligne.libelle }}</span>
+      <span class="pastille pastille-{{ {'validee':'validee','proposee':'attente','a_reviser':'a-reviser','echec':'echec'}.get(ligne.statut, 'a-faire') }}">
+        {{ {'validee':'validée','proposee':'attente de votre décision','a_reviser':'à réviser','echec':'en échec'}.get(ligne.statut, ligne.statut) }}
+      </span>
+      {% if ligne.verdict %}<span class="pastille pastille-validee">vérifiée</span>{% endif %}
+      <span class="quand">{{ ligne.maj_le[:10] if ligne.maj_le else '' }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="etape-note">Aucune étape n'a encore été lancée.</p>
+  {% endif %}
+</div>
+
+<h2 class="titre-section" style="margin-top:34px">Vos actions sur la plateforme</h2>
+<div class="carte">
+  {% if evenements %}
+  <ul class="liste-nette">
+    {% for e in evenements %}
+    <li>
+      <span>{{ e.action }}{% if e.detail %} — <span class="etape-note" style="display:inline">{{ e.detail }}</span>{% endif %}</span>
+      <span class="quand">{{ e.quand[:16].replace('T', ' ') }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="etape-note">Rien pour l'instant.</p>
+  {% endif %}
+</div>
+
+{% endblock %}

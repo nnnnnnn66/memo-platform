@@ -1,0 +1,14 @@
+{# Proposer de lancer l'étape ouverte — la plateforme propose, l'étudiant déclenche. #}
+<div class="carte">
+  <div class="titre-section"><h3>Lancer cette étape</h3></div>
+  <p class="etape-note" style="margin-bottom:18px">
+    La plateforme va analyser votre dossier et vous proposer une réponse argumentée, avec ce
+    qu'elle ne sait pas et ses limites. Rien ne sera validé : vous relirez avant de décider.
+  </p>
+  <form method="post" action="/memoire/{{ memoire.session }}/etape/lancer">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="form-actions" style="margin-top:0">
+      <button class="btn btn-principal" type="submit">Lancer l'étape {{ etape.numero }}</button>
+    </div>
+  </form>
+</div>

@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block titre %}Une erreur est survenue{% endblock %}
+{% block contenu %}
+<div class="vide">
+  <h3>Cette page n'a pas pu s'afficher</h3>
+  <p style="max-width:52ch;margin:0 auto 20px">{{ message.texte }}</p>
+  <p><a class="btn btn-principal" href="/mes-memoires">Revenir à mes mémoires</a></p>
+</div>
+{% endblock %}
