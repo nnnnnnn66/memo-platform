@@ -338,18 +338,64 @@ def main() -> int:
         print("appels LLM       :", res.llm_calls, flush=True)
     else:
         results[8] = load(8)
-        print("[8/8] reprise : sortie de l'agent 8 relue depuis le disque", flush=True)
+        print("[8/9] reprise : sortie de l'agent 8 relue depuis le disque", flush=True)
+    if results[8].get("verifier_status") != "verified":
+        print(">>> ARRÊT : l'agent 8 n'est pas vérifié.", flush=True)
+        return 8
+
+    # ---------------- ÉTAPE 9 : Agent Méthodologie ----------------
+    if START <= 9:
+        banner("[9/9] Agent Méthodologie — modèle réel")
+        from methodology_agent.core.config import get_settings as settings9
+        from methodology_agent.llm.client import LLMClient as Client9
+        from methodology_agent.pipeline import campaign as campaign9
+        from methodology_agent.schemas.input import MethodologyRequest
+
+        s = settings9()
+        llm = Client9(s.llm_credentials(), s.limits)
+        # Le diagnostic de l'étape 8 est le SOCLE : on le passe tel quel, avec sa décision étudiante.
+        diagnostic = dict(results[8]["output"])
+        diagnostic.setdefault("student_validation", {"decision": "accepted", "comment": ""})
+        body = MethodologyRequest(
+            student_id=STUDENT, session_id=SESSION, subject_text=SUJET,
+            discipline="Sciences de gestion", academic_level="Master 2",
+            country="Côte d'Ivoire", geographical_area="Abidjan", study_period="2020-2024",
+            target_population="développeurs",
+            research_context="Entreprises de services numériques d'Abidjan.",
+            field_access="Enquête de terrain possible auprès des entreprises de services numériques.",
+            available_data="Questionnaires et entretiens à réaliser auprès des développeurs.",
+            available_resources="Six mois de terrain, budget limité.",
+            available_tools="Tableur et outil d'analyse de données.",
+            upstream_subject=results[1]["output"], upstream_problem=results[2]["output"],
+            upstream_literature=results[3]["output"], upstream_problematic=results[4]["output"],
+            upstream_question=results[5]["output"], upstream_objectives=results[6]["output"],
+            upstream_hypotheses=results[7]["output"],
+            upstream_methodology_diagnostic=diagnostic)
+        res = campaign9.run(body, s, llm, allow_network=False)
+        results[9] = {"output": res.output.model_dump(mode="json"),
+                      "verifier_status": res.verifier_status, "llm_calls": res.llm_calls,
+                      "verifier": res.verifier.model_dump(mode="json") if res.verifier else None}
+        save(9, results[9])
+        print("statut           :", res.output.status.value)
+        print("document         :", res.output.document_status.value)
+        print("vérificateur     :", res.verifier_status)
+        covered = sum(1 for row in res.output.matrice.lignes if row.statut.value == "couverte")
+        print("matrice          :", f"{covered}/{len(res.output.matrice.lignes)} objectifs couverts")
+        print("appels LLM       :", res.llm_calls, flush=True)
+    else:
+        results[9] = load(9)
+        print("[9/9] reprise : sortie de l'agent 9 relue depuis le disque", flush=True)
 
     # ---------------- BILAN ----------------
     banner("BILAN DE LA CHAÎNE (sorties réelles)")
     ok = True
-    for stage in range(1, 9):
+    for stage in range(1, 10):
         status = results[stage].get("verifier_status")
         flag = "OK " if status == "verified" else "!! "
         if status != "verified":
             ok = False
         print(f"  {flag}Agent {stage} : {status}")
-    print("\nBILAN :", "CHAÎNE COMPLÈTE VÉRIFIÉE (1 → 8)" if ok else
+    print("\nBILAN :", "CHAÎNE COMPLÈTE VÉRIFIÉE (1 → 9)" if ok else
           "CHAÎNE INCOMPLÈTE (voir ci-dessus)")
     print("sorties :", OUT)
     return 0 if ok else 9
