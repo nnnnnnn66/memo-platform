@@ -28,10 +28,34 @@ _STATUS_MAP = {
 }
 
 
+_CAPACITES = {
+    'agent': 'literature_review_agent',
+    'etape': 3,
+    'nom': 'Revue de littérature',
+    'role': 'Interroge les fournisseurs scientifiques, télécharge et LIT les textes intégraux, sélectionne le corpus, ancre les citations et produit la bibliographie.',
+    'capacites': ['revue_litterature', 'recherche_documentaire', 'telechargement_pdf', 'lecture_pdf', 'bibliographie', 'matrice_comparative', 'synthese_critique'],
+    'entrees_requises': ['upstream_problem', 'upstream_subject'],
+    'necessite_reseau': True,
+    'portillon_humain': True,
+    'version': '1.0',
+}
+
+
 @router.get("/health")
 async def health() -> dict:
     return {"status": "healthy", "agent": AGENT_ID, "version": VERSION}
 
+
+
+@router.get("/capabilities")
+async def capabilities() -> dict:
+    """Ce que cet agent SAIT FAIRE, et ce dont il a besoin pour travailler.
+
+    Répond aux quatre questions que l'orchestrateur doit pouvoir poser :
+    WHO ARE YOU (`agent`) — WHAT CAN YOU DO (`capacites`) — WHAT DO YOU NEED (`entrees_requises`)
+    — ARE YOU ONLINE (`/health`). Déclaration en DONNÉES : l'orchestrateur la LIT, il ne la devine pas.
+    """
+    return _CAPACITES
 
 @router.post("/literature/review")
 async def review(request: Request, body: CampaignRequest) -> dict:

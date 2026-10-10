@@ -11,7 +11,7 @@ import json
 from ..core.config import Settings
 from ..core.errors import EtatErreur, OrchestratorError
 from ..storage import state
-from . import call_agent, handoff, quota
+from . import call_agent, handoff, quota, registry
 
 DECISIONS = ("accepted", "modified", "refused")
 
@@ -67,8 +67,9 @@ def etat(settings: Settings, etudiant: str, session: str) -> dict:
     }
 
 
-def lancer_etape(settings: Settings, etudiant: str, session: str, transport=None) -> dict:
-    """Lance l'étape OUVERTE : quota, entrée faite de sorties réelles, appel, enregistrement.
+def lancer_etape(settings: Settings, etudiant: str, session: str, transport=None,
+                 interrogateur=None) -> dict:
+    """Lance l'étape OUVERTE : disponibilité, quota, entrée faite de sorties réelles, appel.
 
     Aucune étape ne peut être choisie par l'appelant : c'est le parcours qui décide laquelle est
     ouverte. Une proposition déjà en attente de décision n'est pas recalculée.
@@ -82,6 +83,18 @@ def lancer_etape(settings: Settings, etudiant: str, session: str, transport=None
             EtatErreur.ETAPE_NON_AUTORISEE,
             "Cette étape attend déjà ta décision : valide-la ou demande une révision.",
             f"étape {numero} déjà proposée")
+
+    # L'orchestrateur INTERROGE l'agent avant de lui confier du travail (leçon du lab) : mieux
+    # vaut refuser proprement que laisser échouer l'appel avec une erreur technique.
+    if transport is None or interrogateur is not None:
+        fiche = registry.fiche_de_etape(settings, numero, interrogateur=interrogateur)
+        if fiche and not fiche["en_ligne"]:
+            raise OrchestratorError(
+                EtatErreur.AGENT_INDISPONIBLE,
+                "Le service de cette étape est éteint pour le moment. Ton dossier est conservé : "
+                "tu pourras relancer l'étape dès qu'il sera rallumé.",
+                f"agent « {fiche['agent']} » hors ligne sur {fiche['adresse']}"
+                + (f" — {fiche['probleme']}" if fiche.get("probleme") else ""))
 
     sorties = handoff.sorties_validees(settings, settings.state_db, etudiant, session, etape)
     entree = handoff.construire_entree(settings, etudiant, session, etape, dossier, sorties)

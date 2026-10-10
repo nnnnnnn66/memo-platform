@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, ConfigDict
 
 from ..core.errors import OrchestratorError
-from ..pipeline import campaign
+from ..pipeline import campaign, registry
 
 router = APIRouter()
 
@@ -37,6 +37,23 @@ def _erreur(erreur: OrchestratorError) -> HTTPException:
 @router.get("/health")
 async def health() -> dict:
     return {"agent": "orchestrator", "version": "1.0", "status": "ok"}
+
+
+@router.get("/agents")
+async def agents(request: Request, forcer: bool = False) -> dict:
+    """Qui sont les agents, que savent-ils faire, sont-ils en ligne ?
+
+    L'orchestrateur ne se contente pas de connaître des adresses : il INTERROGE chaque agent
+    (`/health` pour la disponibilité, `/capabilities` pour l'identité et les capacités) et
+    SIGNALE tout désaccord entre ce qu'un agent déclare et ce que la carte du parcours prévoit.
+    """
+    settings = request.app.state.settings
+    fiches = registry.registre(settings, forcer=forcer)
+    return {
+        "total": len(fiches),
+        "en_ligne": sum(1 for fiche in fiches if fiche["en_ligne"]),
+        "agents": fiches,
+    }
 
 
 @router.post("/dossiers/{etudiant}/{session}")

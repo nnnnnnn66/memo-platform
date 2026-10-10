@@ -39,10 +39,34 @@ def _compteurs(output: CoherenceOutput) -> dict:
     }
 
 
+_CAPACITES = {
+    'agent': 'research_coherence_verifier',
+    'etape': 13,
+    'nom': 'Vérification globale de la cohérence',
+    'role': "Vérifie la cohérence TRANSVERSALE du dossier complet et dit ce qu'il ne peut pas vérifier.",
+    'capacites': ['verification_globale', 'coherence_transversale'],
+    'entrees_requises': ['upstream_conclusion', 'upstream_hypotheses', 'upstream_literature', 'upstream_methodology', 'upstream_methodology_diagnostic', 'upstream_objectives', 'upstream_problem', 'upstream_problematic', 'upstream_question', 'upstream_results', 'upstream_subject'],
+    'necessite_reseau': False,
+    'portillon_humain': True,
+    'version': '1.0',
+}
+
+
 @router.get("/health")
 async def health() -> dict:
     return {"status": "healthy", "agent": AGENT_ID, "version": VERSION}
 
+
+
+@router.get("/capabilities")
+async def capabilities() -> dict:
+    """Ce que cet agent SAIT FAIRE, et ce dont il a besoin pour travailler.
+
+    Répond aux quatre questions que l'orchestrateur doit pouvoir poser :
+    WHO ARE YOU (`agent`) — WHAT CAN YOU DO (`capacites`) — WHAT DO YOU NEED (`entrees_requises`)
+    — ARE YOU ONLINE (`/health`). Déclaration en DONNÉES : l'orchestrateur la LIT, il ne la devine pas.
+    """
+    return _CAPACITES
 
 @router.post("/coherence/audit")
 async def audit_dossier(request: Request, body: CoherenceRequest) -> dict:

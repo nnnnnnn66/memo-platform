@@ -26,10 +26,34 @@ _STATUS_MAP = {
 }
 
 
+_CAPACITES = {
+    'agent': 'problematization_agent',
+    'etape': 4,
+    'nom': 'Problématique',
+    'role': 'Construit la problématique, la matrice théorique et vérifie le manque (gap check).',
+    'capacites': ['problematique', 'construction_theorique', 'gap_check'],
+    'entrees_requises': ['upstream_literature', 'upstream_problem', 'upstream_subject'],
+    'necessite_reseau': True,
+    'portillon_humain': True,
+    'version': '1.0',
+}
+
+
 @router.get("/health")
 async def health() -> dict:
     return {"status": "healthy", "agent": AGENT_ID, "version": VERSION}
 
+
+
+@router.get("/capabilities")
+async def capabilities() -> dict:
+    """Ce que cet agent SAIT FAIRE, et ce dont il a besoin pour travailler.
+
+    Répond aux quatre questions que l'orchestrateur doit pouvoir poser :
+    WHO ARE YOU (`agent`) — WHAT CAN YOU DO (`capacites`) — WHAT DO YOU NEED (`entrees_requises`)
+    — ARE YOU ONLINE (`/health`). Déclaration en DONNÉES : l'orchestrateur la LIT, il ne la devine pas.
+    """
+    return _CAPACITES
 
 @router.post("/problematique/analyze")
 async def analyze(request: Request, body: ProblemRequest) -> dict:

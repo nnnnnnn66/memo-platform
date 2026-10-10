@@ -23,10 +23,34 @@ _STATUS_MAP = {
 }
 
 
+_CAPACITES = {
+    'agent': 'subject_agent',
+    'etape': 1,
+    'nom': 'Sujet',
+    'role': 'Cadre le sujet de mémoire et détecte les informations manquantes (QUOI/QUI/OÙ/QUAND).',
+    'capacites': ['sujet', 'cadrage', 'clarification'],
+    'entrees_requises': [],
+    'necessite_reseau': False,
+    'portillon_humain': True,
+    'version': '1.0',
+}
+
+
 @router.get("/health")
 async def health() -> dict:
     return {"status": "healthy", "agent": "subject_agent", "version": "1.0"}
 
+
+
+@router.get("/capabilities")
+async def capabilities() -> dict:
+    """Ce que cet agent SAIT FAIRE, et ce dont il a besoin pour travailler.
+
+    Répond aux quatre questions que l'orchestrateur doit pouvoir poser :
+    WHO ARE YOU (`agent`) — WHAT CAN YOU DO (`capacites`) — WHAT DO YOU NEED (`entrees_requises`)
+    — ARE YOU ONLINE (`/health`). Déclaration en DONNÉES : l'orchestrateur la LIT, il ne la devine pas.
+    """
+    return _CAPACITES
 
 @router.post("/subject/analyze")
 async def analyze(request: Request, body: SubjectRequest) -> dict:
