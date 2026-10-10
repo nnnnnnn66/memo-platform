@@ -194,6 +194,7 @@ def test_l_inscription_refuse_une_adresse_invalide(site):
 
 
 def test_l_inscription_refuse_une_adresse_deja_prise(site):
+    """On ne peut pas prendre la place d'un compte existant — et surtout pas ouvrir sa session."""
     client, _, reglages = site
     creer_compte(reglages, "etudiante@exemple.com")
 
@@ -203,6 +204,7 @@ def test_l_inscription_refuse_une_adresse_deja_prise(site):
 
     assert reponse.status_code == 303
     assert "existe" in reponse.headers["location"]
+    assert "session" not in reponse.headers.get("set-cookie", "")
     assert comptes.nombre_comptes(reglages.base_comptes) == 1
 
 

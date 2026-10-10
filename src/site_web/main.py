@@ -17,7 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from .clients.orchestrateur import ErreurSite, Orchestrateur
-from .core import securite
+from .core import courriel, securite
 from .core.config import charger
 from .storage import comptes
 
@@ -318,12 +318,19 @@ async def page_inscription(request: Request, message: str = ""):
     return GABARITS.TemplateResponse(
         request, "inscription.html", _contexte(
         request, page="connexion",
-        message=_message("erreur", message) if message else None, email=""))
+        message=_message("erreur", message) if message else None, email="",
+        envoi_courriel=courriel.est_configure()))
 
 
 @app.post("/inscription")
 async def inscription(request: Request, email: str = Form(""), mot_de_passe: str = Form(""),
                       confirmation: str = Form(""), csrf: str = Form("")):
+    """Inscription : l'adresse suffit.
+
+    Quand l'envoi de courrier est configuré, la plateforme FABRIQUE le mot de passe et l'envoie à
+    l'adresse : recevoir ce courrier prouve que l'adresse appartient bien à la personne. Tant qu'il
+    ne l'est pas, l'étudiant choisit lui-même son mot de passe (le site reste utilisable).
+    """
     if not csrf_valide(request.cookies.get("session", ""), csrf):
         return RedirectResponse("/inscription?message=L'envoi du formulaire a échoué. Réessayez.",
                                 status_code=303)
@@ -331,6 +338,33 @@ async def inscription(request: Request, email: str = Form(""), mot_de_passe: str
     if not _MOTIF_EMAIL.match(email):
         return RedirectResponse("/inscription?message=Cette adresse e-mail ne semble pas valide.",
                                 status_code=303)
+
+    par_courriel = courriel.est_configure()
+
+    if par_courriel:
+        # Le mot de passe est FABRIQUÉ par la plateforme et envoyé à l'adresse : le recevoir prouve
+        # que l'adresse est bien celle de l'étudiant.
+        if comptes.identifiant_libre(REGLAGES.base_comptes, email):
+            mot_de_passe = securite.mot_de_passe_aleatoire()
+            comptes.creer_compte(REGLAGES.base_comptes, email, securite.hacher(mot_de_passe),
+                                 email=email)
+            sujet, texte = courriel.courrier_acces(email, mot_de_passe, _adresse_publique(request))
+            try:
+                courriel.envoyer(email, sujet, texte)
+                comptes.consigner(REGLAGES.base_comptes, "mot de passe envoyé par courrier", email)
+            except courriel.ErreurCourriel as erreur:
+                comptes.consigner(REGLAGES.base_comptes, "échec d'envoi du courrier", email)
+                return RedirectResponse(f"/inscription?message={erreur}", status_code=303)
+        # Réponse IDENTIQUE que l'adresse ait déjà un compte ou non : la page ne permet jamais de
+        # découvrir quelles adresses sont inscrites sur la plateforme.
+        return RedirectResponse(
+            "/connexion?message=Si cette adresse est valide, un courrier vient de lui être envoyé "
+            "avec son mot de passe. Pensez à regarder dans les courriers indésirables.",
+            status_code=303)
+
+    # Aucun compte d'envoi : l'étudiant choisit lui-même son mot de passe (le site reste utilisable).
+    # Une adresse DÉJÀ inscrite est refusée ici — surtout ne jamais ouvrir de session sans preuve :
+    # ce serait permettre à quiconque d'entrer avec l'adresse d'un autre.
     if not comptes.identifiant_libre(REGLAGES.base_comptes, email):
         return RedirectResponse(
             "/inscription?message=Un accès existe déjà pour cette adresse. Connectez-vous.",
@@ -344,6 +378,16 @@ async def inscription(request: Request, email: str = Form(""), mot_de_passe: str
 
     comptes.creer_compte(REGLAGES.base_comptes, email, securite.hacher(mot_de_passe), email=email)
     comptes.consigner(REGLAGES.base_comptes, "compte créé", email)
+    return _ouvrir_session(email)
+
+
+def _adresse_publique(request: Request) -> str:
+    """L'adresse du site telle que l'étudiant la voit (pour les liens du courrier)."""
+    return str(request.base_url).rstrip("/")
+
+
+def _ouvrir_session(email: str) -> RedirectResponse:
+    """Ouvre une session serveur et pose le cookie — la SEULE façon d'entrer dans le site."""
     jeton_session = comptes.ouvrir_session(REGLAGES.base_comptes, email,
                                            REGLAGES.duree_session_heures)
     reponse = RedirectResponse("/mes-memoires", status_code=303)

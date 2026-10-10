@@ -1,12 +1,26 @@
 """Configuration du site web."""
 
 import dataclasses
+import os
 import pathlib
 
 import yaml
+from dotenv import load_dotenv
 
 RACINE = pathlib.Path(__file__).resolve().parents[3]
 FICHIER = RACINE / "config" / "settings-site.yaml"
+
+
+def _charger_secrets() -> None:
+    """Secrets : fichier du PROJET (.env) puis fichier HERMES (~/.hermes/.env).
+
+    Même règle que les agents : `load_dotenv` n'écrase rien, le projet garde la priorité. Sans ce
+    chargement, un réglage posé dans `~/.hermes/.env` (emplacement documenté) resterait invisible
+    au site — c'est ce qui est arrivé à la clé d'un agent.
+    """
+    load_dotenv(RACINE / ".env")
+    hermes_home = pathlib.Path(os.environ.get("HERMES_HOME", pathlib.Path.home() / ".hermes"))
+    load_dotenv(hermes_home / ".env")
 
 
 @dataclasses.dataclass(frozen=True)
@@ -22,6 +36,7 @@ class Settings:
 
 
 def charger(chemin: pathlib.Path | None = None) -> Settings:
+    _charger_secrets()
     fichier = chemin or FICHIER
     brut = {}
     if fichier.exists():

@@ -47,3 +47,14 @@ def mot_de_passe_valide(mot_de_passe: str) -> tuple:
     if mot_de_passe.strip() != mot_de_passe:
         return False, "Votre mot de passe ne doit pas commencer ou finir par un espace."
     return True, ""
+
+
+# Alphabet SANS caractères ambigus (ni 0/O, ni 1/l/I) : le mot de passe est recopié à la main
+# depuis un courrier, une confusion coûterait une connexion impossible.
+_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789"
+
+
+def mot_de_passe_aleatoire(groupes: int = 3, taille: int = 4) -> str:
+    """Mot de passe fort ET lisible par groupes : « kfqm-2xta-9prz » (~60 bits d'entropie)."""
+    return "-".join(
+        "".join(secrets.choice(_ALPHABET) for _ in range(taille)) for _ in range(groupes))
