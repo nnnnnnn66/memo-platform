@@ -88,3 +88,28 @@ def test_lancement_sans_agent_renvoie_une_erreur_expliquee(settings):
     detail = reponse.json()["detail"]
     assert detail["error"] in ("AGENT_INDISPONIBLE", "AGENT_EN_ECHEC", "QUOTA_DEPASSE")
     assert "http" not in detail["message"]
+
+
+def test_la_carte_publique_du_parcours_est_numerotee_sans_trou(settings):
+    """Ce qui est montré à un VISITEUR : les étapes, numérotées 1..N sans trou.
+
+    Le numéro interne saute l'étape réservée (… 11, puis 13) : la position affichée, elle, doit
+    rester continue, sinon la dernière étape s'annoncerait « étape 13 sur 12 ».
+    """
+    reponse = _client(settings).get("/parcours")
+
+    assert reponse.status_code == 200
+    etapes = reponse.json()["etapes"]
+    assert len(etapes) == len(settings.etapes)
+    assert [etape["position"] for etape in etapes] == list(range(1, len(etapes) + 1))
+
+
+def test_la_carte_publique_ne_revele_rien_d_interne(settings):
+    """Un visiteur voit les étapes — ni les agents, ni leurs adresses, ni leurs ports."""
+    etapes = _client(settings).get("/parcours").json()["etapes"]
+
+    for etape in etapes:
+        assert set(etape) == {"numero", "position", "libelle"}
+        assert "agent" not in etape
+        assert "port" not in etape
+        assert "prefixe" not in etape

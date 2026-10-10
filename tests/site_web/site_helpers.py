@@ -111,12 +111,21 @@ class OrchestrateurSimule:
                            {"agent": "discussion_agent", "libelle": "Discussion", "etape": 11,
                             "en_ligne": False, "ecarts": []}]}
 
+    def parcours(self):
+        """La carte publique des étapes, telle que la page d'accueil l'affiche."""
+        self._retenir("/parcours", "GET")
+        return {"etapes": [{"numero": n, "position": rang + 1, "libelle": lib}
+                           for rang, (n, lib) in enumerate(ETAPES)]}
+
 
 @pytest.fixture
 def site(tmp_path, monkeypatch):
     """Le site, isolé : base temporaire, clé de formulaire temporaire, orchestrateur simulé."""
     from site_web import main as main_site
 
+    # Le cache de la page d'accueil est GLOBAL (il dure une minute) : on le vide pour que chaque
+    # test parte d'un état propre, sinon un test hérite de la carte mémorisée par le précédent.
+    main_site._CACHE_PARCOURS.update(quand=0.0, etapes=[])
     reglages = dataclasses.replace(charger(), base_comptes=tmp_path / "site.db")
     monkeypatch.setattr(main_site, "REGLAGES", reglages)
     monkeypatch.setattr(main_site, "_CLE_CSRF", tmp_path / ".site-csrf")

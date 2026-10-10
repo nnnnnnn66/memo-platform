@@ -253,8 +253,10 @@ def etape_detail(settings: Settings, etudiant: str, session: str,
     return {
         "numero": numero,
         "libelle": etape.libelle,
-        # Nombre réel d'étapes de la carte (l'étape réservée n'en fait pas partie) : le site
-        # affiche « étape 3 sur 12 », jamais un total écrit à la main qui finirait par mentir.
+        # `position` = rang dans le parcours (1..12) ; `numero` = identifiant interne, qui saute
+        # 12 (étape réservée). C'est la POSITION que l'étudiant doit lire : sinon la dernière
+        # étape s'afficherait « étape 13 sur 12 ».
+        "position": ordre(settings).index(numero) + 1,
         "total_etapes": len(settings.etapes),
         "statut": ligne.get("statut", state.STATUT_A_FAIRE),
         "ouverte": numero == ouverte,

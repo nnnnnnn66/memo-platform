@@ -120,6 +120,10 @@ a:hover { color: var(--accent-fonce); }
 .entete nav a { color: var(--encre-douce); text-decoration: none; font-size: .92rem;
   font-weight: 500; }
 .entete nav a:hover, .entete nav a.actif { color: var(--accent); }
+/* Un bouton RESTE un bouton : sans cette règle, la couleur des liens de navigation écrasait le
+   blanc du bouton, et « Créer mon accès » s'affichait en sombre sur fond vert (illisible). */
+.entete nav a.btn-principal { color: #fff; }
+.entete nav a.btn-principal:hover { color: #fff; }
 
 .page { max-width: var(--large); margin: 0 auto; padding: 40px 24px 96px; }
 .tete-page { display: flex; align-items: flex-end; gap: 24px; flex-wrap: wrap;
@@ -283,6 +287,57 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent);
 .connexion-boite .marque { margin-bottom: 26px; font-size: 1.3rem; }
 .connexion-intro { color: var(--encre-douce); margin: 0 0 26px; }
 .connexion-boite .carte { box-shadow: var(--ombre-3); border-color: rgba(11, 93, 75, .18); }
+.lien-retour { display: inline-block; margin-bottom: 16px; font-size: .85rem;
+  color: var(--encre-tenue); text-decoration: none; }
+.lien-retour:hover { color: var(--accent); }
+
+/* ============================================================================
+   PAGE D'ACCUEIL — publique. C'est la seule page qui « présente » la plateforme :
+   elle a droit à plus d'ampleur, jamais au vocabulaire d'une publicité.
+   ============================================================================ */
+.accueil-heros { border-bottom: 1px solid var(--trait); }
+.accueil-heros-in { max-width: var(--large); margin: 0 auto; padding: 84px 24px 72px; }
+.accueil-titre { font-size: clamp(2.1rem, 1.4rem + 3vw, 3.5rem); letter-spacing: -.02em;
+  margin: 10px 0 0; max-width: 22ch; }
+.accueil-chapeau { font-size: 1.1rem; color: var(--encre-douce); max-width: 62ch;
+  margin: 20px 0 0; text-wrap: pretty; }
+.accueil-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+  margin-top: 30px; }
+
+.accueil-section { max-width: var(--large); margin: 0 auto; padding: 62px 24px 0; }
+.accueil-section > h2 { margin-bottom: 26px; }
+.accueil-duo { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 18px; }
+.accueil-duo-trois { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.accueil-etiquette { display: block; font-size: .76rem; font-weight: 700; letter-spacing: .09em;
+  text-transform: uppercase; margin-bottom: 14px; }
+.accueil-carte-fait .accueil-etiquette { color: var(--accent); }
+.accueil-carte-pasfait .accueil-etiquette { color: var(--terre); }
+.accueil-carte-fait { border-color: rgba(11, 93, 75, .22); }
+.accueil-carte-pasfait { border-color: rgba(184, 92, 56, .22); }
+.accueil-points { list-style: none; margin: 0; padding: 0; }
+.accueil-points li { padding: 9px 0 9px 22px; position: relative; border-bottom: 1px solid var(--trait); }
+.accueil-points li:last-child { border-bottom: 0; }
+.accueil-points li::before { content: ''; position: absolute; left: 0; top: 17px;
+  width: 7px; height: 7px; border-radius: 50%; }
+.accueil-carte-fait .accueil-points li::before { background: var(--accent); }
+.accueil-carte-pasfait .accueil-points li::before { background: var(--terre); }
+
+/* Le parcours, présenté comme un sommaire — deux colonnes sur grand écran. */
+.accueil-etapes { list-style: none; margin: 0; padding: 0;
+  columns: 2; column-gap: 44px; }
+.accueil-etapes li { display: flex; gap: 14px; align-items: baseline; padding: 11px 0;
+  border-bottom: 1px solid var(--trait); break-inside: avoid; }
+.accueil-etapes .etape-num { color: var(--accent); font-size: 1.15rem; min-width: 26px; }
+
+.accueil-fin { max-width: var(--large); margin: 70px auto 0; padding: 56px 24px;
+  border-top: 1px solid var(--trait); text-align: center; }
+.accueil-fin h2 { font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.3rem); }
+
+@media (max-width: 760px) {
+  .accueil-etapes { columns: 1; }
+  .accueil-heros-in { padding: 48px 18px 44px; }
+}
 
 /* ---------- Divers ---------- */
 .pied { border-top: 1px solid var(--trait); margin-top: 60px; padding: 22px 24px;

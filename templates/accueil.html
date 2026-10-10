@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block titre %}Accompagnement méthodologique du mémoire de Master{% endblock %}
+{% block accueil %}
+
+<header class="entete">
+  <div class="entete-in">
+    <a class="marque" href="/">Mémoire <span>accompagnement</span></a>
+    <nav>
+      {% if compte %}
+        <a href="/mes-memoires">Mes mémoires</a>
+      {% else %}
+        <a href="/connexion">J'ai déjà un accès</a>
+        <a class="btn btn-principal" style="min-height:38px;padding:7px 16px" href="/inscription">Créer mon accès</a>
+      {% endif %}
+    </nav>
+  </div>
+</header>
+
+<section class="accueil-heros">
+  <div class="accueil-heros-in">
+    <p class="surtitre">Accompagnement méthodologique du mémoire de Master</p>
+    <h1 class="accueil-titre">
+      Un mémoire ne s'improvise pas.<br>Il se construit.
+    </h1>
+    <p class="accueil-chapeau">
+      Du choix du sujet à la vérification finale, la plateforme vous accompagne dans la
+      <strong>construction méthodologique</strong> de votre mémoire. Elle interroge, structure,
+      repère les manques et les incohérences — puis elle vous propose. <strong>C'est vous qui
+      décidez.</strong>
+    </p>
+    <div class="accueil-actions">
+      {% if compte %}
+        <a class="btn btn-principal" href="/mes-memoires">Reprendre mon mémoire</a>
+      {% else %}
+        <a class="btn btn-principal" href="/inscription">Créer mon accès</a>
+        <a class="btn btn-secondaire" href="/connexion">J'ai déjà un accès</a>
+      {% endif %}
+    </div>
+    <p class="aide-champ" style="margin-top:14px">
+      Votre adresse e-mail suffit. Aucune invitation, aucun paiement.
+    </p>
+  </div>
+</section>
+
+<section class="accueil-section">
+  <h2>Ce qu'elle fait — et ce qu'elle ne fait pas</h2>
+  <div class="accueil-duo">
+    <div class="carte accueil-carte-fait">
+      <span class="accueil-etiquette">Ce qu'elle fait</span>
+      <ul class="accueil-points">
+        <li>Cadrer votre sujet et dire ce qui manque encore</li>
+        <li>Formuler le problème de recherche et la problématique</li>
+        <li>Construire la revue de littérature et retrouver les textes</li>
+        <li>Établir hypothèses, objectifs et protocole de recherche</li>
+        <li>Lire vos résultats et en tirer une analyse</li>
+        <li>Vérifier la cohérence de l'ensemble du dossier</li>
+      </ul>
+    </div>
+    <div class="carte accueil-carte-pasfait">
+      <span class="accueil-etiquette">Ce qu'elle ne fait pas</span>
+      <ul class="accueil-points">
+        <li>Elle n'écrit pas votre mémoire à votre place</li>
+        <li>Elle n'invente ni résultat, ni référence, ni chiffre</li>
+        <li>Elle ne valide jamais une étape sans votre clic</li>
+        <li>Elle ne montre à personne ce que vous avez écrit</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="accueil-section">
+  <h2>Le parcours</h2>
+  {% if etapes %}
+  <p class="accueil-chapeau" style="margin-bottom:22px">
+    {{ etapes | length }} étapes, dans l'ordre. Chaque étape s'ouvre quand vous avez validé la
+    précédente, et chacune reste relisible : votre progression est conservée.
+  </p>
+  <ol class="accueil-etapes">
+    {% for e in etapes %}
+    <li><span class="etape-num">{{ e.position }}</span><span>{{ e.libelle }}</span></li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  <p class="accueil-chapeau">
+    Le parcours vous conduit du choix du sujet à la vérification finale du dossier, étape après
+    étape. Chaque étape s'ouvre quand la précédente est validée, et chacune reste relisible.
+  </p>
+  {% endif %}
+</section>
+
+<section class="accueil-section">
+  <h2>Votre travail vous appartient</h2>
+  <div class="accueil-duo accueil-duo-trois">
+    <div class="carte">
+      <h3>Personne d'autre n'y a accès</h3>
+      <p class="etape-note" style="margin-top:8px">
+        Votre dossier est strictement personnel. Ni les autres étudiants, ni votre encadreur n'y
+        ont accès. Il faut votre mot de passe pour l'ouvrir.
+      </p>
+    </div>
+    <div class="carte">
+      <h3>Vous repartez avec tout</h3>
+      <p class="etape-note" style="margin-top:8px">
+        Chaque étape est téléchargeable, avec ses documents et sa bibliographie (BibTeX, RIS, CSV).
+        Vous pouvez exporter votre dossier entier, à tout moment.
+      </p>
+    </div>
+    <div class="carte">
+      <h3>Rien n'est décidé à votre place</h3>
+      <p class="etape-note" style="margin-top:8px">
+        La plateforme propose, explique ce qu'elle ne sait pas et signale ses limites. Vous lisez,
+        puis vous validez — ou vous demandez une révision.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="accueil-fin">
+  <h2>Commencez par votre sujet.</h2>
+  <p class="accueil-chapeau" style="margin:12px auto 26px;text-align:center">
+    Même provisoire : la première étape sert justement à le cadrer.
+  </p>
+  {% if compte %}
+    <a class="btn btn-principal" href="/mes-memoires">Reprendre mon mémoire</a>
+  {% else %}
+    <a class="btn btn-principal" href="/inscription">Créer mon accès</a>
+  {% endif %}
+</section>
+
+<footer class="pied">
+  Accompagnement méthodologique du mémoire — vos dossiers vous appartiennent.
+</footer>
+{% endblock %}

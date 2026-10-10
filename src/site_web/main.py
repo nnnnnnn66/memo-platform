@@ -290,11 +290,37 @@ async def _erreur_site(request: Request, erreur: ErreurSite):
         status_code=200)
 
 
-# -------------------------------------------------------------------- connexion
+# -------------------------------------------------------------------- accueil
 @app.get("/", response_class=HTMLResponse)
 async def racine(request: Request):
-    identifiant, _ = _compte_courant(request)
-    return RedirectResponse("/mes-memoires" if identifiant else "/connexion", status_code=303)
+    """Page d'accueil PUBLIQUE : on n'arrive plus devant une porte fermée.
+
+    Elle reste présentable même si l'orchestrateur est arrêté : elle explique ce que fait la
+    plateforme, simplement sans détailler la liste des étapes.
+    """
+    return GABARITS.TemplateResponse(
+        request, "accueil.html", _contexte(
+        request, page="accueil", etapes=_etapes_publiques()))
+
+
+# La carte du parcours est la même pour tous les visiteurs : on la garde une minute en mémoire au
+# lieu d'interroger l'orchestrateur à chaque visite (et un visiteur n'attend jamais plus de
+# quelques secondes, même si un service est éteint).
+_CACHE_PARCOURS: dict = {"quand": 0.0, "etapes": []}
+
+
+def _etapes_publiques() -> list:
+    import time
+
+    if _CACHE_PARCOURS["etapes"] and time.time() - _CACHE_PARCOURS["quand"] < 60:
+        return _CACHE_PARCOURS["etapes"]
+    try:
+        etapes = ORCHESTRATEUR.parcours().get("etapes", [])
+    except ErreurSite:
+        return []
+    if etapes:
+        _CACHE_PARCOURS.update(quand=time.time(), etapes=etapes)
+    return etapes
 
 
 @app.get("/connexion", response_class=HTMLResponse)
@@ -575,6 +601,7 @@ async def page_etape(request: Request, session: str, n: int = 0, message: str = 
         etape={"numero": detail["numero"], "libelle": detail["libelle"],
                "statut": detail["statut"], "ouverte": detail.get("ouverte", False)},
         total_etapes=detail.get("total_etapes", 0),
+        position=detail.get("position", detail["numero"]),
         proposition=detail.get("resultat"),
         inconnues=detail.get("inconnues", []),
         limites=detail.get("limites", []),

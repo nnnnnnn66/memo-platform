@@ -29,14 +29,14 @@ class Orchestrateur:
 
     # ------------------------------------------------------------------ interne
     def _appeler(self, chemin: str, methode: str = "GET", corps: dict | None = None,
-                 brut: bool = False):
+                 brut: bool = False, timeout: int | None = None):
         adresse = f"{self.url}{chemin}"
         donnees = json.dumps(corps, ensure_ascii=False).encode("utf-8") if corps else None
         requete = urllib.request.Request(
             adresse, data=donnees, method=methode,
             headers={"Accept": "application/json", "Content-Type": "application/json"})
         try:
-            with urllib.request.urlopen(requete, timeout=self.timeout) as reponse:
+            with urllib.request.urlopen(requete, timeout=timeout or self.timeout) as reponse:
                 contenu = reponse.read()
                 return contenu if brut else (json.loads(contenu.decode("utf-8")) if contenu else {})
         except urllib.error.HTTPError as erreur:
@@ -88,6 +88,11 @@ class Orchestrateur:
 
     def agents(self) -> dict:
         return self._appeler("/agents")
+
+    def parcours(self) -> dict:
+        """La carte des étapes — appelée par la page d'accueil, donc avec un délai COURT : un
+        visiteur ne doit jamais attendre qu'un service éteint veuille bien répondre."""
+        return self._appeler("/parcours", timeout=4)
 
     def etape(self, etudiant: str, session: str, numero: int | None = None) -> dict:
         """L'étape à afficher : sa proposition, ce qui reste inconnu, ses limites, ses questions."""

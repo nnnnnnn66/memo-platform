@@ -39,6 +39,19 @@ async def health() -> dict:
     return {"agent": "orchestrator", "version": "1.0", "status": "ok"}
 
 
+@router.get("/parcours")
+async def parcours(request: Request) -> dict:
+    """La carte du parcours, montrable PUBLIQUEMENT : les étapes et leurs libellés.
+
+    Aucune donnée d'étudiant, aucun nom d'agent, aucune adresse de service : seulement ce que la
+    plateforme annonce d'elle-même. C'est ce que la page d'accueil affiche à un visiteur.
+    """
+    settings = request.app.state.settings
+    return {
+        "etapes": [{"numero": etape.numero, "position": rang + 1, "libelle": etape.libelle}
+                   for rang, etape in enumerate(settings.etapes)]}
+
+
 @router.get("/agents")
 async def agents(request: Request, forcer: bool = False) -> dict:
     """Qui sont les agents, que savent-ils faire, sont-ils en ligne ?

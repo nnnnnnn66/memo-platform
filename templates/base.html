@@ -21,7 +21,9 @@
 </header>
 {% endif %}
 
-{% if page == 'connexion' %}
+{% if page == 'accueil' %}
+  {% block accueil %}{% endblock %}
+{% elif page == 'connexion' %}
   {% block connexion %}{% endblock %}
 {% else %}
 <main class="page">
