@@ -288,6 +288,24 @@ Ne jamais construire toute la plateforme d'un coup. Un seul agent à la fois.
       `docs/architecture-agent-10-resultats-analyse-v1.md`.
 - [x] **CHAÎNE RÉELLE 1 → 10 VÉRIFIÉE (2026-10-10)** — les dix agents enchaînés sur leurs sorties
       réelles donnent tous `verified` (`scripts/e2e_chaine.py depuis=10`). **559 tests.**
-- [ ] Agent suivant : **Agent 11 — Conclusion** (à définir par le porteur) — consomme la
-      `synthese_pour_conclusion` de l'étape 10. Un seul agent à la fois.
+- [x] **Agent 11 — Conclusion (étape 11, dernière) : construit et vérifié en exécution réelle
+      (2026-10-10)** — paquet autonome `src/research_conclusion_agent/`, API `POST /conclusion/write`
+      (port 8110, `run-conclusion.sh`), profil `agent-conclusion`,
+      `config/settings-conclusion.yaml`. Transforme les **résultats VÉRIFIÉS de l'étape 10** en
+      conclusion générale : réponse argumentée à la question de recherche, bilan des objectifs et des
+      hypothèses, apports, limites réelles, perspectives justifiées. Principe fondateur :
+      **AUCUN RÉSULTAT NOUVEAU** — chaque affirmation centrale cite l'identifiant (`R…`) du résultat
+      qui la justifie (contrôle K1), la **garde numérique** refuse tout chiffre absent des calculs
+      vérifiés (K2), et sans résultats vérifiés l'agent produit un **plan de conclusion** et rien
+      d'autre (K8). Contrôles codés K1–K9 (statut d'hypothèse repris de l'étape 10, causalité sans
+      dispositif, hypothèse « confirmée », référence bibliographique absente du dossier, perspective
+      déguisée en constat), règles métier T1–T6 (**aucune donnée personnelle reproduite**), vérificateur
+      indépendant C1–C13, portillon humain. Campagne réelle : **`verified`, 22 résultats cités,
+      7 sections, 4 appels LLM**, puis décision étudiante `accepted` → `validated` (confiance 0,65).
+      Docs : `docs/spec-agent-11-conclusion.md`, `docs/elements-agent-11-conclusion.md`,
+      `docs/architecture-agent-11-conclusion-v1.md`.
+- [x] **CHAÎNE RÉELLE 1 → 11 VÉRIFIÉE (2026-10-10) — PARCOURS COMPLET** — les onze agents enchaînés
+      sur leurs sorties réelles donnent tous `verified` (`scripts/e2e_chaine.py depuis=11`).
+      **608 tests.** Du choix du sujet à la conclusion générale, en exécution réelle.
+- [ ] Suite : porter la chaîne au-delà (interface étudiante, tableau de bord, export du mémoire).
 

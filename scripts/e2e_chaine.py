@@ -457,18 +457,59 @@ def main() -> int:
         print("appels LLM       :", res.llm_calls, flush=True)
     else:
         results[10] = load(10)
-        print("[10/10] reprise : sortie de l'agent 10 relue depuis le disque", flush=True)
+        print("[10/11] reprise : sortie de l'agent 10 relue depuis le disque", flush=True)
+    if results[10].get("verifier_status") != "verified":
+        print(">>> ARRÊT : l'agent 10 n'est pas vérifié.", flush=True)
+        return 10
+
+    # ---------------- ÉTAPE 11 : Agent Conclusion ----------------
+    if START <= 11:
+        banner("[11/11] Agent Conclusion — modèle réel")
+        from research_conclusion_agent.core.config import get_settings as settings11
+        from research_conclusion_agent.llm.client import LLMClient as Client11
+        from research_conclusion_agent.pipeline import campaign as campaign11
+        from research_conclusion_agent.schemas.input import ConclusionRequest
+
+        s = settings11()
+        llm = Client11(s.llm_credentials(), s.limits)
+        results_up = dict(results[10]["output"])
+        results_up.setdefault("student_validation", {"decision": "accepted", "comment": ""})
+        methodology = dict(results[9]["output"])
+        methodology.setdefault("student_validation", {"decision": "accepted", "comment": ""})
+        body = ConclusionRequest(
+            student_id=STUDENT, session_id=SESSION, subject_text=SUJET,
+            discipline="Sciences de gestion", academic_level="Master 2",
+            upstream_subject=results[1]["output"], upstream_problem=results[2]["output"],
+            upstream_literature=results[3]["output"], upstream_problematic=results[4]["output"],
+            upstream_question=results[5]["output"], upstream_objectives=results[6]["output"],
+            upstream_hypotheses=results[7]["output"],
+            upstream_methodology_diagnostic=results[8]["output"],
+            upstream_methodology=methodology, upstream_results=results_up)
+        res = campaign11.run(body, s, llm, allow_network=False)
+        results[11] = {"output": res.output.model_dump(mode="json"),
+                       "verifier_status": res.verifier_status, "llm_calls": res.llm_calls,
+                       "verifier": res.verifier.model_dump(mode="json") if res.verifier else None}
+        save(11, results[11])
+        print("statut           :", res.output.status.value)
+        print("document         :", res.output.document_status.value)
+        print("vérificateur     :", res.verifier_status)
+        print("résultats cités  :", len(res.output.references_resultats))
+        print("sections         :", len(res.output.draft.sections))
+        print("appels LLM       :", res.llm_calls, flush=True)
+    else:
+        results[11] = load(11)
+        print("[11/11] reprise : sortie de l'agent 11 relue depuis le disque", flush=True)
 
     # ---------------- BILAN ----------------
     banner("BILAN DE LA CHAÎNE (sorties réelles)")
     ok = True
-    for stage in range(1, 11):
+    for stage in range(1, 12):
         status = results[stage].get("verifier_status")
         flag = "OK " if status == "verified" else "!! "
         if status != "verified":
             ok = False
         print(f"  {flag}Agent {stage} : {status}")
-    print("\nBILAN :", "CHAÎNE COMPLÈTE VÉRIFIÉE (1 → 10)" if ok else
+    print("\nBILAN :", "CHAÎNE COMPLÈTE VÉRIFIÉE (1 → 11)" if ok else
           "CHAÎNE INCOMPLÈTE (voir ci-dessus)")
     print("sorties :", OUT)
     return 0 if ok else 9
