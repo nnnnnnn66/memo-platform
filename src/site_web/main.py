@@ -48,6 +48,67 @@ def csrf_valide(jeton_session: str, fourni: str) -> bool:
 
 # --------------------------------------------------------------------- gabarits
 ETIQUETTES = {
+    # ---- clés produites par les agents (souvent en anglais) : l'étudiant doit lire du français
+    "subject": "Sujet",
+    "research_context": "Contexte de la recherche",
+    "key_concepts": "Concepts clés",
+    "initial_justification": "Justification initiale",
+    "feasibility": "Faisabilité",
+    "missing_information": "Informations manquantes",
+    "questions_for_student": "Questions posées à l'étudiant",
+    "clarification_questions": "Questions de clarification",
+    "student_context": "Contexte fourni par l'étudiant",
+    "academic_level": "Niveau d'études",
+    "institution": "Établissement",
+    "identified_problem": "Problème identifié",
+    "statement": "Énoncé",
+    "scope": "Délimitation",
+    "reformulation": "Reformulation",
+    "justification": "Justification",
+    "research_question": "Question de recherche",
+    "main_objective": "Objectif général",
+    "specific_objectives": "Objectifs spécifiques",
+    "hypotheses_list": "Hypothèses formulées",
+    "methodology": "Méthodologie",
+    "themes": "Thèmes",
+    "findings": "Constats",
+    "limits": "Limites",
+    "notes": "Notes",
+    "summary": "Synthèse",
+    # ---- sous-champs produits par l'agent 1 (et voisins) : intitulés français
+    "original": "Sujet initial",
+    "reformulated": "Sujet reformulé",
+    "domain": "Domaine",
+    "object_of_study": "Objet d'étude",
+    "population": "Population étudiée",
+    "geographical_scope": "Zone géographique",
+    "temporal_scope": "Période étudiée",
+    "phenomenon": "Phénomène observé",
+    "variables": "Variables",
+    "context": "Contexte",
+    "country": "Pays",
+    "discipline": "Discipline",
+    "keywords": "Mots-clés",
+    "concepts": "Concepts",
+    "main_concepts": "Concepts principaux",
+    "stakeholders": "Acteurs concernés",
+    "data_sources": "Sources de données",
+    "expected_results": "Résultats attendus",
+    "research_gap": "Lacune identifiée",
+    "theoretical_framework": "Cadre théorique",
+    "sampling": "Échantillonnage",
+    "instruments": "Instruments de collecte",
+    "analysis_methods": "Méthodes d'analyse",
+    "ethical_considerations": "Considérations éthiques",
+    "constraints": "Contraintes",
+    "period": "Période étudiée",
+    "identified_ambiguities": "Ambiguïtés relevées",
+    "ambiguities": "Ambiguïtés relevées",
+    "evidence": "Éléments à l'appui",
+    "supporting_evidence": "Éléments à l'appui",
+    "rationale": "Justification",
+    "source": "Source",
+    "sources": "Sources",
     "resume": "Résumé", "analysis": "Analyse du dossier", "diagnosis": "Diagnostic",
     "approche": "Approche", "logique": "Logique de raisonnement", "type_recherche": "Type de recherche",
     "strategie": "Stratégie de recherche", "collecte": "Techniques de collecte",
@@ -57,7 +118,7 @@ ETIQUETTES = {
     "limits_of_this_output": "Limites", "questions_for_human": "Questions posées",
     "corpus": "Corpus documentaire", "bibliography": "Bibliographie", "synthesis": "Synthèse",
     "comparison": "Mise en regard", "diagnosis_note": "Note de diagnostic",
-    "proposition": "Proposition", "justification": "Justification", "alternatives": "Alternatives",
+    "proposition": "Proposition", "alternatives": "Alternatives",
     "conditions": "Conditions", "limites": "Limites", "recommandation": "Recommandation",
     "objectifs": "Objectifs", "objectif_general": "Objectif général",
     "objectifs_specifiques": "Objectifs spécifiques", "hypotheses": "Hypothèses",
@@ -66,7 +127,23 @@ ETIQUETTES = {
     "protocol": "Protocole", "matrice": "Matrice de cohérence", "versions": "Versions",
 }
 CLES_TECHNIQUES = {"agent", "version", "doc_id", "provider", "student_id", "session_id",
-                   "source_type", "generated_at", "research_id", "status", "at", "code"}
+                   "source_type", "generated_at", "research_id", "status", "at", "code",
+                   # le bloc de vérification de l'agent ne se déverse pas dans le corps du texte :
+                   # le verdict est résumé pour l'étudiant, et les points signalés ont leur encadré
+                   # dans la marge. Sans cela, l'étudiant lisait « Concerns / Overall / Verified ».
+                   "verification_result", "verifier_status", "verifier", "verificateur",
+                   "verified", "overall_verdict", "verification", "audit_result",
+                   "confidence", "confidence_rationale", "validation"}
+# Ces informations ne sont PAS répétées dans le corps du document : elles ont leur encadré dans la
+# marge (inconnues en ocre, limites en gris, questions posées). Les afficher deux fois donnait
+# l'impression d'un doublon au milieu du texte.
+CLES_EN_MARGE = {"unknowns", "missing_information", "limits", "limits_of_this_output",
+                 "questions_for_human", "questions_for_student", "clarification_questions",
+                 "verification_flags", "signalements",
+                 # mêmes informations sous les noms employés par les agents anglophones :
+                 # elles sont reprises dans les encadrés de la marge, donc pas répétées ici.
+                 "identified_limits", "identified_unknowns", "identified_gaps",
+                 "informations_manquantes", "limites_identifiees", "concerns"}
 
 
 def etiquette(cle: str) -> str:
@@ -108,6 +185,7 @@ GABARITS.env.filters["etiquette"] = etiquette
 GABARITS.env.filters["titre_element"] = titre_element
 GABARITS.env.filters["aplatir"] = aplatir
 GABARITS.env.globals["CLES_TECHNIQUES"] = CLES_TECHNIQUES
+GABARITS.env.globals["CLES_EN_MARGE"] = CLES_EN_MARGE
 
 
 def _slug(texte: str) -> str:
@@ -118,6 +196,23 @@ def _slug(texte: str) -> str:
 # ------------------------------------------------------------------------ outil
 def _message(type_: str, texte: str) -> dict:
     return {"type": type_, "texte": texte}
+
+
+# Le verdict du vérificateur est DIT tel quel, mais en français : l'étudiant ne doit pas lire
+# « rejected » dans son journal.
+VERDICTS_AFFICHES = {
+    "verified": "vérifiée",
+    "validated": "vérifiée",
+    "corrected": "vérifiée après correction",
+    "provisional": "vérification partielle",
+    "verification_failed": "vérification non aboutie",
+    "rejected": "rejetée par le contrôle indépendant",
+    "echec": "étape en échec",
+}
+
+
+def verdict_affiche(verdict: str) -> str:
+    return VERDICTS_AFFICHES.get(str(verdict or "").lower(), "vérification non concluante")
 
 
 def _compte_courant(request: Request):
@@ -403,7 +498,7 @@ async def lancer_etape(request: Request, session: str, csrf: str = Form("")):
                                 status_code=303)
     resultat = ORCHESTRATEUR.lancer_etape(identifiant, session)
     comptes.consigner(REGLAGES.base_comptes, "étape lancée", identifiant, session,
-                      f"étape {resultat.get('etape')} — {resultat.get('verdict', '')}")
+                      f"étape {resultat.get('etape')} — {verdict_affiche(resultat.get('verdict'))}")
     return RedirectResponse(f"/memoire/{session}/etape", status_code=303)
 
 

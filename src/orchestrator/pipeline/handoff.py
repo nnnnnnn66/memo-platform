@@ -9,6 +9,21 @@ lieu de présenter une entrée incomplète comme complète.
 from ..core.config import Etape, Settings
 from ..core.errors import EtatErreur, OrchestratorError
 
+# Intitulés lisibles employés quand un champ collecté par le site doit être recopié dans un champ
+# de contexte libre, faute d'être accepté tel quel par l'agent de l'étape.
+LIBELLES_CONTEXTE = {
+    "subject_text": "sujet du mémoire",
+    "discipline": "discipline",
+    "academic_level": "niveau d'études",
+    "country": "pays",
+    "institution": "établissement",
+    "geographical_scope": "zone géographique",
+    "period": "période étudiée",
+    "research_problem": "problème observé",
+    "prior_work": "travaux déjà réalisés",
+    "additional_constraints": "contraintes particulières",
+}
+
 
 def construire_entree(settings: Settings, etudiant: str, session: str, etape: Etape,
                       dossier: dict | None, sorties: dict) -> dict:
@@ -35,8 +50,16 @@ def construire_entree(settings: Settings, etudiant: str, session: str, etape: Et
         except (TypeError, ValueError):
             contexte = {}
     sujet = (dossier.get("sujet") or "").strip()
+
+    # Champs que CETTE étape accepte : sa propre liste si elle en déclare une, sinon la liste
+    # globale. Transmettre un champ non déclaré à un agent qui refuse les extras fait échouer
+    # l'étape (422 « Extra inputs are not permitted »).
+    champs_acceptes = tuple(etape.champs) if etape.champs else tuple(settings.champs_base)
+
     for champ in settings.champs_base:
         if champ == "student_id" or champ == "session_id":
+            continue
+        if champ not in champs_acceptes:
             continue
         if champ == "subject_text":
             if sujet:
@@ -45,6 +68,19 @@ def construire_entree(settings: Settings, etudiant: str, session: str, etape: Et
         valeur = contexte.get(champ)
         if valeur not in (None, "", [], {}):
             entree[champ] = valeur
+
+    # Les champs que cet agent n'accepte PAS ne sont pas perdus : quand l'agent prévoit un
+    # champ de contexte libre, ils y sont RECOPIÉS tels quels, avec leur intitulé. On ne
+    # devine rien et on n'écarte aucune information fournie par l'étudiant.
+    if "student_context" in champs_acceptes and not entree.get("student_context"):
+        restants = [champ for champ in settings.champs_base
+                    if champ not in champs_acceptes
+                    and champ not in ("student_id", "session_id", "subject_text")
+                    and contexte.get(champ) not in (None, "", [], {})]
+        if restants:
+            entree["student_context"] = "\n".join(
+                f"{LIBELLES_CONTEXTE.get(champ, champ.replace('_', ' '))} : "
+                f"{contexte[champ]}" for champ in restants)
 
     # Pont : la sortie réelle de chaque étape amont, sous le nom de champ attendu par l'agent.
     for champ, source in etape.upstream.items():

@@ -25,6 +25,10 @@ class Etape:
     route_analyse: str
     upstream: dict = field(default_factory=dict)
     finale: bool = False
+    # Champs de base que CET agent accepte réellement. Vide = la liste globale `base` s'applique.
+    # Chaque agent a SON contrat (`extra="forbid"`) : envoyer un champ qu'il ne déclare pas fait
+    # échouer l'étape avec un 422 « Extra inputs are not permitted ».
+    champs: tuple = ()
 
     def url_analyse(self, hote: str) -> str:
         return f"http://{hote}:{self.port}{self.route_analyse}"
@@ -82,6 +86,7 @@ def charger(chemin: pathlib.Path | None = None) -> Settings:
             route_analyse=str(item["route_analyse"]),
             upstream={str(champ): int(source) for champ, source in (item.get("upstream") or {}).items()},
             finale=bool(item.get("finale", False)),
+            champs=tuple(str(champ) for champ in (item.get("champs") or ())),
         )
         for item in (brut.get("etapes") or [])
     )

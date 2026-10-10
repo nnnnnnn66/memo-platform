@@ -67,7 +67,20 @@ def test_champ_inconnu_dans_le_corps_refuse(settings):
 
 
 def test_lancement_sans_agent_renvoie_une_erreur_expliquee(settings):
-    """Aucun agent n'écoute : l'erreur doit être EXPLIQUÉE, jamais une trace technique."""
+    """Aucun agent n'écoute : l'erreur doit être EXPLIQUÉE, jamais une trace technique.
+
+    Le test est rendu HERMÉTIQUE : il pointe vers un port où rien n'écoute. Sans cela, il
+    dépendrait de ce qui tourne sur la machine — un vrai agent lancé sur 8010 faisait réussir le
+    lancement et échouer le test.
+    """
+    import dataclasses
+
+    from orchestrator.pipeline import registry
+
+    registry.reinitialiser_cache()
+    settings = dataclasses.replace(
+        settings, etapes=tuple(dataclasses.replace(etape, port=65533)
+                               for etape in settings.etapes))
     client = _client(settings)
     client.post("/dossiers/etu6/s6", json={"sujet": "Sujet"})
     reponse = client.post("/dossiers/etu6/s6/etape")

@@ -45,6 +45,10 @@ etapes:
     port: 8010
     prefixe: /subject
     route_analyse: /subject/analyze
+    # Champs que CET agent accepte RÉELLEMENT (son schéma refuse tout champ inconnu). Les champs
+    # collectés qui ne figurent pas ici ne sont pas perdus : le pont les recopie dans
+    # `student_context`, avec leur intitulé (voir handoff.LIBELLES_CONTEXTE).
+    champs: [student_id, session_id, subject_text, discipline, country, student_context]
     upstream: {}
 
   - numero: 2

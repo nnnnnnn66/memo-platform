@@ -185,6 +185,8 @@ VERDICTS = {
     "provisional": "Le contrôle est partiel : certains éléments n'ont pas pu être vérifiés.",
     "verification_failed": "Le contrôle indépendant n'a pas pu aboutir : lisez cette proposition "
                           "avec une attention particulière.",
+    "rejected": "Le contrôle de cette étape a émis des réserves sur cette proposition : elles sont "
+                "listées ci-contre. C'est à vous de juger, en connaissance de cause.",
     "echec": "L'étape n'a pas abouti.",
 }
 
@@ -239,13 +241,13 @@ def etape_detail(settings: Settings, etudiant: str, session: str,
     ligne = state.statut(settings.state_db, etudiant, session, numero) or {}
     resultat = state.sortie_proposee(settings.state_db, etudiant, session, numero) or {}
     verdict = ligne.get("verdict", "")
-    signalements = _chercher(resultat, "verification_flags", "signalements", "flags")
+    signalements = _chercher(resultat, "verification_flags", "signalements", "flags", "concerns")
     if not signalements:
         for cle in ("verification_result", "verificateur", "verifier"):
             verification = resultat.get(cle)
             if isinstance(verification, dict):
                 signalements = _chercher(verification, "flags", "signalements", "problemes",
-                                         "problems")
+                                         "problems", "concerns")
                 if signalements:
                     break
     return {
@@ -256,9 +258,12 @@ def etape_detail(settings: Settings, etudiant: str, session: str,
         "verdict": verdict,
         "verdict_texte": VERDICTS.get(str(verdict).lower(), ""),
         "resultat": resultat,
-        "inconnues": _chercher(resultat, "unknowns", "missing_information"),
-        "limites": _chercher(resultat, "limits_of_this_output", "limites", "limits"),
-        "questions": _chercher(resultat, "questions_for_human", "questions"),
+        "inconnues": _chercher(resultat, "unknowns", "missing_information", "identified_unknowns",
+                               "identified_gaps", "informations_manquantes"),
+        "limites": _chercher(resultat, "limits_of_this_output", "limites", "limits",
+                             "identified_limits", "limites_identifiees"),
+        "questions": _chercher(resultat, "questions_for_human", "questions",
+                               "questions_for_student", "clarification_questions"),
         "signalements": signalements,
     }
 
