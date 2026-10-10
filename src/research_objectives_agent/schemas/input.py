@@ -20,7 +20,19 @@ class UpstreamPayload(BaseModel):
     version: str = ""
     status: str = ""
     validation: UpstreamValidation = Field(default_factory=UpstreamValidation)
+    # Les agents 1 à 4 (Sujet, Problème, Littérature, Problématique) portent la vérification dans
+    # `validation` ; les agents 5 à 7 (Question, Objectifs, Hypothèses) dans `verification_result`.
+    # N'accepter que `validation` rendait toute sortie RÉELLE de l'agent 5 « non vérifiée » (bug de
+    # chaîne constaté A5 -> A6, mêmes symptômes que 3 -> 4 et 7 -> 8). On accepte les deux.
+    verification_result: UpstreamValidation | None = None
     subject: Any = None
+    # Champs des sorties RÉELLES des étapes amont, tels qu'ils sont réellement produits :
+    # l'agent 2 publie `identified_problem.statement` (pas `research_problem`), l'agent 4 publie
+    # `problematique_note.texte_complet` (pas `validated_problematic`). Les lire « en dur » faisait
+    # échouer la passation 2 -> 6 sur un simple AttributeError (chaîne réelle).
+    research_problem: str = ""
+    identified_problem: dict = Field(default_factory=dict)
+    problematique_note: dict = Field(default_factory=dict)
     validated_problematic: str = ""
     main_research_question: str = ""
     secondary_research_questions: list[str] = Field(default_factory=list)
@@ -28,7 +40,11 @@ class UpstreamPayload(BaseModel):
 
     @property
     def is_verified(self) -> bool:
-        return bool(self.validation.verified)
+        # Une sortie amont est utilisable si SON vérificateur l'a validée, quelle que soit la clé
+        # employée par l'agent émetteur (`validation` pour 1-4, `verification_result` pour 5-7).
+        if self.validation.verified:
+            return True
+        return bool(self.verification_result and self.verification_result.verified)
 
     def subject_line(self) -> str:
         value = self.subject
@@ -126,17 +142,34 @@ class ObjectivesRequest(BaseModel):
     def effective_problematic(self) -> str:
         if str(self.validated_problematic or "").strip():
             return str(self.validated_problematic).strip()
-        if self.upstream_problematic is not None:
-            return str(self.upstream_problematic.validated_problematic or "").strip()
-        if self.upstream_question is not None:
-            return str(self.upstream_question.validated_problematic or "").strip()
+        # `validated_problematic` vient de l'agent 5 ; l'agent 4 publie la même matière sous
+        # `problematique_note.texte_complet` (forme réelle de sa sortie).
+        for candidate in (self.upstream_problematic, self.upstream_question):
+            if candidate is None:
+                continue
+            direct = str(getattr(candidate, "validated_problematic", "") or "").strip()
+            if direct:
+                return direct
+            note = getattr(candidate, "problematique_note", None) or {}
+            text = str(note.get("texte_complet", "") if isinstance(note, dict) else "").strip()
+            if text:
+                return text
         return ""
 
     def effective_problem(self) -> str:
         if str(self.research_problem or "").strip():
             return str(self.research_problem).strip()
-        if self.upstream_problem is not None:
-            return str(self.upstream_problem.research_problem or "").strip()
+        for candidate in (self.upstream_problem, self.upstream_question):
+            if candidate is None:
+                continue
+            direct = str(getattr(candidate, "research_problem", "") or "").strip()
+            if direct:
+                return direct
+            problem = getattr(candidate, "identified_problem", None) or {}
+            statement = str(problem.get("statement", "") if isinstance(problem, dict)
+                            else "").strip()
+            if statement:
+                return statement
         return ""
 
     def untrusted_texts(self) -> dict[str, str]:

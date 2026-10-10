@@ -115,10 +115,41 @@ class MethodologyRequest(BaseModel):
     upstream_hypotheses: UpstreamPayload | None = None
 
     @field_validator("previous_answers", "secondary_research_questions", "specific_objectives",
-                     "hypotheses")
+                     "hypotheses", mode="before")
     @classmethod
-    def _clean_list(cls, v: list[str]) -> list[str]:
-        return [str(item).strip() for item in (v or []) if str(item).strip()]
+    def _clean_list(cls, v):
+        """Ramène les listes d'entrée à des chaînes, en TOLÉRANT les objets.
+
+        La sortie RÉELLE de l'agent 7 est une liste d'objets d'hypothèses
+        (`{"id": "H1", "formulation": "…"}`) : la validation la refusait (5 erreurs « Input should be
+        a valid string ») dès qu'un appelant transmettait la sortie amont telle quelle. On conserve la
+        FORMULATION (jamais le seul identifiant), l'information reste celle de l'amont.
+        """
+        out: list[str] = []
+        for item in v or []:
+            if isinstance(item, dict):
+                text = item.get("formulation") or item.get("statement") or item.get("hypothesis") or ""
+            else:
+                text = item
+            text = str(text).strip()
+            if text:
+                out.append(text)
+        return out
+
+    @field_validator("literature_review", mode="before")
+    @classmethod
+    def _literature_text(cls, value):
+        """La revue de littérature arrive parfois structurée (sortie réelle de l'agent 3) : la
+        convertir en texte au lieu de refuser l'entrée."""
+        if isinstance(value, dict):
+            parts: list[str] = []
+            for item in value.values():
+                if isinstance(item, (list, tuple)):
+                    parts.extend(str(x).strip() for x in item if str(x).strip())
+                elif str(item).strip():
+                    parts.append(str(item).strip())
+            return "\n".join(parts)
+        return str(value or "")
 
     # --- helpers ---
     def effective_subject(self) -> str:

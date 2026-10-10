@@ -39,9 +39,10 @@ n'est ni une question, ni un objectif, ni un fait déjà démontré.
 - `hypothesis_objective_alignment` : `general_to_objectives`, `hypotheses_cover_objectives`,
   `uncovered_objectives`, `contradictions`.
 - `theoretical_or_literature_support` : les appuis mobilisés (littérature, cadre théorique,
-  observations signalées) — chacun doit être FOURNI, jamais inventé.
+  observations signalées) — chacun doit être FOURNI, jamais inventé. Liste de CHAÎNES de caractères
+  (jamais d'objets) : cite le `doc_id` ou le passage dans le texte de la chaîne.
 - `required_evidence` : ce qu'il faudra observer ou mesurer pour examiner chaque hypothèse (sans
-  décider de la méthode).
+  décider de la méthode). Liste de CHAÎNES de caractères (jamais d'objets).
 
 ## Règles
 

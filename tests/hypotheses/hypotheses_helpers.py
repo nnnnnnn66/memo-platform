@@ -91,7 +91,12 @@ DEFAULT_FORMULATION = {
 
 
 def upstream_objectives(verified=True, agent="research_objectives_agent"):
-    """Sortie de l'Agent Objectifs de recherche (étape 6), telle qu'elle est réellement produite."""
+    """Sortie de l'Agent Objectifs de recherche (étape 6), telle qu'elle est réellement produite.
+
+    Attention : l'agent 6 publie la vérification sous `verification_result` (comme les agents 5 et 7),
+    PAS sous `validation`. Un fixture bâti sur `validation` faisait passer les tests alors que la
+    passation 6 -> 7 échouait en exécution réelle.
+    """
     return {
         "agent": agent,
         "version": "1.0",
@@ -103,6 +108,6 @@ def upstream_objectives(verified=True, agent="research_objectives_agent"):
                              "développeurs.",
         "specific_objectives": ["Identifier les conditions de travail associées à la productivité.",
                                 "Examiner l'effet de la coordination des équipes."],
-        "validation": {"verified": verified,
-                       "verifier_status": "verified" if verified else "pending"},
+        "verification_result": {"verified": verified,
+                                "verifier_status": "verified" if verified else "pending"},
     }

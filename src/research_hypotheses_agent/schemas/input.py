@@ -20,6 +20,10 @@ class UpstreamPayload(BaseModel):
     version: str = ""
     status: str = ""
     validation: UpstreamValidation = Field(default_factory=UpstreamValidation)
+    # Les agents 1 à 4 portent la vérification dans `validation` ; les agents 5 à 7 (Question,
+    # Objectifs, Hypothèses) dans `verification_result`. N'accepter que `validation` rendait toute
+    # sortie RÉELLE de l'agent 6 « non vérifiée » (bug de chaîne A6 -> A7). On accepte les deux.
+    verification_result: UpstreamValidation | None = None
     subject: Any = None
     main_research_question: str = ""
     secondary_research_questions: list[str] = Field(default_factory=list)
@@ -28,7 +32,11 @@ class UpstreamPayload(BaseModel):
 
     @property
     def is_verified(self) -> bool:
-        return bool(self.validation.verified)
+        # Une sortie amont est utilisable si SON vérificateur l'a validée, quelle que soit la clé
+        # employée par l'agent émetteur (`validation` pour 1-4, `verification_result` pour 5-7).
+        if self.validation.verified:
+            return True
+        return bool(self.verification_result and self.verification_result.verified)
 
     def subject_line(self) -> str:
         value = self.subject
