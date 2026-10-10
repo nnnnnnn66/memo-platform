@@ -307,5 +307,27 @@ Ne jamais construire toute la plateforme d'un coup. Un seul agent à la fois.
 - [x] **CHAÎNE RÉELLE 1 → 11 VÉRIFIÉE (2026-10-10) — PARCOURS COMPLET** — les onze agents enchaînés
       sur leurs sorties réelles donnent tous `verified` (`scripts/e2e_chaine.py depuis=11`).
       **608 tests.** Du choix du sujet à la conclusion générale, en exécution réelle.
+- [x] **Agent 13 — Vérificateur global de cohérence (étape 13) : construit et vérifié en exécution
+      réelle (2026-10-10)** — paquet autonome `src/research_coherence_verifier/`, API
+      `POST /coherence/audit` (port 8130, `run-coherence.sh`), profil `agent-coherence`,
+      `config/settings-coherence.yaml`. Architecture autorisée d'avance (portillon 42, publiée pour
+      mémoire). L'étape 12 reste réservée. **Audit TRANSVERSAL du dossier complet** : chaque étape a
+      son vérificateur, personne ne vérifiait l'enchaînement. Principe de conception : **le programme
+      établit les FAITS (X1–X12), le modèle juge les LIENS** — découlement question/problématique,
+      service des objectifs, examinabilité des hypothèses par la méthodologie, couverture des objectifs
+      par les résultats, fidélité de la conclusion, contradictions, **fusions abusives**, références
+      orphelines, étapes vérifiées au contenu vide. Deux exigences dures : **aucun constat sans preuve**
+      et **la portée est toujours déclarée** (ce que l'agent NE PEUT PAS vérifier : véracité du terrain,
+      exactitude des sources, plagiat, style, règles locales non fournies, éthique de terrain, jugement
+      du jury). Audit lui-même contrôlé (C1–C13) puis portillon humain. Campagne réelle : **`verified`,
+      verdict `coherent_avec_reserves`, 9 constats fondés sur le dossier réel de la chaîne** (objectifs
+      non couverts, question changée d'objet, « effets » annoncés vs analyses d'association, période
+      2020-2024 contre 2024, terrain Abidjan contre 7 répondants sur 20 à Bouaké, analyse bivariée
+      prévue non produite), 4 appels LLM, puis décision étudiante `accepted` → `validated`.
+      Docs : `docs/spec-agent-13-verificateur-coherence.md`,
+      `docs/elements-agent-13-verificateur-coherence.md`,
+      `docs/architecture-agent-13-verificateur-coherence-v1.md`.
+- [x] **AUDIT DE COHÉRENCE DU DOSSIER RÉEL 1 → 11 (2026-10-10)** — rapport d'audit produit sur les
+      sorties réelles de la chaîne, portée déclarée (8 éléments non vérifiables), **688 tests**.
 - [ ] Suite : porter la chaîne au-delà (interface étudiante, tableau de bord, export du mémoire).
 
