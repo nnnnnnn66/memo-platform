@@ -1,7 +1,7 @@
 # Architecture V1 — Agent Méthodologie (`methodology_agent` 1.0)
 
-> Étape 9 du parcours. **Document de portillon §42 : à valider par le porteur AVANT toute
-> implémentation.** Aucune ligne de code n'est écrite tant que ce document n'est pas validé.
+> Étape 9 du parcours. **Architecture VALIDÉE par le porteur (portillon §42, 2026-10-10) et
+> implémentée.** Voir la section « État réel de l'implémentation » en fin de document.
 > SPEC de référence : `docs/spec-agent-09-methodologie.md` (source de vérité).
 > Fiche d'éléments : `docs/elements-agent-09-methodologie.md`.
 > Prédécesseur : `docs/architecture-agent-08-diagnostic-methodologique-v1.md`.
@@ -425,5 +425,49 @@ aucun envoi d'e-mail. Coût marginal : celui des jetons DeepSeek déjà utilisé
 
 ## État réel de l'implémentation
 
-> **Aucune implémentation commencée.** Document de portillon §42 en attente de validation du porteur.
-> Cette section sera remplie après la construction (tests hors réseau, campagne réelle, correctifs).
+> **Implémenté, vérifié en exécution réelle et validé par le porteur** (feu vert du 2026-10-10 :
+> « go »). Paquet `src/methodology_agent/`, API `POST /methodology/protocol/analyze` (port 8090),
+> profil Hermes `agent-methode`, `config/settings-methode.yaml`, `run-protocole.sh`.
+
+### Tests hors réseau
+
+`pytest -q` : **497 tests** au total, dont **72 pour l'étape 9** —
+contrôles P1–P9 (chacun éprouvé dans les deux sens : il refuse ce qui est fautif ET n'écrase pas ce
+qui est juste), campagne complète, portillon humain, sécurité (injection, secrets, fuite de prompt,
+isolation), API, passation depuis les sorties réelles de la chaîne, et les quatre pièges de passation.
+
+### Résultats en exécution réelle (modèle DeepSeek `deepseek-flash`)
+
+| Passe | Statut | Vérificateur | Matrice | Appels LLM |
+|---|---|---|---|---|
+| 1 (18/10) | `verification_failed` | `corrections_requested` (C13) | 6/6 | 22 (budget épuisé) |
+| 2 (18/10) | **`awaiting_human_validation`** | **`verified`** | **6/6** | **5** |
+
+Puis **décision étudiante sur la sortie réelle** : `accepted` → statut `validated`, document `valide`,
+confiance 0,45 avec son calcul explicité. **CHAÎNE 1 → 9 entièrement `verified`.**
+
+### Correctifs issus de l'exécution réelle
+
+1. **Sous-objets descriptifs** : le modèle nommait librement les champs d'un instrument (« nom »,
+   « description », « rubriques ») → 6 erreurs « extra inputs are not permitted » et campagne morte.
+   Corrigé par `LenientModel` (tolérance aux clés inconnues) + normalisation d'alias, **réservé aux
+   objets descriptifs** : les contrats (entrée, sortie, étage) restent stricts.
+2. **Chaîne éclatée caractère par caractère** (BUG) : une chaîne au lieu d'une liste dans
+   `modalites`/`conditions` était ITÉRÉE → « m », « o », « d »… Le vérificateur l'a signalée
+   (« tableaux éclatés, illisibles »). Corrigé dans `flatten_strings` (une chaîne = un élément).
+3. **Diagnostic déclaré « absent du dossier »** alors que le modèle le lisait : P1 ne recevait pas le
+   bloc du diagnostic. Corrigé (le bloc est fourni à P1 comme à P2) + garde déterministe `_clean_missing`
+   qui retire tout manque niant un élément pourtant présent.
+4. **`trace_validation_diagnostic`** affirmée en bloc : désormais DÉRIVÉE des faits transmis
+   (statut + vérification + décision).
+5. **Règle métier R2 trop stricte** : elle refusait un document vérifié portant des réserves
+   DÉCLARÉES — or c'est précisément ce que le portillon humain doit arbitrer. Seul le statut FINAL
+   `valide` exige une vérification réussie. Même leçon que F5, M4, R2 et R7.
+
+### Limites laissées assumées (signalées, non bloquantes)
+
+- La matrice marque `couverte` un objectif dont les données sont prévues ; le vérificateur a signalé
+  (flag, pas échec) qu'un objectif dépendant de données « à confirmer » mériterait une nuance.
+- Les bornes de modalités proposées sans source sont explicitement marquées « à valider sur le terrain ».
+- La taille d'échantillon reste `a_determiner` : l'agent ne peut pas la calculer sans effectif connu
+  (comportement voulu, SPEC §7.B).

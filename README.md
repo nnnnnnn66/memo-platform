@@ -253,5 +253,24 @@ Ne jamais construire toute la plateforme d'un coup. Un seul agent à la fois.
       structurée de l'agent 3 → conversion en texte (la formulation est conservée, jamais le seul
       identifiant). Outil de diagnostic ajouté : `scripts/probe_agent7.py` (capture la réponse BRUTE
       du modèle pour distinguer un JSON mal formé d'un schéma non respecté). **425 tests.**
-- [ ] Agent suivant (à définir) — un seul agent à la fois
+- [x] **Agent 9 — Méthodologie (étape 9) : construit, vérifié en exécution réelle (2026-10-10)** —
+      paquet autonome `src/methodology_agent/`, API `POST /methodology/protocol/analyze` (port 8090,
+      `run-protocole.sh`), profil `agent-methode`, `config/settings-methode.yaml`. Transforme le
+      **diagnostic validé de l'étape 8** en protocole de recherche détaillé (terrain, population,
+      échantillonnage justifié, données, techniques, instruments, variables/indicateurs, analyses,
+      qualité, éthique, limites, étapes), **matrice de cohérence** objectifs → données → collecte →
+      analyse (construite déterministiquement : un objectif oublié devient `non_couverte`, jamais
+      supprimé) et **proposition de rédaction** de la section. Quatre étages LLM (P1→P4) +
+      vérificateur C1–C13 + portillon humain. Le socle de l'étape 8 est REPRIS, jamais re-tranché ;
+      PRÉVU ≠ RÉALISÉ ; aucun échantillon sans justification ; aucune hypothèse si l'étape 7 a conclu
+      `NOT_REQUIRED` ; aucune consigne d'établissement inventée. Campagne réelle : 1ʳᵉ passe
+      `verification_failed` (C13), 2ᵉ passe **`verified`, 6/6 objectifs couverts, 5 appels LLM,
+      0 correction**, puis décision étudiante `accepted` → `validated`. Docs :
+      `docs/spec-agent-09-methodologie.md`, `docs/elements-agent-09-methodologie.md`,
+      `docs/architecture-agent-09-methodologie-v1.md`.
+- [x] **CHAÎNE RÉELLE 1 → 9 VÉRIFIÉE (2026-10-10)** — les neuf agents enchaînés sur leurs sorties
+      réelles donnent tous `verified` (`scripts/e2e_chaine.py depuis=9`). **497 tests.**
+- [ ] Agent suivant : **Agent 10 — Résultats et analyse** (`research_results_analysis_agent`) —
+      SPEC reçue (`docs/spec-agent-10-resultats-analyse.md`), architecture à présenter (portillon §42)
+      puis à valider avant implémentation. Un seul agent à la fois.
 

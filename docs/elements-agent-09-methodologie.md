@@ -1,8 +1,8 @@
 # Éléments de l'Agent Méthodologie (`methodology_agent`)
 
 > Fiche remplie selon `docs/elements-agent-z.md` et `docs/templates/elements-agent-template.md`.
-> État : **architecture proposée, en attente de validation du porteur (portillon §42)** — voir
-> `docs/architecture-agent-09-methodologie-v1.md`. Aucun code écrit avant validation.
+> État : **implémenté, vérifié en exécution réelle et validé par le porteur** — voir la section
+> « État réel » de `docs/architecture-agent-09-methodologie-v1.md`.
 
 ## Identité
 
