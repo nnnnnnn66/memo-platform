@@ -45,6 +45,25 @@
   --large: 1140px;
 }
 
+/* Image de fond liée à la mission : des feuilles de mémoire, un parcours qui monte, un socle
+   documentaire, un motif tissé. TOUT EST SUR LES BORDS : le centre reste calme, c'est là qu'on
+   lit. Elle est fixe (elle ne défile pas) et se place DERRIÈRE les halos colorés. */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background-image: url('illustrations/fond.svg');
+  background-repeat: no-repeat;
+  background-position: center bottom;
+  background-size: cover;
+}
+@media (max-width: 760px) {
+  /* Sur téléphone, l'image est recadrée : on la garde discrète pour ne jamais gêner la lecture. */
+  body::after { opacity: .62; }
+}
+
 * { box-sizing: border-box; }
 
 html { -webkit-text-size-adjust: 100%; }

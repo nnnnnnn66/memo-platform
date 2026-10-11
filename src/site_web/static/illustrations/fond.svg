@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000"
+     preserveAspectRatio="xMidYMid slice" role="img"
+     aria-label="Le fond de la plateforme : des feuilles, un parcours qui monte, des livres, un motif tissé">
+  <!-- FOND LIÉ À LA MISSION : accompagner la construction d'un mémoire.
+       Composition volontairement placée SUR LES BORDS : le centre reste calme, c'est là qu'on lit. -->
+  <defs>
+    <g id="feuille">
+      <rect x="0" y="0" width="220" height="286" rx="10"/>
+      <g stroke-width="5" stroke-linecap="round">
+        <path d="M26 46h168"/><path d="M26 78h168"/><path d="M26 110h124"/>
+        <path d="M26 142h168"/><path d="M26 174h96"/>
+      </g>
+    </g>
+  </defs>
+
+  <!-- BORD GAUCHE : des feuilles de mémoire superposées, en cours de rédaction. -->
+  <g transform="translate(-70, 470) rotate(-7)" opacity=".5">
+    <use href="#feuille" fill="#0b5d4b" fill-opacity=".10" stroke="#0b5d4b" stroke-opacity=".22"
+         stroke-width="2"/>
+    <g stroke="#0b5d4b" stroke-opacity=".16"/>
+  </g>
+  <g transform="translate(-10, 540) rotate(4)" opacity=".55">
+    <use href="#feuille" fill="#ffffff" fill-opacity=".55" stroke="#0b5d4b" stroke-opacity=".24"
+         stroke-width="2"/>
+    <g stroke="#0b5d4b" stroke-opacity=".14"/>
+  </g>
+  <g transform="translate(66, 470) rotate(-2)" opacity=".5">
+    <use href="#feuille" fill="#e6f1ee" fill-opacity=".85" stroke="#0b5d4b" stroke-opacity=".22"
+         stroke-width="2"/>
+    <g stroke="#0b5d4b" stroke-opacity=".13"/>
+  </g>
+
+  <!-- BORD DROIT : le parcours qui monte, un cran par étape. -->
+  <g opacity=".55">
+    <g fill="none" stroke="#0b5d4b" stroke-width="2" stroke-opacity=".3" stroke-linecap="round">
+      <path d="M1180 1000V840h86v160"/>
+      <path d="M1292 1000V776h86v224"/>
+      <path d="M1404 1000V700h86v300"/>
+      <path d="M1516 1000V612h86v388"/>
+    </g>
+    <path d="M1223 840 L1335 776 L1447 700 L1559 612"
+          fill="none" stroke="#b85c38" stroke-width="3" stroke-opacity=".65"
+          stroke-dasharray="3 13" stroke-linecap="round"/>
+    <g fill="#ffffff" stroke="#b85c38" stroke-width="3" stroke-opacity=".7">
+      <circle cx="1223" cy="840" r="8"/><circle cx="1335" cy="776" r="8"/>
+      <circle cx="1447" cy="700" r="8"/>
+    </g>
+    <circle cx="1559" cy="612" r="11" fill="#b85c38" fill-opacity=".55" stroke="none"/>
+  </g>
+
+  <!-- BAS : une rangée de livres (le socle documentaire). -->
+  <g opacity=".5">
+    <g fill="#0b5d4b" fill-opacity=".13" stroke="#0b5d4b" stroke-opacity=".2" stroke-width="1.6">
+      <rect x="352" y="946" width="34" height="54" rx="4"/>
+      <rect x="392" y="926" width="30" height="74" rx="4" fill="#b85c38" fill-opacity=".14"/>
+      <rect x="428" y="956" width="38" height="44" rx="4"/>
+      <rect x="472" y="934" width="28" height="66" rx="4" fill="#e6f1ee" fill-opacity=".9"/>
+      <rect x="506" y="950" width="36" height="50" rx="4"/>
+      <rect x="548" y="930" width="30" height="70" rx="4" fill="#b85c38" fill-opacity=".12"/>
+      <rect x="584" y="958" width="40" height="42" rx="4"/>
+    </g>
+  </g>
+
+  <!-- HAUT DROITE : un motif tissé (clin d'œil géométrique), qui s'efface vers le centre. -->
+  <g opacity=".38" fill="none" stroke="#0b5d4b" stroke-width="1.6" stroke-opacity=".3">
+    <path d="M1180 60l42 42-42 42-42-42z"/>
+    <path d="M1264 60l42 42-42 42-42-42z"/>
+    <path d="M1180 144l42 42-42 42-42-42z"/>
+    <path d="M1348 60l42 42-42 42-42-42z"/>
+    <path d="M1264 144l42 42-42 42-42-42z"/>
+    <path d="M1180 228l42 42-42 42-42-42z"/>
+  </g>
+  <g opacity=".3" fill="none" stroke="#b85c38" stroke-width="1.6" stroke-opacity=".35">
+    <path d="M1440 120l34 34-34 34-34-34z"/>
+    <path d="M1508 120l34 34-34 34-34-34z"/>
+    <path d="M1440 188l34 34-34 34-34-34z"/>
+  </g>
+
+  <!-- Quelques points, comme des notes en marge. -->
+  <g fill="#0b5d4b" fill-opacity=".2">
+    <circle cx="700" cy="180" r="5"/><circle cx="880" cy="96" r="4"/>
+    <circle cx="980" cy="300" r="5"/><circle cx="300" cy="240" r="4"/>
+    <circle cx="180" cy="820" r="5"/><circle cx="760" cy="880" r="4"/>
+  </g>
+</svg>
