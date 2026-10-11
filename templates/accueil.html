@@ -18,52 +18,91 @@
 
 <section class="accueil-heros">
   <div class="accueil-heros-in">
-    <p class="surtitre">Accompagnement méthodologique du mémoire de Master</p>
-    <h1 class="accueil-titre">
-      Un mémoire ne s'improvise pas.<br>Il se construit.
-    </h1>
-    <p class="accueil-chapeau">
-      Du choix du sujet à la vérification finale, la plateforme vous accompagne dans la
-      <strong>construction méthodologique</strong> de votre mémoire. Elle interroge, structure,
-      repère les manques et les incohérences — puis elle vous propose. <strong>C'est vous qui
-      décidez.</strong>
-    </p>
-    <div class="accueil-actions">
-      {% if compte %}
-        <a class="btn btn-principal" href="/mes-memoires">Reprendre mon mémoire</a>
-      {% else %}
-        <a class="btn btn-principal" href="/inscription">Créer mon accès</a>
-        <a class="btn btn-secondaire" href="/connexion">J'ai déjà un accès</a>
-      {% endif %}
+    <div class="accueil-heros-texte">
+      <p class="surtitre">Accompagnement méthodologique du mémoire de Master</p>
+      <h1 class="accueil-titre">
+        Un mémoire ne s'improvise pas.<br>Il se construit.
+      </h1>
+      <p class="accueil-chapeau">
+        Du choix du sujet à la vérification finale, la plateforme vous accompagne dans la
+        <strong>construction méthodologique</strong> de votre mémoire. Elle interroge, structure,
+        repère les manques et les incohérences — puis elle vous propose. <strong>C'est vous qui
+        décidez.</strong>
+      </p>
+      <div class="accueil-actions">
+        {% if compte %}
+          <a class="btn btn-principal" href="/mes-memoires">Reprendre mon mémoire</a>
+        {% else %}
+          <a class="btn btn-principal" href="/inscription">Créer mon accès</a>
+          <a class="btn btn-secondaire" href="/connexion">J'ai déjà un accès</a>
+        {% endif %}
+      </div>
+      <p class="aide-champ" style="margin-top:14px">
+        Votre adresse e-mail suffit. Aucune invitation, aucun paiement.
+      </p>
     </div>
-    <p class="aide-champ" style="margin-top:14px">
-      Votre adresse e-mail suffit. Aucune invitation, aucun paiement.
-    </p>
+    <div class="accueil-heros-image">
+      <img class="illustration" src="/static/illustrations/parcours.svg"
+           alt="Les étapes du mémoire, une marche après l'autre">
+    </div>
   </div>
 </section>
 
 <section class="accueil-section">
   <h2>Ce qu'elle fait — et ce qu'elle ne fait pas</h2>
-  <div class="accueil-duo">
-    <div class="carte accueil-carte-fait">
-      <span class="accueil-etiquette">Ce qu'elle fait</span>
-      <ul class="accueil-points">
-        <li>Cadrer votre sujet et dire ce qui manque encore</li>
-        <li>Formuler le problème de recherche et la problématique</li>
-        <li>Construire la revue de littérature et retrouver les textes</li>
-        <li>Établir hypothèses, objectifs et protocole de recherche</li>
-        <li>Lire vos résultats et en tirer une analyse</li>
-        <li>Vérifier la cohérence de l'ensemble du dossier</li>
-      </ul>
+  <div class="accueil-illustre">
+    <div>
+      <div class="accueil-duo">
+        <div class="carte accueil-carte-fait">
+          <span class="accueil-etiquette">Ce qu'elle fait</span>
+          <ul class="accueil-points">
+            <li>Cadrer votre sujet et dire ce qui manque encore</li>
+            <li>Formuler le problème de recherche et la problématique</li>
+            <li>Construire la revue de littérature et retrouver les textes</li>
+            <li>Établir hypothèses, objectifs et protocole de recherche</li>
+            <li>Lire vos résultats et en tirer une analyse</li>
+            <li>Vérifier la cohérence de l'ensemble du dossier</li>
+          </ul>
+        </div>
+        <div class="carte accueil-carte-pasfait">
+          <span class="accueil-etiquette">Ce qu'elle ne fait pas</span>
+          <ul class="accueil-points">
+            <li>Elle n'écrit pas votre mémoire à votre place</li>
+            <li>Elle n'invente ni résultat, ni référence, ni chiffre</li>
+            <li>Elle ne valide jamais une étape sans votre clic</li>
+            <li>Elle ne montre à personne ce que vous avez écrit</li>
+          </ul>
+        </div>
+      </div>
     </div>
-    <div class="carte accueil-carte-pasfait">
-      <span class="accueil-etiquette">Ce qu'elle ne fait pas</span>
-      <ul class="accueil-points">
-        <li>Elle n'écrit pas votre mémoire à votre place</li>
-        <li>Elle n'invente ni résultat, ni référence, ni chiffre</li>
-        <li>Elle ne valide jamais une étape sans votre clic</li>
-        <li>Elle ne montre à personne ce que vous avez écrit</li>
-      </ul>
+    <img class="illustration accueil-illustration-laterale"
+         src="/static/illustrations/decision.svg"
+         alt="La décision de valider une étape appartient à l'étudiant">
+  </div>
+</section>
+
+<section class="accueil-section">
+  <h2>Des textes retrouvés, et une plateforme à qui parler</h2>
+  <div class="accueil-bande">
+    <div class="accueil-point-illustre">
+      <img class="illustration" src="/static/illustrations/documents.svg"
+           alt="Des articles retrouvés, vérifiés et lus">
+      <h3>Elle cherche, vérifie et lit</h3>
+      <p class="etape-note">
+        Elle interroge les bases scientifiques en accès ouvert, dédoublonne, écarte ce qui est
+        hors sujet, retrouve les textes intégralement accessibles et les lit réellement. Vous
+        recevez les documents, et votre bibliographie aux formats BibTeX, RIS et CSV.
+      </p>
+    </div>
+    <div class="accueil-point-illustre">
+      <img class="illustration" src="/static/illustrations/echange.svg"
+           alt="Un échange entre l'étudiant et la plateforme">
+      <h3>Elle répond à vos questions</h3>
+      <p class="etape-note">
+        Bloqué sur une étape ? Vous pouvez lui demander d'expliquer, de reformuler, de montrer ce
+        qui manque — comme dans une conversation. Elle connaît votre dossier et ne répond jamais
+        par un résultat inventé.
+      </p>
     </div>
   </div>
 </section>
@@ -90,27 +129,32 @@
 
 <section class="accueil-section">
   <h2>Votre travail vous appartient</h2>
-  <div class="accueil-duo accueil-duo-trois">
-    <div class="carte">
-      <h3>Personne d'autre n'y a accès</h3>
-      <p class="etape-note" style="margin-top:8px">
-        Votre dossier est strictement personnel. Ni les autres étudiants, ni votre encadreur n'y
-        ont accès. Il faut votre mot de passe pour l'ouvrir.
-      </p>
-    </div>
-    <div class="carte">
-      <h3>Vous repartez avec tout</h3>
-      <p class="etape-note" style="margin-top:8px">
-        Chaque étape est téléchargeable, avec ses documents et sa bibliographie (BibTeX, RIS, CSV).
-        Vous pouvez exporter votre dossier entier, à tout moment.
-      </p>
-    </div>
-    <div class="carte">
-      <h3>Rien n'est décidé à votre place</h3>
-      <p class="etape-note" style="margin-top:8px">
-        La plateforme propose, explique ce qu'elle ne sait pas et signale ses limites. Vous lisez,
-        puis vous validez — ou vous demandez une révision.
-      </p>
+  <div class="accueil-illustre-inverse">
+    <img class="illustration accueil-illustration-laterale"
+         src="/static/illustrations/prive.svg"
+         alt="Le dossier de l'étudiant reste strictement personnel">
+    <div class="accueil-duo accueil-duo-trois">
+      <div class="carte">
+        <h3>Personne d'autre n'y a accès</h3>
+        <p class="etape-note" style="margin-top:8px">
+          Votre dossier est strictement personnel. Ni les autres étudiants, ni votre encadreur n'y
+          ont accès. Il faut votre mot de passe pour l'ouvrir.
+        </p>
+      </div>
+      <div class="carte">
+        <h3>Vous repartez avec tout</h3>
+        <p class="etape-note" style="margin-top:8px">
+          Chaque étape est téléchargeable, avec ses documents et sa bibliographie (BibTeX, RIS,
+          CSV). Vous pouvez exporter votre dossier entier, à tout moment.
+        </p>
+      </div>
+      <div class="carte">
+        <h3>Rien n'est décidé à votre place</h3>
+        <p class="etape-note" style="margin-top:8px">
+          La plateforme propose, explique ce qu'elle ne sait pas et signale ses limites. Vous
+          lisez, puis vous validez — ou vous demandez une révision.
+        </p>
+      </div>
     </div>
   </div>
 </section>

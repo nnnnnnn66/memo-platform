@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 320" role="img"
+     aria-label="La décision appartient à l'étudiant">
+  <g fill="none" stroke="#0b5d4b" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="60" y="34" width="300" height="252" rx="12" fill="#ffffff"/>
+    <rect x="60" y="34" width="300" height="46" rx="12" fill="#f3eee6"/>
+    <g stroke="#8aa39c" stroke-width="1.8">
+      <path d="M92 60h96"/>
+      <path d="M92 112h236M92 138h204M92 164h232M92 190h150"/>
+    </g>
+    <!-- la marque de validation, tracée à la main -->
+    <path d="M196 246l30 30 66-72" stroke="#b85c38" stroke-width="6"/>
+  </g>
+  <circle cx="352" cy="52" r="10" fill="#e6f1ee" stroke="#0b5d4b" stroke-width="2.2"/>
+</svg>

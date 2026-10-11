@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 320" role="img"
+     aria-label="Des documents retrouvés, vérifiés et lus">
+  <g fill="none" stroke="#0b5d4b" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <!-- pages empilées -->
+    <rect x="52" y="70" width="180" height="220" rx="9" fill="#f3eee6"/>
+    <rect x="86" y="48" width="180" height="220" rx="9" fill="#ffffff"/>
+    <rect x="120" y="26" width="180" height="220" rx="9" fill="#e6f1ee"/>
+    <g stroke="#8aa39c" stroke-width="1.8">
+      <path d="M142 62h136M142 86h136M142 110h104M142 134h136M142 158h88"/>
+    </g>
+    <path d="M142 200h72" stroke="#b85c38" stroke-width="3"/>
+    <!-- loupe -->
+    <circle cx="286" cy="216" r="62" fill="#ffffff" fill-opacity=".92"/>
+    <path d="M330 260l46 46"/>
+    <path d="M262 216l16 18 32-38" stroke="#b85c38" stroke-width="3.4"/>
+  </g>
+</svg>

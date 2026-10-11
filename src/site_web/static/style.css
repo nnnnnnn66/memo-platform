@@ -296,7 +296,23 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent);
    elle a droit à plus d'ampleur, jamais au vocabulaire d'une publicité.
    ============================================================================ */
 .accueil-heros { border-bottom: 1px solid var(--trait); }
-.accueil-heros-in { max-width: var(--large); margin: 0 auto; padding: 84px 24px 72px; }
+.accueil-heros-in { max-width: var(--large); margin: 0 auto; padding: 76px 24px 68px;
+  display: grid; grid-template-columns: minmax(0, 1.02fr) minmax(0, .98fr); gap: 52px;
+  align-items: center; }
+.accueil-heros-image { min-width: 0; }
+/* Toutes les illustrations : vectorielles, dans les couleurs de la plateforme, jamais une photo
+   générique. Elles restent nettes à toutes les tailles et ne pèsent que quelques kilo-octets. */
+.illustration { display: block; width: 100%; height: auto; }
+.accueil-illustre { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 34px;
+  align-items: center; }
+.accueil-illustration-laterale { max-width: 250px; }
+.accueil-illustre-inverse { display: grid; grid-template-columns: 230px minmax(0, 1fr);
+  gap: 34px; align-items: center; }
+.accueil-bande { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 36px; }
+.accueil-point-illustre { max-width: 46ch; }
+.accueil-point-illustre .illustration { max-width: 320px; margin-bottom: 20px; }
+.accueil-point-illustre h3 { margin-bottom: 8px; }
 .accueil-titre { font-size: clamp(2.1rem, 1.4rem + 3vw, 3.5rem); letter-spacing: -.02em;
   margin: 10px 0 0; max-width: 22ch; }
 .accueil-chapeau { font-size: 1.1rem; color: var(--encre-douce); max-width: 62ch;
@@ -334,9 +350,14 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent);
   border-top: 1px solid var(--trait); text-align: center; }
 .accueil-fin h2 { font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.3rem); }
 
+@media (max-width: 900px) {
+  .accueil-heros-in { grid-template-columns: 1fr; gap: 34px; padding: 48px 18px 44px; }
+  .accueil-heros-image { order: -1; max-width: 420px; }
+  .accueil-illustre, .accueil-illustre-inverse { grid-template-columns: 1fr; gap: 26px; }
+  .accueil-illustration-laterale { max-width: 220px; margin: 0 auto; }
+}
 @media (max-width: 760px) {
   .accueil-etapes { columns: 1; }
-  .accueil-heros-in { padding: 48px 18px 44px; }
 }
 
 /* ---------- Divers ---------- */

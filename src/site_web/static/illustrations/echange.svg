@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 320" role="img"
+     aria-label="Un échange avec la plateforme">
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <!-- bulle de l'étudiant -->
+    <path d="M44 60h210a12 12 0 0 1 12 12v96a12 12 0 0 1-12 12H112l-38 34v-34H44a12 12 0 0 1-12-12V72a12 12 0 0 1 12-12z"
+          fill="#e6f1ee" stroke="#0b5d4b" stroke-width="2.4"/>
+    <g stroke="#0b5d4b" stroke-width="3">
+      <path d="M66 96h150M66 120h124M66 144h96"/>
+    </g>
+    <!-- réponse de la plateforme -->
+    <path d="M366 170H186a12 12 0 0 0-12 12v74a12 12 0 0 0 12 12h150l38 32v-32h-4a12 12 0 0 0 12-12v-74a12 12 0 0 0-12-12z"
+          fill="#ffffff" stroke="#b85c38" stroke-width="2.4"/>
+    <g fill="#b85c38">
+      <circle cx="212" cy="220" r="6"/><circle cx="242" cy="220" r="6"/><circle cx="272" cy="220" r="6"/>
+    </g>
+  </g>
+</svg>
