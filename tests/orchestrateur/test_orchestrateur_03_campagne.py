@@ -100,18 +100,25 @@ def test_demander_une_revision_laisse_l_etape_ouverte(settings, agent):
 
 
 def test_avancement_regulier_jusqu_a_la_verification_globale(settings, agent):
-    """Le parcours complet (hors agents réels) : 1 → 11, puis la vérification globale."""
+    """Le parcours complet (hors agents réels) : 1 → 10, la vérification globale, puis la conclusion."""
     campaign.creer_dossier(settings, "etu1", "s1", "Sujet")
-    avancer(settings, "etu1", "s1", agent, nombre=11)
+    avancer(settings, "etu1", "s1", agent, nombre=10)
     etat = campaign.etat(settings, "etu1", "s1")
     assert etat["etape_ouverte"] == 13
     assert etat["libelle"] == "Vérification globale de la cohérence"
-    # La vérification globale reçoit les 11 sorties : même mécanisme, aucun cas particulier.
+    # Elle reçoit les sorties des étapes 1 à 10 — PAS la conclusion, qui vient après elle.
     campaign.lancer_etape(settings, "etu1", "s1", transport=agent)
     entree = agent.derniere_entree
     assert sorted(k for k in entree if k.startswith("upstream_")) == [
-        "upstream_conclusion", "upstream_hypotheses", "upstream_literature",
+        "upstream_hypotheses", "upstream_literature",
         "upstream_methodology", "upstream_methodology_diagnostic", "upstream_objectives",
         "upstream_problem", "upstream_problematic", "upstream_question", "upstream_results",
         "upstream_subject"]
+    assert "upstream_conclusion" not in entree
     assert "8130" in agent.appels[-1][0]
+
+    # Après la vérification vient la CONCLUSION, dernière étape du parcours.
+    campaign.decider(settings, "etu1", "s1", "accepted", transport=agent)
+    etat = campaign.etat(settings, "etu1", "s1")
+    assert etat["etape_ouverte"] == 11
+    assert etat["libelle"] == "Conclusion"

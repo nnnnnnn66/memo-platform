@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" role="img" aria-label="Accompagnement du mémoire">
+  <rect x="1" y="1" width="38" height="38" rx="9" fill="#0b5d4b"/>
+  <g fill="none" stroke="#faf7f2" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M11 29h18"/>
+    <path d="M13 29V22"/>
+    <path d="M19 29V16"/>
+    <path d="M25 29V10"/>
+  </g>
+  <g fill="#b85c38" stroke="none">
+    <circle cx="13" cy="19" r="2.4"/>
+    <circle cx="19" cy="13" r="2.4"/>
+    <circle cx="25" cy="7.4" r="2.6"/>
+  </g>
+</svg>

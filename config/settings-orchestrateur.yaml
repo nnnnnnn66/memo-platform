@@ -164,12 +164,16 @@ etapes:
       upstream_methodology_diagnostic: 8
       upstream_methodology: 9
 
-  - numero: 11
-    agent: research_conclusion_agent
-    libelle: "Conclusion"
-    port: 8110
-    prefixe: /conclusion
-    route_analyse: /conclusion/write
+  # Étape 13 : vérification GLOBALE de la cohérence du dossier (étapes 1 à 10).
+  # ORDRE VOULU PAR LE PORTEUR : la vérification vient AVANT la conclusion — on s'assure d'abord
+  # que le dossier tient debout, PUIS on rédige la conclusion. Conséquence assumée : elle n'audite
+  # plus la conclusion, qui n'existe pas encore à ce moment-là.
+  - numero: 13
+    agent: research_coherence_verifier
+    libelle: "Vérification globale de la cohérence"
+    port: 8130
+    prefixe: /coherence
+    route_analyse: /coherence/audit
     upstream:
       upstream_subject: 1
       upstream_problem: 2
@@ -182,14 +186,13 @@ etapes:
       upstream_methodology: 9
       upstream_results: 10
 
-  # Étape 13 : vérification GLOBALE de la cohérence. Elle reçoit les 11 sorties réelles — c'est
-  # exactement le même pont que les autres étapes, aucun cas particulier dans le code.
-  - numero: 13
-    agent: research_coherence_verifier
-    libelle: "Vérification globale de la cohérence"
-    port: 8130
-    prefixe: /coherence
-    route_analyse: /coherence/audit
+  # Dernière étape : la conclusion s'appuie désormais sur un dossier VÉRIFIÉ.
+  - numero: 11
+    agent: research_conclusion_agent
+    libelle: "Conclusion"
+    port: 8110
+    prefixe: /conclusion
+    route_analyse: /conclusion/write
     finale: true
     upstream:
       upstream_subject: 1
@@ -202,4 +205,3 @@ etapes:
       upstream_methodology_diagnostic: 8
       upstream_methodology: 9
       upstream_results: 10
-      upstream_conclusion: 11

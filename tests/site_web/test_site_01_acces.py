@@ -245,7 +245,12 @@ def test_les_en_tetes_de_protection_sont_servis(site):
     entetes = client.get("/connexion").headers
 
     politique = entetes["content-security-policy"]
-    assert "script-src 'none'" in politique      # le site n'exécute aucun JavaScript
+    # Les scripts viennent UNIQUEMENT de nos propres fichiers : ni tiers, ni code en ligne,
+    # ni eval. C'est ce qui permet du dynamisme sans ouvrir la porte à du code étranger.
+    assert "script-src 'self'" in politique
+    assert "script-src 'none'" not in politique
+    assert "'unsafe-inline'" not in politique.split("script-src")[1].split(";")[0]
+    assert "'unsafe-eval'" not in politique
     assert "frame-ancestors 'none'" in politique
     assert "base-uri 'none'" in politique
     assert entetes["x-frame-options"] == "DENY"

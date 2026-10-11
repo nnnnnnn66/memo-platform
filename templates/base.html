@@ -6,17 +6,36 @@
   <title>{% block titre %}Accompagnement du mémoire{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', path='polices.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+  <script src="{{ url_for('static', path='app.js') }}" defer></script>
 </head>
-<body>
+<body class="{% if laterale %}avec-laterale{% endif %}">
 {% if compte %}
 <header class="entete">
   <div class="entete-in">
-    <a class="marque" href="/mes-memoires">Mémoire <span>accompagnement</span></a>
+    {% if laterale %}
+    <button class="bascule-laterale" type="button" data-bascule-laterale aria-expanded="false"
+            aria-label="Afficher ou masquer les étapes">☰</button>
+    {% endif %}
+    <a class="marque" href="/">
+      <img class="marque-logo" src="{{ url_for('static', path='logo.svg') }}" alt="">
+      Mémoire <span>accompagnement</span>
+    </a>
+
+    {% if laterale %}
+    <button class="chercheur" type="button" data-ouvre-palette>
+      <span>Aller à une étape…</span><kbd>Ctrl</kbd><kbd>K</kbd>
+    </button>
+    {% endif %}
+
     <nav>
       <a href="/mes-memoires" class="{% if page == 'memoires' %}actif{% endif %}">Mes mémoires</a>
       {% if admin %}<a href="/tableau-de-bord" class="{% if page == 'admin' %}actif{% endif %}">Tableau de bord</a>{% endif %}
       <a href="/deconnexion">Déconnexion</a>
     </nav>
+  </div>
+  <!-- Bandeau illustré : l'identité du produit, présente sur chaque page connectée. -->
+  <div class="entete-bandeau" aria-hidden="true">
+    <img src="{{ url_for('static', path='illustrations/bandeau.svg') }}" alt="">
   </div>
 </header>
 {% endif %}
@@ -26,13 +45,44 @@
 {% elif page == 'connexion' %}
   {% block connexion %}{% endblock %}
 {% else %}
-<main class="page">
-  {% if message %}<div class="message message-{{ message.type }}">{{ message.texte }}</div>{% endif %}
-  {% block contenu %}{% endblock %}
-</main>
+<div class="coquille">
+  {% if laterale %}{% include "partials/laterale.html" %}{% endif %}
+  <main class="page">
+    {% if message %}
+    <div class="message message-{{ message.type }}" data-efface="auto">{{ message.texte }}</div>
+    {% endif %}
+    {% block contenu %}{% endblock %}
+  </main>
+</div>
 <footer class="pied">
   Accompagnement méthodologique du mémoire — vos dossiers vous appartiennent.
 </footer>
+
+{% if laterale %}
+<!-- Palette de commandes (Ctrl/Cmd + K) : aller droit à une étape, sans chercher. -->
+<div class="palette" data-palette hidden>
+  <div class="palette-boite">
+    <input type="text" placeholder="Tapez le nom d'une étape…" aria-label="Rechercher une étape">
+    <div class="palette-liste" data-resultats>
+      {% for e in laterale.etapes %}
+      <a class="palette-entree" data-entree href="/memoire/{{ laterale.session }}/etape?n={{ e.numero }}">
+        <span class="palette-num">{{ e.position }}</span>
+        <span>{{ e.libelle }}</span>
+        <span class="palette-etat">{{ e.etiquette }}</span>
+      </a>
+      {% endfor %}
+      <a class="palette-entree" data-entree href="/memoire/{{ laterale.session }}/documents">
+        <span class="palette-num">◆</span><span>Mes documents et ma bibliographie</span>
+        <span class="palette-etat">ressource</span>
+      </a>
+      <a class="palette-entree" data-entree href="/memoire/{{ laterale.session }}/journal">
+        <span class="palette-num">◆</span><span>Journal de mon mémoire</span>
+        <span class="palette-etat">ressource</span>
+      </a>
+    </div>
+  </div>
+</div>
+{% endif %}
 {% endif %}
 </body>
 </html>

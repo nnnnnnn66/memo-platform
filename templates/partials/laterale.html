@@ -1,0 +1,54 @@
+{# La barre latérale : LE PARCOURS DEVIENT LA NAVIGATION. Les douze étapes sont là, sous la main,
+   avec leur état. Seules les étapes déjà accessibles sont cliquables — une étape fermée n'est pas
+   une erreur à provoquer, c'est une porte qui s'ouvrira. #}
+<aside class="laterale" id="laterale" aria-label="Mon parcours">
+  <div class="laterale-entete">
+    <svg class="anneau" data-anneau="{{ laterale.pourcent / 100 }}" viewBox="0 0 48 48"
+         role="img" aria-label="{{ laterale.faites }} étapes validées sur {{ laterale.total }}">
+      <circle class="anneau-fond" cx="24" cy="24" r="21"></circle>
+      <circle class="anneau-jauge jauge" cx="24" cy="24" r="21"></circle>
+    </svg>
+    <div class="laterale-avancement">
+      <b>{{ laterale.faites }}<span>/{{ laterale.total }}</span></b>
+      <span>étapes validées</span>
+    </div>
+  </div>
+
+  <div class="laterale-section">
+    <p class="laterale-titre">Les étapes</p>
+    <ol class="laterale-etapes">
+      {% for e in laterale.etapes %}
+      <li>
+        {% if e.statut == 'validee' %}
+          <a class="laterale-etape faite" href="/memoire/{{ laterale.session }}/etape?n={{ e.numero }}">
+        {% elif e.ouverte %}
+          <a class="laterale-etape ouverte" href="/memoire/{{ laterale.session }}/etape">
+        {% else %}
+          <span class="laterale-etape fermee">
+        {% endif %}
+          <span class="laterale-puce">{{ e.position }}</span>
+          <span class="laterale-libelle">{{ e.libelle }}</span>
+        {% if e.statut == 'validee' or e.ouverte %}</a>{% else %}</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ol>
+  </div>
+
+  <div class="laterale-section">
+    <p class="laterale-titre">Mes ressources</p>
+    <a class="laterale-item" href="/memoire/{{ laterale.session }}">Mon parcours</a>
+    <a class="laterale-item" href="/memoire/{{ laterale.session }}/documents">Mes documents</a>
+    <a class="laterale-item" href="/memoire/{{ laterale.session }}/journal">Mon journal</a>
+    <a class="laterale-item" href="/memoire/{{ laterale.session }}/export">Exporter mon dossier</a>
+  </div>
+
+  <div class="laterale-section">
+    <p class="laterale-titre">Mes mémoires</p>
+    {% for m in laterale.memoires %}
+    <a class="laterale-item {% if m.session == laterale.session %}actif{% endif %}"
+       href="/memoire/{{ m.session }}">{{ m.sujet | truncate(38) }}</a>
+    {% endfor %}
+    <a class="laterale-item" href="/mes-memoires">Tous mes mémoires…</a>
+  </div>
+</aside>
+<div class="voile-laterale" data-bascule-laterale aria-hidden="true"></div>

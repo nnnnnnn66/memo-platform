@@ -1,52 +1,78 @@
 {% extends "base.html" %}
-{% block titre %}{{ memoire.sujet }} — Mon parcours{% endblock %}
+{% block titre %}{{ memoire.sujet }} — Mon mémoire{% endblock %}
 {% block contenu %}
 
 <div class="tete-page">
   <div>
-    <p class="surtitre">Mémoire</p>
+    <p class="surtitre">Mon mémoire</p>
     <h1>{{ memoire.sujet }}</h1>
+    {% if memoire.contexte %}
     <p class="etape-note" style="margin-top:8px">
-      {{ memoires_avancement.faites }} étape{{ 's' if memoires_avancement.faites != 1 }} validée{{ 's' if memoires_avancement.faites != 1 }}
-      sur {{ memoires_avancement.total }} — prochaine étape : {{ memoire.libelle }}
+      {% for valeur in memoire.contexte.values() %}{{ valeur }}{% if not loop.last %} · {% endif %}{% endfor %}
     </p>
-  </div>
-  <div class="actions">
-    <a class="btn btn-secondaire" href="/memoire/{{ memoire.session }}/export">Exporter mon dossier</a>
-    <a class="btn btn-secondaire" href="/memoire/{{ memoire.session }}/documents">Mes documents</a>
-  </div>
-</div>
-
-<div class="avancement">
-  <div class="jauge"><i style="width: {{ memoires_avancement.pourcent }}%"></i></div>
-  <b>{{ memoires_avancement.pourcent }} %</b>
-</div>
-
-{% if quota %}
-<p class="etape-note" style="margin-bottom:20px">
-  Il vous reste <strong>{{ quota.restant }}</strong> analyse{{ 's' if quota.restant != 1 }}
-  aujourd'hui{% if quota.restant == 0 %} — vous pourrez reprendre demain{% endif %}.
-</p>
-{% endif %}
-
-<h2 class="sr-only">Les treize étapes</h2>
-<nav class="sommaire" aria-label="Les étapes de votre mémoire">
-  {% for e in etapes %}
-    {% if e.ouverte %}
-      <a class="etape-ligne ouverte" href="/memoire/{{ memoire.session }}/etape">
-    {% elif e.statut == 'validee' %}
-      <a class="etape-ligne" href="/memoire/{{ memoire.session }}/etape?n={{ e.numero }}">
-    {% else %}
-      <span class="etape-ligne fermee">
     {% endif %}
-        <span class="etape-num">{{ e.numero }}</span>
-        <span class="etape-corps">
-          <span class="etape-titre">{{ e.libelle }}</span>
-          <span class="etape-note">{{ e.note }}</span>
-        </span>
-        <span class="pastille pastille-{{ e.classe }}">{{ e.etiquette }}</span>
-    {% if e.ouverte or e.statut == 'validee' %}</a>{% else %}</span>{% endif %}
-  {% endfor %}
-</nav>
+  </div>
+</div>
+
+<div class="grille grille-2">
+  {# UNE seule chose à faire, mise en avant : on ne noie pas l'étudiant sous les options. #}
+  <div class="carte carte-action" data-apparait>
+    <span class="accueil-etiquette">Là où vous en êtes</span>
+    <p class="carte-action-num">Étape {{ etape_ouverte.numero }} sur {{ memoires_avancement.total }}</p>
+    <h2>{{ etape_ouverte.libelle }}</h2>
+    <p class="etape-note" style="margin:10px 0 22px">{{ etape_ouverte.note }}</p>
+    <a class="btn btn-principal" href="/memoire/{{ memoire.session }}/etape">
+      {% if etape_ouverte.statut == 'proposee' %}Lire la proposition et décider{% else %}Continuer{% endif %}
+    </a>
+  </div>
+
+  <div class="carte" data-apparait>
+    <span class="accueil-etiquette">Votre avancement</span>
+    <div class="avancement" style="margin:20px 0 8px">
+      <div class="jauge"><i style="width: {{ memoires_avancement.pourcent }}%"></i></div>
+      <b>{{ memoires_avancement.pourcent }} %</b>
+    </div>
+    <p class="etape-note">
+      {{ memoires_avancement.faites }} étape{{ 's' if memoires_avancement.faites != 1 }}
+      validée{{ 's' if memoires_avancement.faites != 1 }} sur {{ memoires_avancement.total }}.
+      Chaque étape validée reste relisible, et rien n'est validé sans votre décision.
+    </p>
+    {% if quota %}
+    <div class="encadre encadre-limite" style="margin-top:18px">
+      <span class="etiquette">Analyses du jour</span>
+      Il vous reste <strong>{{ quota.restant }}</strong> analyse{{ 's' if quota.restant != 1 }}
+      aujourd'hui sur {{ quota.max }}.
+      {% if quota.restant == 0 %}Vous pourrez reprendre demain : votre dossier est conservé.{% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<h2 class="titre-section" style="margin-top:40px">Mes ressources</h2>
+<div class="grille grille-3">
+  <a class="carte carte-lien" href="/memoire/{{ memoire.session }}/documents" data-apparait>
+    <img class="illustration carte-lien-image" src="/static/illustrations/documents.svg" alt="">
+    <h3>Mes documents</h3>
+    <p class="etape-note">
+      Les textes retrouvés et lus pour vous, et votre bibliographie à télécharger
+      (BibTeX, RIS, CSV).
+    </p>
+  </a>
+  <a class="carte carte-lien" href="/memoire/{{ memoire.session }}/journal" data-apparait>
+    <img class="illustration carte-lien-image" src="/static/illustrations/parcours.svg" alt="">
+    <h3>Mon journal</h3>
+    <p class="etape-note">
+      Tout ce qui s'est passé sur votre mémoire, dans l'ordre : ce que la plateforme a produit,
+      et ce que vous avez décidé.
+    </p>
+  </a>
+  <a class="carte carte-lien" href="/memoire/{{ memoire.session }}/export" data-apparait>
+    <img class="illustration carte-lien-image" src="/static/illustrations/prive.svg" alt="">
+    <h3>Exporter mon dossier</h3>
+    <p class="etape-note">
+      Emportez votre travail à tout moment : c'est le vôtre, entièrement.
+    </p>
+  </a>
+</div>
 
 {% endblock %}

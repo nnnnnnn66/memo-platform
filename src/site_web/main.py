@@ -264,9 +264,10 @@ async def _en_tetes_protection(request: Request, call_next):
     reponse = await call_next(request)
     reponse.headers["Content-Security-Policy"] = (
         # Les styles en ligne sont tolérés (barre de progression, marges) : un style ne peut pas
-        # exécuter de code. Les SCRIPTS, eux, restent totalement interdits ('none').
+        # exécuter de code. Les SCRIPTS sont autorisés UNIQUEMENT depuis nos propres fichiers
+        # ('self') : aucun script tiers, aucun code écrit dans la page, aucun eval.
         "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; "
-        "font-src 'self'; script-src 'none'; connect-src 'self'; form-action 'self'; "
+        "font-src 'self'; script-src 'self'; connect-src 'self'; form-action 'self'; "
         "frame-ancestors 'none'; base-uri 'none'; object-src 'none'")
     reponse.headers["X-Frame-Options"] = "DENY"
     reponse.headers["X-Content-Type-Options"] = "nosniff"
@@ -532,10 +533,18 @@ async def page_parcours(request: Request, session: str, message: str = ""):
     etat = ORCHESTRATEUR.dossier(identifiant, session)
     etapes = _etapes_affichees(etat)
     faites = sum(1 for e in etapes if e["statut"] == "validee")
+    ouverte = next((e for e in etapes if e["ouverte"]), etapes[-1] if etapes else {})
+    try:
+        contexte = json.loads(memoire.get("contexte") or "{}")
+    except (TypeError, ValueError):
+        contexte = {}
     return GABARITS.TemplateResponse(
         request, "parcours.html", _contexte(
-        request, page="parcours", memoire={**memoire, "libelle": etat.get("libelle", "")},
+        request, page="parcours",
+        memoire={**memoire, "contexte": contexte, "libelle": etat.get("libelle", "")},
         etapes=etapes,
+        etape_ouverte=ouverte,
+        laterale=_laterale(identifiant, session, etat),
         memoires_avancement={"faites": faites, "total": len(etapes),
                              "pourcent": round(100 * faites / max(1, len(etapes)))},
         quota={"restant": etat.get("quota_restant", 0), "max": etat.get("quota_max", 0)},
@@ -547,7 +556,7 @@ def _etapes_affichees(etat: dict) -> list:
     avancement = {e["numero"]: e for e in etat.get("avancement", [])}
     ouverte = etat.get("etape_ouverte")
     lignes = []
-    for definition in etat.get("etapes", []):
+    for rang, definition in enumerate(etat.get("etapes", []), start=1):
         numero = definition["numero"]
         fiche = avancement.get(numero, {})
         statut = fiche.get("statut", "a_faire")
@@ -569,6 +578,9 @@ def _etapes_affichees(etat: dict) -> list:
                             else "Prête à être lancée")
         lignes.append({
             "numero": numero,
+            # La POSITION dans le parcours (1..12) : c'est elle que l'étudiant doit lire. Le numéro
+            # interne saute le 12 (étape réservée) et n'a aucune signification pour lui.
+            "position": rang,
             "libelle": definition["libelle"],
             "statut": statut if not fermee else "fermee",
             "ouverte": numero == ouverte,
@@ -577,6 +589,26 @@ def _etapes_affichees(etat: dict) -> list:
             "note": libelle_note,
         })
     return lignes
+
+
+def _laterale(identifiant: str, session: str, etat: dict) -> dict:
+    """La barre latérale : LE PARCOURS DEVIENT LA NAVIGATION.
+
+    Les douze étapes y sont, avec leur état, et l'étudiant y voit son avancement d'un coup d'œil.
+    Les étapes fermées ne sont pas des liens : on ne propose pas d'ouvrir une porte qui n'est pas
+    encore ouverte (l'orchestrateur la refuserait de toute façon).
+    """
+    etapes = _etapes_affichees(etat)
+    faites = sum(1 for ligne in etapes if ligne["statut"] == "validee")
+    total = len(etapes) or 1
+    return {
+        "session": session,
+        "etapes": etapes,
+        "faites": faites,
+        "total": total,
+        "pourcent": round(100 * faites / total),
+        "memoires": comptes.mes_memoires(REGLAGES.base_comptes, identifiant),
+    }
 
 
 @app.post("/memoire/{session}/etape/lancer")
@@ -595,9 +627,11 @@ async def lancer_etape(request: Request, session: str, csrf: str = Form("")):
 async def page_etape(request: Request, session: str, n: int = 0, message: str = ""):
     identifiant, memoire = _memoire_autorise(request, session)
     detail = ORCHESTRATEUR.etape(identifiant, session, n or None)
+    etat = ORCHESTRATEUR.dossier(identifiant, session)
     return GABARITS.TemplateResponse(
         request, "etape.html", _contexte(
         request, page="parcours", memoire=memoire,
+        laterale=_laterale(identifiant, session, etat),
         etape={"numero": detail["numero"], "libelle": detail["libelle"],
                "statut": detail["statut"], "ouverte": detail.get("ouverte", False)},
         total_etapes=detail.get("total_etapes", 0),
@@ -632,9 +666,11 @@ async def decider(request: Request, session: str, csrf: str = Form(""),
 async def page_documents(request: Request, session: str):
     identifiant, memoire = _memoire_autorise(request, session)
     manifeste = ORCHESTRATEUR.documents(identifiant, session)
+    etat = ORCHESTRATEUR.dossier(identifiant, session)
     return GABARITS.TemplateResponse(
         request, "documents.html", _contexte(
         request, page="parcours", memoire=memoire,
+        laterale=_laterale(identifiant, session, etat),
         documents=manifeste.get("entries", []), resume=manifeste.get("resume", {})))
 
 
@@ -665,6 +701,7 @@ async def page_journal(request: Request, session: str):
     return GABARITS.TemplateResponse(
         request, "journal.html", _contexte(
         request, page="parcours", memoire=memoire,
+        laterale=_laterale(identifiant, session, etat),
         avancement=etat.get("avancement", []),
         evenements=comptes.journal(REGLAGES.base_comptes, identifiant, 40)))
 

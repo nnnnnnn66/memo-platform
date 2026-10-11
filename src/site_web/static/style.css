@@ -360,6 +360,126 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent);
   .accueil-etapes { columns: 1; }
 }
 
+/* ============================================================================
+   COQUILLE D'APPLICATION — barre latérale persistante + volet de contenu.
+   Inspirée des meilleurs outils (Linear, Notion) : le parcours EST la navigation.
+   ============================================================================ */
+.marque-logo { width: 27px; height: 27px; border-radius: 7px; display: block; flex: none; }
+.entete-bandeau { height: 58px; overflow: hidden; }
+.entete-bandeau img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.coquille { max-width: 1420px; margin: 0 auto; display: grid;
+  grid-template-columns: 274px minmax(0, 1fr); align-items: start; }
+.coquille .page { padding-top: 34px; }
+
+.laterale { position: sticky; top: 132px; align-self: start; max-height: calc(100vh - 150px);
+  overflow-y: auto; padding: 22px 16px 44px 8px; border-right: 1px solid var(--trait); }
+.laterale-entete { display: flex; align-items: center; gap: 14px; padding: 0 8px 18px;
+  border-bottom: 1px solid var(--trait); margin-bottom: 18px; }
+.anneau { width: 52px; height: 52px; flex: none; transform: rotate(-90deg); }
+.anneau-fond { fill: none; stroke: var(--trait); stroke-width: 4; }
+.anneau-jauge { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; }
+.laterale-avancement b { display: block; font-family: var(--serif); font-size: 1.25rem;
+  line-height: 1.1; }
+.laterale-avancement b span { color: var(--encre-tenue); font-size: .9rem; }
+.laterale-avancement > span { font-size: .78rem; color: var(--encre-tenue); }
+
+.laterale-section { margin-bottom: 24px; }
+.laterale-titre { font-size: .7rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--encre-tenue); margin: 0 0 8px 10px; }
+.laterale-etapes { list-style: none; margin: 0; padding: 0; counter-reset: etape; }
+.laterale-etape { display: flex; gap: 11px; align-items: center; padding: 8px 10px;
+  border-radius: var(--r-m); text-decoration: none; color: var(--encre-douce); font-size: .9rem;
+  transition: background .14s, color .14s; }
+.laterale-puce { font-family: var(--serif); font-size: .95rem; color: var(--encre-tenue);
+  min-width: 18px; text-align: right; flex: none; }
+.laterale-libelle { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+a.laterale-etape:hover { background: var(--papier-creux); color: var(--encre); }
+.laterale-etape.faite .laterale-puce { color: var(--succes); }
+.laterale-etape.faite { color: var(--encre-douce); }
+.laterale-etape.ouverte { background: var(--accent-pale); color: var(--accent);
+  font-weight: 600; box-shadow: inset 3px 0 0 var(--accent); }
+.laterale-etape.ouverte .laterale-puce { color: var(--accent); }
+.laterale-etape.fermee { opacity: .55; cursor: default; }
+
+.laterale-item { display: block; padding: 8px 10px; border-radius: var(--r-m);
+  text-decoration: none; color: var(--encre-douce); font-size: .9rem; }
+.laterale-item:hover { background: var(--papier-creux); color: var(--encre); }
+.laterale-item.actif { background: var(--accent-pale); color: var(--accent); font-weight: 600; }
+
+.bascule-laterale { display: none; width: 40px; height: 40px; border-radius: var(--r-m);
+  border: 1px solid var(--trait-fort); background: var(--carte); color: var(--encre);
+  font-size: 1.05rem; cursor: pointer; align-items: center; justify-content: center; flex: none; }
+.voile-laterale { display: none; }
+
+/* Recherche rapide (palette de commandes) */
+.chercheur { display: inline-flex; align-items: center; gap: 9px; margin-left: auto;
+  padding: 7px 12px; border-radius: 999px; border: 1px solid var(--trait);
+  background: var(--papier-creux); color: var(--encre-tenue); font: inherit; font-size: .86rem;
+  cursor: pointer; }
+.chercheur:hover { border-color: var(--trait-fort); color: var(--encre-douce); }
+.chercheur kbd { background: var(--carte); border: 1px solid var(--trait-fort);
+  border-radius: 4px; padding: 0 5px; font-size: .72rem; font-family: var(--sans); }
+.chercheur + nav { margin-left: 16px; }
+
+.palette { position: fixed; inset: 0; z-index: 60; background: rgba(20, 32, 28, .34);
+  display: grid; place-items: start center; padding-top: 11vh; }
+/* L'attribut `hidden` doit gagner : sans cette règle, le `display: grid` ci-dessus rend la
+   palette VISIBLE en permanence (défaut vu à l'écran). */
+.palette[hidden] { display: none; }
+.palette-boite { width: min(580px, 92vw); background: var(--carte); border-radius: var(--r-l);
+  border: 1px solid var(--trait); box-shadow: var(--ombre-3); overflow: hidden; }
+.palette-boite input { border: 0; border-bottom: 1px solid var(--trait); border-radius: 0;
+  font-size: 1.05rem; padding: 18px 20px; }
+.palette-boite input:focus { box-shadow: none; border-color: var(--accent); }
+.palette-liste { max-height: 54vh; overflow-y: auto; }
+.palette-entree { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 14px;
+  align-items: center; padding: 12px 20px; text-decoration: none; color: var(--encre);
+  border-bottom: 1px solid var(--trait); font-size: .93rem; }
+.palette-entree:last-child { border-bottom: 0; }
+.palette-entree.choisie, .palette-entree:hover { background: var(--accent-pale); }
+.palette-num { font-family: var(--serif); color: var(--accent); text-align: right; }
+.palette-etat { font-size: .72rem; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--encre-tenue); }
+
+/* Apparition douce : la classe .js n'est posée que si le script s'exécute, donc sans
+   JavaScript le contenu reste VISIBLE (pas de page vide). */
+.js [data-apparait] { opacity: 0; transform: translateY(14px);
+  transition: opacity .55s cubic-bezier(.22,.61,.36,1), transform .55s cubic-bezier(.22,.61,.36,1); }
+.js [data-apparait].visible { opacity: 1; transform: none; }
+
+.message { position: relative; }
+.message-fermer { position: absolute; top: 8px; right: 10px; border: 0; background: transparent;
+  font-size: 1.2rem; line-height: 1; color: currentColor; opacity: .55; cursor: pointer; }
+.message-fermer:hover { opacity: 1; }
+.compteur { text-align: right; }
+
+@media (max-width: 1040px) {
+  .coquille { grid-template-columns: 1fr; }
+  .bascule-laterale { display: inline-flex; }
+  .chercheur { display: none; }
+  .laterale { position: fixed; top: 0; bottom: 0; left: 0; width: 292px; z-index: 45;
+    max-height: none; background: var(--papier); border-right: 1px solid var(--trait-fort);
+    padding: 22px 16px 44px; transform: translateX(-103%);
+    transition: transform .28s cubic-bezier(.22,.61,.36,1); box-shadow: none; }
+  body.laterale-ouverte .laterale { transform: none; box-shadow: var(--ombre-3); }
+  body.laterale-ouverte .voile-laterale { display: block; position: fixed; inset: 0; z-index: 40;
+    background: rgba(20, 32, 28, .38); }
+}
+
+/* ---------- Tableau de bord et cartes ---------- */
+.grille-3 { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+.carte-action { border-color: rgba(11, 93, 75, .22); background: linear-gradient(160deg,
+  var(--carte) 0%, var(--accent-pale) 100%); }
+.carte-action-num { font-size: .78rem; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--accent); margin: 0 0 4px; }
+.carte-lien { display: block; text-decoration: none; color: inherit; transition: transform .18s,
+  box-shadow .18s, border-color .18s; }
+.carte-lien:hover { transform: translateY(-2px); box-shadow: var(--ombre-2);
+  border-color: var(--trait-fort); }
+.carte-lien h3 { margin-bottom: 6px; }
+.carte-lien-image { max-width: 150px; margin: 0 0 16px; }
+
 /* ---------- Divers ---------- */
 .pied { border-top: 1px solid var(--trait); margin-top: 60px; padding: 22px 24px;
   color: var(--encre-tenue); font-size: .84rem; text-align: center; }

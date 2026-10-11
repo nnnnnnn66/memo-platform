@@ -94,19 +94,20 @@ def charger(chemin: pathlib.Path | None = None) -> Settings:
         raise ValueError("Aucune étape déclarée dans settings-orchestrateur.yaml")
 
     numeros = {etape.numero for etape in etapes}
-    ordre = [etape.numero for etape in etapes]
-    if ordre != sorted(ordre):
-        raise ValueError("Les étapes doivent être déclarées dans l'ordre du parcours")
+    # L'ORDRE DU PARCOURS EST L'ORDRE DE DÉCLARATION, pas l'ordre des numéros. Le numéro reste un
+    # identifiant interne stable (il saute le 12, réservé) : imposer un ordre numérique
+    # interdirait de placer la vérification globale avant la conclusion, comme le veut le porteur.
+    positions = {etape.numero: rang for rang, etape in enumerate(etapes)}
     for etape in etapes:
         for champ, source in etape.upstream.items():
             if source not in numeros:
                 raise ValueError(
                     f"Étape {etape.numero} : « {champ} » attend la sortie de l'étape {source}, "
                     "qui n'existe pas")
-            if source >= etape.numero:
+            if positions[source] >= positions[etape.numero]:
                 raise ValueError(
-                    f"Étape {etape.numero} : « {champ} » ne peut pas venir d'une étape "
-                    f"postérieure ({source})")
+                    f"Étape {etape.numero} : « {champ} » ne peut venir que d'une étape "
+                    f"ANTÉRIEURE dans le parcours (l'étape {source} vient après elle)")
 
     paths = brut.get("paths") or {}
     return Settings(

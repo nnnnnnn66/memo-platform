@@ -17,17 +17,19 @@ def _preparer(site, identifiant="etudiant-1", session="mon-memoire", admin=False
 
 
 # ------------------------------------------------------------------- parcours
-def test_le_parcours_affiche_les_etapes_et_l_avancement(site):
+def test_le_parcours_affiche_l_action_a_faire_et_l_avancement(site):
+    """Le tableau de bord montre CE QU'IL Y A À FAIRE, pas un second sommaire (il est à gauche)."""
     client, _, _ = _preparer(site)
 
     page = client.get("/memoire/mon-memoire")
 
     assert page.status_code == 200
     lu = texte(page)
-    assert "Sujet" in lu and "Revue de littérature" in lu
-    assert "Proposition en attente de votre lecture" in lu
-    assert lu.count("Étape validée") == 2          # les deux étapes déjà validées
-    assert lu.count("Disponible après les étapes précédentes") == 2   # les étapes fermées
+    assert "Là où vous en êtes" in lu
+    assert "Étape 3 sur 5" in lu
+    assert "Revue de littérature" in lu           # l'étape ouverte, mise en avant
+    assert "Votre avancement" in lu
+    assert "Sujet" in lu                          # les étapes vivent dans la barre latérale
 
 
 def test_le_parcours_montre_le_quota_restant(site):
