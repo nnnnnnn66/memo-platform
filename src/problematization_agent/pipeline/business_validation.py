@@ -5,6 +5,8 @@ du corpus amont ET une citation présente littéralement dans le texte réelleme
 affirmation inventée ne franchit pas cette barrière.
 """
 
+import re
+
 from ..schemas.output import ProblemStatus, ProblematizationOutput
 from ..theory import matrix as theory
 
@@ -17,6 +19,42 @@ FORBIDDEN_MARKERS = [
     "problématique validée",
     "méthodologie détaillée",
 ]
+
+# Formules qui NIENT le marqueur ou le renvoient à une étape ultérieure. Un marqueur dans une telle
+# phrase n'est PAS une fusion.
+#
+# Défaut réel (premier parcours de bout en bout, sur un vrai mémoire) : le modèle écrivait
+# « cette proposition ne préjuge ni de la question de recherche définitive, ni des objectifs, qui
+# relèvent des étapes ultérieures » — c'est-à-dire EXACTEMENT ce que la règle demande — et la
+# recherche de sous-chaîne faisait échouer l'étape. Le garde-fou punissait le bon comportement.
+NEGATIONS = (
+    "ne prejuge", "ne préjuge", "il ne s'agit pas", "n'est pas", "n est pas", "ne sont pas",
+    "ne sera", "ne saurait", "pas encore", "provisoire", "a titre de proposition",
+    "à titre de proposition", "reste une proposition", "restent des propositions",
+    "etape ulterieure", "étape ultérieure", "etapes ulterieures", "étapes ultérieures",
+    "releve", "relève", "relevent", "relèvent", "aucun", "aucune", "discutee", "discutée",
+    "amendee", "amendée", "ecartee", "écartée", "ne fixe pas", "ne tranche pas",
+)
+
+
+def _phrases(texte: str) -> list[str]:
+    """Découpe en phrases : c'est la PHRASE qui porte le sens, pas le marqueur seul."""
+    return [phrase.strip() for phrase in re.split(r"(?<=[.!?;:])\s+", texte) if phrase.strip()]
+
+
+def presente_comme_fige(texte: str, marqueur: str) -> bool:
+    """Le marqueur est-il AFFIRMÉ dans une phrase, et non nié ou renvoyé à plus tard ?
+
+    Ne signaler que l'affirmation : une phrase qui dit « elle ne préjuge ni de la question de
+    recherche définitive » respecte la règle, elle ne la viole pas.
+    """
+    for phrase in _phrases(texte):
+        if marqueur not in phrase:
+            continue
+        if any(negation in phrase.lower() for negation in NEGATIONS):
+            continue
+        return True
+    return False
 
 
 def _statement_fields(output: ProblematizationOutput):
@@ -50,7 +88,7 @@ def validate_semantics(output: ProblematizationOutput, request, index) -> list[s
     # R2 — anti-fusion : rien de la question/des objectifs n'est présenté comme validé
     blob = _free_texts(output).lower()
     for marker in FORBIDDEN_MARKERS:
-        if marker in blob:
+        if presente_comme_fige(blob, marker):
             violations.append(f"R2: fusion interdite détectée (marqueur « {marker} »)")
     if output.research_question.status.value != "proposed":
         violations.append("R2: la question de recherche doit rester une PROPOSITION (proposed)")

@@ -27,6 +27,42 @@ def test_marqueur_de_fusion_detecte():
     assert any("fusion interdite" in v for v in violations)
 
 
+def test_une_phrase_qui_NIE_la_fusion_n_est_pas_une_fusion():
+    """DÉFAUT RÉEL du premier parcours de bout en bout, sur un vrai mémoire.
+
+    Le modèle écrivait exactement ce que la règle demande — que la proposition ne préempte PAS la
+    question de recherche définitive — et la recherche de sous-chaîne faisait échouer l'étape. Le
+    parcours s'arrêtait à l'étape 4, sur une réponse JUSTE.
+    """
+    output = ProblematizationOutput(
+        status=ProblemStatus.ready_for_verification,
+        subject_reference=SubjectReference(original="Sujet de test"),
+        problematique_note=ProblematiqueNote(texte_complet=(
+            "Il s'agit d'une proposition de problématisation, destinée à être discutée, amendée ou "
+            "écartée avec le directeur de mémoire ; elle ne préjuge ni de la question de recherche "
+            "définitive, ni des objectifs, ni du dispositif d'enquête, qui relèvent des étapes "
+            "ultérieures.")),
+    )
+
+    violations = business_validation.validate_semantics(output, _request(), _FakeIndex())
+
+    assert not any("fusion interdite" in violation for violation in violations), violations
+
+
+def test_une_phrase_qui_AFFIRME_la_fusion_reste_refusee():
+    """Le garde-fou n'est pas relâché pour autant : affirmer la chose la fait toujours échouer."""
+    output = ProblematizationOutput(
+        status=ProblemStatus.ready_for_verification,
+        subject_reference=SubjectReference(original="Sujet de test"),
+        problematique_note=ProblematiqueNote(
+            texte_complet="La question de recherche définitive est désormais arrêtée."),
+    )
+
+    violations = business_validation.validate_semantics(output, _request(), _FakeIndex())
+
+    assert any("fusion interdite" in violation for violation in violations), violations
+
+
 def test_auto_validation_interdite():
     output = ProblematizationOutput(status=ProblemStatus.ready_for_verification,
                                     subject_reference=SubjectReference(original="Sujet de test"))
