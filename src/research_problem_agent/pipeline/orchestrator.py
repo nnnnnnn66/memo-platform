@@ -145,6 +145,11 @@ def analyze_problem(request: ProblemRequest, settings, llm, verifier_llm=None,
     from .input_controller import check_upstream
 
     verifier_llm = verifier_llm or llm
+    # Remise a zero FACULTATIVE : le contrat d'un client reste `complete()`. Une doublure de
+    # test n'a aucun etat a remettre, et lui en imposer un ferait porter au test une obligation
+    # qui n'appartient qu'au client reel.
+    if hasattr(llm, "nouvelle_campagne"):
+        llm.nouvelle_campagne()
 
     input_validation.validate(request, settings.limits)
     check_upstream(request)

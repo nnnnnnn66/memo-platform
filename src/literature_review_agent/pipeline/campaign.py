@@ -177,6 +177,11 @@ def run(request, settings, llm, verifier_llm=None, registry: Registry | None = N
     from . import input_controller, input_validation
 
     verifier_llm = verifier_llm or llm
+    # Remise a zero FACULTATIVE : le contrat d'un client reste `complete()`. Une doublure de
+    # test n'a aucun etat a remettre, et lui en imposer un ferait porter au test une obligation
+    # qui n'appartient qu'au client reel.
+    if hasattr(llm, "nouvelle_campagne"):
+        llm.nouvelle_campagne()
     stages: dict = {}
 
     input_validation.validate(request, settings.limits)

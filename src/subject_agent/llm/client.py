@@ -23,6 +23,17 @@ class LLMClient:
             log.warning("Aucune clé LLM trouvée pour %s (%s)",
                         creds.get("provider"), creds.get("api_key_env"))
 
+    def nouvelle_campagne(self) -> None:
+        """Remet le compteur à zéro : la limite protege UNE execution, pas la vie du processus.
+
+        Defaut reel (premier parcours de bout en bout) : le client est cree UNE fois au demarrage du
+        serveur et son compteur n'etait jamais remis a zero. Apres `max_llm_calls` appels cumules
+        depuis le demarrage — TOUS dossiers confondus — l'agent refusait toute nouvelle etape
+        jusqu'a son redemarrage : un agent en production s'arretait en silence au bout de quelques
+        dossiers, et sur une seule session un peu longue.
+        """
+        self.calls = 0
+
     def complete(self, system: str, user: str) -> str:
         payload = {
             "model": self.creds["model"],

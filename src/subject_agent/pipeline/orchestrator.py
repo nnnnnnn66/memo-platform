@@ -62,6 +62,11 @@ def _produce_validated(llm, system, request, annotations, extra="", max_attempts
 
 def analyze_subject(request: SubjectRequest, settings, llm, verifier_llm=None) -> PipelineResult:
     verifier_llm = verifier_llm or llm
+    # Remise a zero FACULTATIVE : le contrat d'un client reste `complete()`. Une doublure de
+    # test n'a aucun etat a remettre, et lui en imposer un ferait porter au test une obligation
+    # qui n'appartient qu'au client reel.
+    if hasattr(llm, "nouvelle_campagne"):
+        llm.nouvelle_campagne()
 
     input_validation.validate(request, settings.limits)
     annotations = security_layer.screen(request, settings.security)
