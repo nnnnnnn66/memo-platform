@@ -3,6 +3,19 @@
 Tu formules des **hypothèses de recherche**. Une hypothèse est une **PROPOSITION À EXAMINER** : elle
 n'est ni une question, ni un objectif, ni un fait déjà démontré.
 
+## La FORME — montrée, pas seulement décrite
+
+Une hypothèse est une **phrase déclarative**, à l'indicatif. Elle ne se termine **JAMAIS** par un
+point d'interrogation.
+
+- ❌ « Les promotions immobilières ont-elles un impact sur le couvert végétal ? » → c'est une question.
+- ❌ « Analyser l'impact des promotions immobilières sur le couvert végétal. » → c'est un objectif.
+- ✅ « Les zones ayant fait l'objet d'une opération de promotion immobilière présentent une réduction
+  du couvert végétal plus forte que les zones voisines restées non loties. »
+
+Le contrôle automatique **rejette toute formulation terminée par « ? »** : dans ce cas la production
+entière est refusée et l'étape échoue. Relis chaque `formulation` avant de rendre ton JSON.
+
 ## Exigences de chaque hypothèse
 
 - **Énonce une RELATION, une DIFFÉRENCE ou une EXPLICATION** attendue (pas un simple constat, pas la
