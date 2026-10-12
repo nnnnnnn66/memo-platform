@@ -225,18 +225,40 @@ def _chercher(resultat: dict, *cles) -> list:
 def etape_detail(settings: Settings, etudiant: str, session: str,
                  numero: int | None = None) -> dict:
     """L'étape telle que l'étudiant doit la voir : sa proposition, ses inconnues, ses limites,
-    ses questions, et le verdict de vérification — tel quel."""
+    ses questions, et le verdict de vérification — tel quel.
+
+    Deux modes, et c'est délibéré :
+    - l'étape déjà atteinte : son contenu réel ;
+    - l'étape À VENIR : ce qu'elle demandera (`resume`), sans contenu. **Regarder devant n'est pas
+      une faute** : on ne cache pas la suite à l'étudiant, sinon il subit le parcours au lieu de
+      l'anticiper. Ce qui reste interdit, c'est de la PRODUIRE — c'est `lancer_etape` qui le
+      refuse, pas l'affichage.
+    """
     _dossier_ou_erreur(settings, etudiant, session)
     ouverte = state.etape_courante(settings.state_db, etudiant, session, ordre(settings))
     numero = int(numero) if numero else ouverte
     if numero not in settings.par_numero:
         raise OrchestratorError(EtatErreur.ETAPE_INCONNUE, "Cette étape n'existe pas.",
                                 f"étape {numero} hors parcours")
-    if numero > ouverte:
-        raise OrchestratorError(
-            EtatErreur.ETAPE_NON_AUTORISEE,
-            "Cette étape n'est pas encore ouverte : validez d'abord les précédentes.",
-            f"étape {numero} demandée alors que l'étape ouverte est {ouverte}")
+    parcours = ordre(settings)
+    # Comparaison par POSITION, jamais par numéro : le parcours n'est pas numérique (la
+    # vérification globale porte le numéro 13 et vient AVANT la conclusion, qui porte le 11).
+    # Un `numero > ouverte` se trompait dès que ces deux étapes étaient en jeu — défaut introduit
+    # par le réordonnancement voulu par le porteur, corrigé ici.
+    if parcours.index(numero) > parcours.index(ouverte):
+        etape = settings.par_numero[numero]
+        return {
+            "numero": numero,
+            "libelle": etape.libelle,
+            "position": parcours.index(numero) + 1,
+            "total_etapes": len(settings.etapes),
+            "statut": state.STATUT_A_FAIRE,
+            "ouverte": False,
+            "a_venir": True,
+            "resume": etape.resume,
+            "verdict": "", "verdict_texte": "",
+            "resultat": {}, "inconnues": [], "limites": [], "questions": [], "signalements": [],
+        }
 
     etape = settings.par_numero[numero]
     ligne = state.statut(settings.state_db, etudiant, session, numero) or {}
@@ -259,6 +281,8 @@ def etape_detail(settings: Settings, etudiant: str, session: str,
         # étape s'afficherait « étape 13 sur 12 ».
         "position": ordre(settings).index(numero) + 1,
         "total_etapes": len(settings.etapes),
+        "a_venir": False,
+        "resume": etape.resume,
         "statut": ligne.get("statut", state.STATUT_A_FAIRE),
         "ouverte": numero == ouverte,
         "verdict": verdict,

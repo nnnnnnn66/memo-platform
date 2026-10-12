@@ -54,7 +54,8 @@ async def parcours(request: Request) -> dict:
     """
     settings = request.app.state.settings
     return {
-        "etapes": [{"numero": etape.numero, "position": rang + 1, "libelle": etape.libelle}
+        "etapes": [{"numero": etape.numero, "position": rang + 1, "libelle": etape.libelle,
+                    "resume": etape.resume}
                    for rang, etape in enumerate(settings.etapes)]}
 
 

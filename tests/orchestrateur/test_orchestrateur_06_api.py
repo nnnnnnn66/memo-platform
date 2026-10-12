@@ -105,11 +105,18 @@ def test_la_carte_publique_du_parcours_est_numerotee_sans_trou(settings):
 
 
 def test_la_carte_publique_ne_revele_rien_d_interne(settings):
-    """Un visiteur voit les étapes — ni les agents, ni leurs adresses, ni leurs ports."""
+    """Un visiteur voit les étapes — ni les agents, ni leurs adresses, ni leurs ports.
+
+    `resume` est PUBLIC : c'est la phrase qui dit à l'étudiant, en français, ce que l'étape lui
+    demandera. On liste donc ce qui est INTERDIT plutôt que la liste exacte des clés : ajouter un
+    champ public ne doit pas casser ce test, mais laisser fuiter un champ interne doit le casser.
+    """
     etapes = _client(settings).get("/parcours").json()["etapes"]
+    publiques = {"numero", "position", "libelle", "resume"}
+    interdites = {"agent", "port", "prefixe", "route_analyse", "upstream", "champs"}
 
     for etape in etapes:
-        assert set(etape) == {"numero", "position", "libelle"}
-        assert "agent" not in etape
+        assert set(etape) <= publiques, f"champ public non prévu : {set(etape) - publiques}"
+        assert not (set(etape) & interdites), f"champ interne divulgué : {set(etape) & interdites}"
         assert "port" not in etape
         assert "prefixe" not in etape

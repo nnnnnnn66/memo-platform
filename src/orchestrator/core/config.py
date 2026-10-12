@@ -29,6 +29,10 @@ class Etape:
     # Chaque agent a SON contrat (`extra="forbid"`) : envoyer un champ qu'il ne déclare pas fait
     # échouer l'étape avec un 422 « Extra inputs are not permitted ».
     champs: tuple = ()
+    # Une phrase, écrite POUR L'ÉTUDIANT, qui dit ce que l'étape lui demandera. Sans elle, une
+    # étape à venir n'est qu'une ligne grise : l'étudiant ne sait pas ce qui l'attend, donc il
+    # subit le parcours au lieu de l'anticiper.
+    resume: str = ""
 
     def url_analyse(self, hote: str) -> str:
         return f"http://{hote}:{self.port}{self.route_analyse}"
@@ -87,6 +91,9 @@ def charger(chemin: pathlib.Path | None = None) -> Settings:
             upstream={str(champ): int(source) for champ, source in (item.get("upstream") or {}).items()},
             finale=bool(item.get("finale", False)),
             champs=tuple(str(champ) for champ in (item.get("champs") or ())),
+            # Le chargeur construit l'étape CHAMP PAR CHAMP : ajouter un champ au dataclass ET au
+            # YAML ne suffit pas — il faut aussi le lire ici, sinon il reste vide en silence.
+            resume=str(item.get("resume", "")),
         )
         for item in (brut.get("etapes") or [])
     )

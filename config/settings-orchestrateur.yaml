@@ -42,6 +42,7 @@ etapes:
   - numero: 1
     agent: subject_agent
     libelle: "Sujet"
+    resume: "Tu précises ton sujet : son intitulé, son domaine, et ce qu'il laisse de côté."
     port: 8010
     prefixe: /subject
     route_analyse: /subject/analyze
@@ -54,6 +55,7 @@ etapes:
   - numero: 2
     agent: research_problem_agent
     libelle: "Problème de recherche"
+    resume: "Tu identifies le problème concret dont ta recherche part."
     port: 8020
     prefixe: /problem
     route_analyse: /problem/analyze
@@ -63,6 +65,7 @@ etapes:
   - numero: 3
     agent: literature_review_agent
     libelle: "Revue de littérature"
+    resume: "Tu rassembles les travaux existants sur ton sujet et tu les organises."
     port: 8030
     prefixe: /literature
     route_analyse: /literature/review
@@ -73,6 +76,7 @@ etapes:
   - numero: 4
     agent: problematization_agent
     libelle: "Problématique"
+    resume: "Tu construis l'angle sous lequel tu vas traiter ce problème."
     port: 8040
     prefixe: /problematique
     route_analyse: /problematique/analyze
@@ -84,6 +88,7 @@ etapes:
   - numero: 5
     agent: research_question_agent
     libelle: "Question de recherche"
+    resume: "Tu formules la question à laquelle ton mémoire répondra."
     port: 8050
     prefixe: /question
     route_analyse: /question/analyze
@@ -95,6 +100,7 @@ etapes:
   - numero: 6
     agent: research_objectives_agent
     libelle: "Objectifs"
+    resume: "Tu énonces ce que ta recherche cherche à atteindre."
     port: 8060
     prefixe: /objectives
     route_analyse: /objectives/analyze
@@ -107,6 +113,7 @@ etapes:
   - numero: 7
     agent: research_hypotheses_agent
     libelle: "Hypothèses"
+    resume: "Tu formules les réponses provisoires que tes données viendront éprouver."
     port: 8070
     prefixe: /hypotheses
     route_analyse: /hypotheses/analyze
@@ -120,6 +127,7 @@ etapes:
   - numero: 8
     agent: methodology_diagnostic_agent
     libelle: "Orientation méthodologique"
+    resume: "Tu choisis ta démarche : qualitative, quantitative, ou les deux."
     port: 8080
     prefixe: /methodology
     route_analyse: /methodology/analyze
@@ -134,6 +142,7 @@ etapes:
   - numero: 9
     agent: methodology_agent
     libelle: "Méthodologie"
+    resume: "Tu décris ton terrain, ton échantillon et tes outils de collecte."
     port: 8090
     prefixe: /methodology/protocol
     route_analyse: /methodology/protocol/analyze
@@ -150,6 +159,7 @@ etapes:
   - numero: 10
     agent: research_results_analysis_agent
     libelle: "Résultats et analyse"
+    resume: "Tu présentes et interprètes ce que tes données ont donné."
     port: 8100
     prefixe: /results
     route_analyse: /results/analyze
@@ -171,6 +181,7 @@ etapes:
   - numero: 13
     agent: research_coherence_verifier
     libelle: "Vérification globale de la cohérence"
+    resume: "Tu vérifies que tout ton dossier tient debout, d'un bout à l'autre."
     port: 8130
     prefixe: /coherence
     route_analyse: /coherence/audit
@@ -190,6 +201,7 @@ etapes:
   - numero: 11
     agent: research_conclusion_agent
     libelle: "Conclusion"
+    resume: "Tu réponds à ta question de recherche et tu ouvres sur la suite."
     port: 8110
     prefixe: /conclusion
     route_analyse: /conclusion/write
