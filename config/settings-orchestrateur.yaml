@@ -13,7 +13,12 @@ transport:
 quota:
   # Nombre d'analyses qu'un étudiant peut lancer par jour. Protection du solde LLM du porteur :
   # sans quota, une plateforme ouverte épuise le portefeuille en quelques heures.
-  analyses_par_jour: 20
+  #
+  # 2026-10-13 : élevé de 20 à 25, TEMPORAIREMENT et à la demande expresse du porteur, pour livrer
+  # le protocole de son mémoire. Les relances successives d'une même étape (défauts réels trouvés
+  # en exécution) avaient consommé les 20 analyses, bloquant l'étape 9 à une étape du but.
+  # À réviser une fois le parcours stabilisé : la valeur de fond reste une décision du porteur.
+  analyses_par_jour: 25
 
 paths:
   workspace: workspace                      # workspace/<etudiant>/<session>/
