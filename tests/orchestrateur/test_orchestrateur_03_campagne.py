@@ -6,7 +6,7 @@ from orchestrator.core.errors import EtatErreur, OrchestratorError
 from orchestrator.pipeline import campaign
 from orchestrator.storage import state
 
-from conftest import avancer
+from orchestrateur_helpers import avancer
 
 
 def test_premiere_etape_ouverte_a_la_creation(settings):

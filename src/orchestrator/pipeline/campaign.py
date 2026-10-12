@@ -11,6 +11,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+from ..core import routage
 from ..core.config import Settings
 from ..core.errors import EtatErreur, OrchestratorError
 from ..storage import state
@@ -271,6 +272,124 @@ def etape_detail(settings: Settings, etudiant: str, session: str,
                                "questions_for_student", "clarification_questions"),
         "signalements": signalements,
     }
+
+
+MESSAGES_QUESTION = {
+    "rattachee_avec_contenu": (
+        "Ta question relève de l'étape {position} — {libelle}. "
+        "Voici ce que ton dossier contient déjà sur ce point."),
+    "rattachee_sans_contenu": (
+        "Ta question relève de l'étape {position} — {libelle}, que tu n'as pas encore traitée. "
+        "C'est là qu'elle trouvera sa réponse."),
+    "non_rattachee": (
+        "Je n'ai pas réussi à rattacher ta question à une étape précise. Précise-la — par exemple "
+        "« mon échantillon est-il suffisant ? » ou « mes hypothèses tiennent-elles avec ma "
+        "méthodologie ? »."),
+}
+
+# Clés qui portent, selon l'agent, le texte réellement produit. On les essaie dans l'ordre avant de
+# se rabattre sur le texte le plus long trouvé : on restitue ce que l'agent a écrit, jamais un
+# résumé inventé par l'orchestrateur.
+CLES_SUBSTANCE = ("proposition", "texte_complet", "texte", "synthese", "synthesis", "resume",
+                  "summary", "statement", "reformulated", "conclusion", "protocole", "protocol")
+LONGUEUR_SUBSTANCE = 40
+LONGUEUR_SUBSTANCE_MAX = 1500
+
+
+def _substance(sortie: dict, profondeur: int = 0) -> str:
+    """Le texte que l'agent a produit, restitué TEL QUEL (jamais réécrit par l'orchestrateur)."""
+    if not isinstance(sortie, dict) or profondeur > 3:
+        return ""
+    textes: list[tuple[str, str]] = []
+
+    def _collecter(cle: str, valeur) -> None:
+        if isinstance(valeur, str) and len(valeur.strip()) >= LONGUEUR_SUBSTANCE:
+            textes.append((cle, valeur.strip()))
+        elif isinstance(valeur, dict) and profondeur < 3:
+            for sous_cle, sous_valeur in valeur.items():
+                _collecter(sous_cle, sous_valeur)
+        elif isinstance(valeur, (list, tuple)) and profondeur < 3:
+            for element in valeur:
+                _collecter(cle, element)
+
+    for cle, valeur in sortie.items():
+        _collecter(cle, valeur)
+
+    for cle_preferee in CLES_SUBSTANCE:
+        for cle, texte in textes:
+            if cle == cle_preferee:
+                return texte[:LONGUEUR_SUBSTANCE_MAX]
+    if not textes:
+        return ""
+    return max(textes, key=lambda item: len(item[1]))[1][:LONGUEUR_SUBSTANCE_MAX]
+
+
+def question(settings: Settings, etudiant: str, session: str, texte: str) -> dict:
+    """Question libre de l'étudiant : l'orchestrateur DÉSIGNE l'étape (donc l'agent) qui la porte.
+
+    L'orchestrateur ne répond pas lui-même et ne devine jamais : il rattache la question par un
+    vocabulaire fermé (`core.routage`), puis restitue ce que le dossier contient DÉJÀ sur cette
+    étape. **Sans effet de bord** : aucun quota consommé, aucune écriture, aucun agent appelé.
+    """
+    _dossier_ou_erreur(settings, etudiant, session)
+    propre = " ".join(str(texte or "").split())
+    if len(propre) < routage.LONGUEUR_MINIMALE:
+        raise OrchestratorError(EtatErreur.ENTREE_INVALIDE, "Posez une vraie question.",
+                                f"question trop courte ({len(propre)} caractères)")
+    if len(propre) > routage.LONGUEUR_MAXIMALE:
+        raise OrchestratorError(
+            EtatErreur.ENTREE_INVALIDE,
+            f"Votre question dépasse {routage.LONGUEUR_MAXIMALE} caractères : raccourcissez-la.",
+            f"question de {len(propre)} caractères")
+
+    decision = routage.router(propre)
+    reponse = {
+        "question": propre,
+        "etape": None, "position": None, "libelle": None, "agent": None,
+        "confiance": decision["confiance"],
+        "methode": decision["methode"],
+        "indices": decision["indices"],
+        "scores": decision["scores"],
+        "autres_etapes": [],
+        "extrait": None,
+        "message": MESSAGES_QUESTION["non_rattachee"],
+    }
+
+    principale = decision["principale"]
+    if principale is None:
+        return reponse
+
+    etape = settings.par_numero[principale]
+    parcours = ordre(settings)
+    reponse.update({"etape": principale,
+                    "position": parcours.index(principale) + 1,
+                    "libelle": etape.libelle,
+                    "agent": etape.agent})
+    reponse["autres_etapes"] = [
+        {"numero": numero, "libelle": settings.par_numero[numero].libelle}
+        for numero in decision["etapes"] if numero != principale and numero in settings.par_numero]
+
+    sortie = state.sortie_proposee(settings.state_db, etudiant, session, principale) or {}
+    ligne = state.statut(settings.state_db, etudiant, session, principale) or {}
+    verdict = str(ligne.get("verdict", ""))
+    if sortie:
+        reponse["extrait"] = {
+            "statut": ligne.get("statut", state.STATUT_A_FAIRE),
+            "verdict": verdict,
+            "verdict_texte": VERDICTS.get(verdict.lower(), ""),
+            "proposition": _substance(sortie),
+            "inconnues": _chercher(sortie, "unknowns", "missing_information",
+                                   "identified_unknowns", "informations_manquantes"),
+            "questions": _chercher(sortie, "questions_for_human", "questions",
+                                   "questions_for_student"),
+            "signalements": _chercher(sortie, "verification_flags", "signalements", "flags"),
+        }
+        reponse["message"] = MESSAGES_QUESTION["rattachee_avec_contenu"].format(
+            position=reponse["position"], libelle=etape.libelle)
+    else:
+        reponse["message"] = MESSAGES_QUESTION["rattachee_sans_contenu"].format(
+            position=reponse["position"], libelle=etape.libelle)
+    return reponse
 
 
 # ---------------------------------------------------------- documents & bibliographie

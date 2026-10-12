@@ -44,13 +44,3 @@ class AgentSimule:
 @pytest.fixture
 def agent():
     return AgentSimule()
-
-
-def avancer(settings, etudiant, session, agent, nombre=1, decision="accepted"):
-    """Fait avancer un dossier de `nombre` étapes (lancer puis décider), pour les tests."""
-    from orchestrator.pipeline import campaign
-
-    for _ in range(nombre):
-        campaign.lancer_etape(settings, etudiant, session, transport=agent)
-        campaign.decider(settings, etudiant, session, decision, transport=agent)
-    return campaign.etat(settings, etudiant, session)

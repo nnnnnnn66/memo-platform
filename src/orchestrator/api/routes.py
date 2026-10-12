@@ -27,6 +27,12 @@ class DecisionEtudiant(BaseModel):
     commentaire: str = ""
 
 
+class QuestionLibre(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    question: str
+
+
 def _erreur(erreur: OrchestratorError) -> HTTPException:
     """Traduit une erreur métier en réponse HTTP exploitable par la plateforme."""
     statut = {("ETAPE_NON_AUTORISEE"): 409, "QUOTA_DEPASSE": 429,
@@ -119,6 +125,21 @@ async def detail_etape(request: Request, etudiant: str, session: str, n: int = 0
     settings = request.app.state.settings
     try:
         return campaign.etape_detail(settings, etudiant, session, n or None)
+    except OrchestratorError as erreur:
+        raise _erreur(erreur) from erreur
+
+
+@router.post("/dossiers/{etudiant}/{session}/question")
+async def question_libre(request: Request, etudiant: str, session: str,
+                         body: QuestionLibre) -> dict:
+    """L'étudiant pose une question quelconque : l'orchestrateur DÉSIGNE l'étape qui la porte.
+
+    C'est le seul composant qui connaît la carte du parcours — donc le seul capable de dire à quel
+    agent une question appartient. L'étudiant n'a jamais à connaître les agents.
+    """
+    settings = request.app.state.settings
+    try:
+        return campaign.question(settings, etudiant, session, body.question)
     except OrchestratorError as erreur:
         raise _erreur(erreur) from erreur
 
