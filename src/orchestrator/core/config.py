@@ -25,10 +25,18 @@ class Etape:
     route_analyse: str
     upstream: dict = field(default_factory=dict)
     finale: bool = False
-    # Champs de base que CET agent accepte réellement. Vide = la liste globale `base` s'applique.
-    # Chaque agent a SON contrat (`extra="forbid"`) : envoyer un champ qu'il ne déclare pas fait
-    # échouer l'étape avec un 422 « Extra inputs are not permitted ».
-    champs: tuple = ()
+    # Champs de base transmis à CET agent, sous la forme {notre clé → nom attendu par l'agent}.
+    #
+    # Pourquoi une TABLE DE CORRESPONDANCE et non une simple liste : les agents n'ont pas choisi les
+    # mêmes noms pour la même information (`period` chez l'un, `study_period` chez l'autre ;
+    # `geographical_scope` ici, `geographical_area` là), et chacun REFUSE tout champ inconnu
+    # (`extra="forbid"`). Une liste ne saurait pas traduire — elle ne pouvait que recopier.
+    # Un champ absent de cette table n'est pas envoyé à l'agent : il est recopié dans
+    # `contexte_libre`, avec son intitulé, pour ne jamais perdre une information de l'étudiant.
+    champs: dict = field(default_factory=dict)
+    # Nom du champ de contexte libre de CET agent (`student_context`, `research_context`…) où sont
+    # recopiés les champs qu'il n'accepte pas. Vide = cet agent n'en a pas : rien n'est envoyé.
+    contexte_libre: str = ""
     # Une phrase, écrite POUR L'ÉTUDIANT, qui dit ce que l'étape lui demandera. Sans elle, une
     # étape à venir n'est qu'une ligne grise : l'étudiant ne sait pas ce qui l'attend, donc il
     # subit le parcours au lieu de l'anticiper.
@@ -72,6 +80,18 @@ class Settings:
         return self.etapes[index + 1] if index + 1 < len(self.etapes) else None
 
 
+def _champs(brut) -> dict:
+    """Lit la table de correspondance des champs acceptés par une étape.
+
+    Deux formes acceptées : `{notre clé: nom chez l'agent}` (la forme complète, seule capable de
+    traduire un nom différent) et la liste historique `[nom]`, où le nom est réputé identique des
+    deux côtés. Une étape sans déclaration ne reçoit aucun champ de base.
+    """
+    if isinstance(brut, dict):
+        return {str(cle): str(nom) for cle, nom in brut.items()}
+    return {str(nom): str(nom) for nom in (brut or ())}
+
+
 def charger(chemin: pathlib.Path | None = None) -> Settings:
     """Charge la configuration et VALIDE la carte : une étape qui attend une sortie d'une étape
     inexistante est refusée au démarrage, pas au milieu d'un dossier d'étudiant."""
@@ -90,9 +110,10 @@ def charger(chemin: pathlib.Path | None = None) -> Settings:
             route_analyse=str(item["route_analyse"]),
             upstream={str(champ): int(source) for champ, source in (item.get("upstream") or {}).items()},
             finale=bool(item.get("finale", False)),
-            champs=tuple(str(champ) for champ in (item.get("champs") or ())),
+            champs=_champs(item.get("champs")),
             # Le chargeur construit l'étape CHAMP PAR CHAMP : ajouter un champ au dataclass ET au
             # YAML ne suffit pas — il faut aussi le lire ici, sinon il reste vide en silence.
+            contexte_libre=str(item.get("contexte_libre", "")),
             resume=str(item.get("resume", "")),
         )
         for item in (brut.get("etapes") or [])

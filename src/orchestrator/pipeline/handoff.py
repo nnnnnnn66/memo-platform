@@ -51,36 +51,38 @@ def construire_entree(settings: Settings, etudiant: str, session: str, etape: Et
             contexte = {}
     sujet = (dossier.get("sujet") or "").strip()
 
-    # Champs que CETTE étape accepte : sa propre liste si elle en déclare une, sinon la liste
-    # globale. Transmettre un champ non déclaré à un agent qui refuse les extras fait échouer
-    # l'étape (422 « Extra inputs are not permitted »).
-    champs_acceptes = tuple(etape.champs) if etape.champs else tuple(settings.champs_base)
+    # Champs de base transmis à CETTE étape : sa propre TABLE DE CORRESPONDANCE si elle en déclare
+    # une, sinon la correspondance identité de la liste globale. Un champ absent de la table n'est
+    # JAMAIS envoyé — l'agent le refuserait (422 « Extra inputs are not permitted ») ; il est
+    # recopié plus bas, avec son intitulé, dans le champ de contexte libre de l'agent.
+    if etape.champs:
+        correspondance = dict(etape.champs)
+    else:
+        correspondance = {champ: champ for champ in settings.champs_base}
 
+    non_acceptes: list[str] = []
     for champ in settings.champs_base:
-        if champ == "student_id" or champ == "session_id":
-            continue
-        if champ not in champs_acceptes:
-            continue
-        if champ == "subject_text":
-            if sujet:
-                entree["subject_text"] = sujet
+        if champ in ("student_id", "session_id"):
             continue
         valeur = contexte.get(champ)
-        if valeur not in (None, "", [], {}):
-            entree[champ] = valeur
+        if champ not in correspondance:
+            if valeur not in (None, "", [], {}):
+                non_acceptes.append(champ)
+            continue
+        attendu = correspondance[champ]
+        if champ == "subject_text":
+            if sujet:
+                entree[attendu] = sujet
+        elif valeur not in (None, "", [], {}):
+            entree[attendu] = valeur
 
-    # Les champs que cet agent n'accepte PAS ne sont pas perdus : quand l'agent prévoit un
-    # champ de contexte libre, ils y sont RECOPIÉS tels quels, avec leur intitulé. On ne
-    # devine rien et on n'écarte aucune information fournie par l'étudiant.
-    if "student_context" in champs_acceptes and not entree.get("student_context"):
-        restants = [champ for champ in settings.champs_base
-                    if champ not in champs_acceptes
-                    and champ not in ("student_id", "session_id", "subject_text")
-                    and contexte.get(champ) not in (None, "", [], {})]
-        if restants:
-            entree["student_context"] = "\n".join(
-                f"{LIBELLES_CONTEXTE.get(champ, champ.replace('_', ' '))} : "
-                f"{contexte[champ]}" for champ in restants)
+    # Les champs que cet agent n'accepte PAS ne sont pas perdus : quand l'agent prévoit un champ de
+    # contexte libre, ils y sont RECOPIÉS tels quels, avec leur intitulé lisible. On ne devine rien
+    # et on n'écarte aucune information fournie par l'étudiant.
+    if etape.contexte_libre and non_acceptes and not entree.get(etape.contexte_libre):
+        entree[etape.contexte_libre] = "\n".join(
+            f"{LIBELLES_CONTEXTE.get(champ, champ.replace('_', ' '))} : {contexte[champ]}"
+            for champ in non_acceptes)
 
     # Pont : la sortie réelle de chaque étape amont, sous le nom de champ attendu par l'agent.
     for champ, source in etape.upstream.items():

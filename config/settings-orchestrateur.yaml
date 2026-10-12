@@ -46,10 +46,16 @@ etapes:
     port: 8010
     prefixe: /subject
     route_analyse: /subject/analyze
-    # Champs que CET agent accepte RÉELLEMENT (son schéma refuse tout champ inconnu). Les champs
-    # collectés qui ne figurent pas ici ne sont pas perdus : le pont les recopie dans
-    # `student_context`, avec leur intitulé (voir handoff.LIBELLES_CONTEXTE).
-    champs: [student_id, session_id, subject_text, discipline, country, student_context]
+    # {notre clé → nom attendu par CET agent}. Les champs absents ne sont pas envoyés : ils sont
+    # recopiés dans `contexte_libre` avec leur intitulé, pour ne rien perdre.
+    champs:
+      student_id: student_id
+      session_id: session_id
+      subject_text: subject_text
+      discipline: discipline
+      academic_level: academic_level
+      country: country
+    contexte_libre: student_context
     upstream: {}
 
   - numero: 2
@@ -59,6 +65,16 @@ etapes:
     port: 8020
     prefixe: /problem
     route_analyse: /problem/analyze
+    # Cet agent ne connaît ni `geographical_scope` ni `period` : la zone et la période partent donc
+    # dans son champ de contexte libre, avec leur intitulé lisible.
+    champs:
+      student_id: student_id
+      session_id: session_id
+      subject_text: subject_text
+      discipline: discipline
+      academic_level: academic_level
+      country: country
+    contexte_libre: subject_context
     upstream:
       upstream_subject: 1
 
@@ -69,6 +85,17 @@ etapes:
     port: 8030
     prefixe: /literature
     route_analyse: /literature/review
+    champs:
+      student_id: student_id
+      session_id: session_id
+      subject_text: subject_text
+      research_problem: research_problem
+      discipline: discipline
+      academic_level: academic_level
+      country: country
+      geographical_scope: geographical_scope
+      period: period
+    contexte_libre: constraints
     upstream:
       upstream_subject: 1
       upstream_problem: 2
@@ -80,6 +107,17 @@ etapes:
     port: 8040
     prefixe: /problematique
     route_analyse: /problematique/analyze
+    champs:
+      student_id: student_id
+      session_id: session_id
+      subject_text: subject_text
+      research_problem: research_problem
+      discipline: discipline
+      academic_level: academic_level
+      country: country
+      geographical_scope: geographical_scope
+      period: period
+    contexte_libre: student_notes
     upstream:
       upstream_subject: 1
       upstream_problem: 2
@@ -92,6 +130,20 @@ etapes:
     port: 8050
     prefixe: /question
     route_analyse: /question/analyze
+    # NOM DIVERGENT, traduit ici : cet agent nomme la zone `geographical_area` et la période
+    # `study_period`. Sans cette table, l'orchestrateur lui enverrait `geographical_scope` et
+    # `period` — qu'il refuse — et l'étape échouerait en 422.
+    champs:
+      student_id: student_id
+      session_id: session_id
+      subject_text: subject_text
+      research_problem: research_problem
+      discipline: discipline
+      academic_level: academic_level
+      country: country
+      geographical_scope: geographical_area
+      period: study_period
+    contexte_libre: constraints
     upstream:
       upstream_subject: 1
       upstream_problem: 2
@@ -104,6 +156,17 @@ etapes:
     port: 8060
     prefixe: /objectives
     route_analyse: /objectives/analyze
+    champs:
+      student_id: student_id
+      session_id: session_id
+      subject_text: subject_text
+      research_problem: research_problem
+      discipline: discipline
+      academic_level: academic_level
+      country: country
+      geographical_scope: geographical_area
+      period: study_period
+    contexte_libre: research_context
     upstream:
       upstream_subject: 1
       upstream_problem: 2
@@ -117,6 +180,17 @@ etapes:
     port: 8070
     prefixe: /hypotheses
     route_analyse: /hypotheses/analyze
+    champs:
+      student_id: student_id
+      session_id: session_id
+      subject_text: subject_text
+      research_problem: research_problem
+      discipline: discipline
+      academic_level: academic_level
+      country: country
+      geographical_scope: geographical_area
+      period: study_period
+    contexte_libre: research_context
     upstream:
       upstream_subject: 1
       upstream_problem: 2
@@ -131,6 +205,17 @@ etapes:
     port: 8080
     prefixe: /methodology
     route_analyse: /methodology/analyze
+    champs:
+      student_id: student_id
+      session_id: session_id
+      subject_text: subject_text
+      research_problem: research_problem
+      discipline: discipline
+      academic_level: academic_level
+      country: country
+      geographical_scope: geographical_area
+      period: study_period
+    contexte_libre: research_context
     upstream:
       upstream_subject: 1
       upstream_problem: 2
@@ -146,6 +231,17 @@ etapes:
     port: 8090
     prefixe: /methodology/protocol
     route_analyse: /methodology/protocol/analyze
+    champs:
+      student_id: student_id
+      session_id: session_id
+      subject_text: subject_text
+      research_problem: research_problem
+      discipline: discipline
+      academic_level: academic_level
+      country: country
+      geographical_scope: geographical_area
+      period: study_period
+    contexte_libre: research_context
     upstream:
       upstream_subject: 1
       upstream_problem: 2
@@ -163,6 +259,13 @@ etapes:
     port: 8100
     prefixe: /results
     route_analyse: /results/analyze
+    champs:
+      student_id: student_id
+      session_id: session_id
+      subject_text: subject_text
+      discipline: discipline
+      academic_level: academic_level
+    contexte_libre: collection_notes
     upstream:
       upstream_subject: 1
       upstream_problem: 2
@@ -185,6 +288,13 @@ etapes:
     port: 8130
     prefixe: /coherence
     route_analyse: /coherence/audit
+    champs:
+      student_id: student_id
+      session_id: session_id
+      subject_text: subject_text
+      discipline: discipline
+      academic_level: academic_level
+    contexte_libre: student_comments
     upstream:
       upstream_subject: 1
       upstream_problem: 2
@@ -205,6 +315,13 @@ etapes:
     port: 8110
     prefixe: /conclusion
     route_analyse: /conclusion/write
+    champs:
+      student_id: student_id
+      session_id: session_id
+      subject_text: subject_text
+      discipline: discipline
+      academic_level: academic_level
+    contexte_libre: student_comments
     finale: true
     upstream:
       upstream_subject: 1
