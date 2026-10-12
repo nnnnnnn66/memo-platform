@@ -72,6 +72,35 @@ def test_revue_vide_demande_clarification(settings, request_factory):
     assert result.output.status == ProblemStatus.needs_clarification
 
 
+def test_le_probleme_amont_suffit_sans_champ_plat(settings, request_factory):
+    """DÉFAUT RÉEL du premier parcours de bout en bout.
+
+    L'orchestrateur fournit le problème par la sortie VÉRIFIÉE de l'étape 2 (`upstream_problem`), et
+    NON par un champ plat `research_problem`. Le pré-contrôle exigeant le champ plat, l'agent
+    s'arrêtait AVANT tout appel au modèle : réponse en 0 seconde, tous les champs vides, et le
+    parcours ne pouvait pas dépasser l'étape 4.
+
+    Ce qui l'a rendu invisible en test : la fabrique de requêtes renseignait TOUJOURS
+    `research_problem` et `field_observations` — ce qu'un vrai parcours ne fait jamais.
+    """
+    request = request_factory(
+        research_problem="",
+        field_observations="",
+        upstream_problem={"agent": "research_problem_agent", "version": "1.0",
+                          "status": "awaiting_human_validation",
+                          # Une sortie amont n'est utilisable que si son propre vérificateur l'a
+                          # validée : c'est la règle que le contrôle d'entrée applique.
+                          "validation": {"verified": True, "verifier_status": "verified"},
+                          "identified_problem": {"statement": "Les promoteurs immobiliers "
+                                                "artificialisent les sols de Bingerville."}})
+
+    result = campaign.run(request, settings, StubLLM(), allow_network=False)
+
+    assert result.output.status != ProblemStatus.needs_clarification
+    questions = result.output.clarification_questions or []
+    assert not any("problème concret" in question for question in questions), questions
+
+
 def test_corpus_sans_texte_bloque(settings, request_factory):
     documents = [{"doc_id": "D1", "title": "sans texte ni résumé", "abstract": "",
                   "findings": [], "limits": []}]

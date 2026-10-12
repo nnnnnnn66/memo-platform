@@ -17,13 +17,28 @@ SECONDARY_FIELDS = {
 }
 
 
+def _probleme_amont(upstream_problem) -> bool:
+    """La sortie VÉRIFIÉE de l'étape 2 porte-t-elle déjà le problème de recherche ?
+
+    Défaut réel (premier parcours de bout en bout) : le pré-contrôle exigeait le champ plat
+    `research_problem` et ne regardait pas `upstream_problem` — la sortie de l'étape précédente,
+    pourtant transmise et vérifiée. L'agent réclamait donc une information qu'il avait DÉJÀ, et
+    s'arrêtait avant tout appel au modèle (réponse en 0 seconde, tous champs vides).
+    L'orchestrateur ne transmet que des sorties VALIDÉES : leur présence suffit comme preuve.
+    """
+    return upstream_problem is not None
+
+
 def check(request) -> dict:
     """Retourne {needs_clarification, questions, defaults_used}."""
     missing = [label for field, label in ESSENTIAL.items()
                if not str(getattr(request, field, "") or "").strip()]
 
-    # Le problème concret : soit fourni directement, soit par l'observation de terrain.
-    if not (request.research_problem or "").strip() and not (request.field_observations or "").strip():
+    # Le problème concret : fourni directement, par l'observation de terrain, ou par la sortie
+    # vérifiée de l'étape 2.
+    if (not (request.research_problem or "").strip()
+            and not (request.field_observations or "").strip()
+            and not _probleme_amont(getattr(request, "upstream_problem", None))):
         missing.append("le problème concret ou l'observation de terrain")
 
     # La revue de littérature VÉRIFIÉE est la matière première de l'ancrage.

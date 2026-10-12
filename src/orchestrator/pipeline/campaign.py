@@ -147,6 +147,16 @@ def decider(settings: Settings, etudiant: str, session: str, decision: str,
             f"étape {numero} au statut {ligne.get('statut', 'inconnu')!r}")
 
     avertissement = ""
+    # Une proposition NON vérifiée peut être validée (la décision humaine reste souveraine), mais
+    # pas en silence : l'étape suivante refusera de s'appuyer dessus. Défaut réel — un parcours
+    # automatique a validé une proposition vide, et l'étape suivante s'est arrêtée sur
+    # « la sortie transmise n'est pas vérifiée ».
+    if decision == "accepted" and str(ligne.get("verdict", "")).lower() not in ("verified",):
+        avertissement = (
+            "Attention : cette proposition n'a PAS été vérifiée"
+            + (f" (verdict « {ligne.get('verdict')} »)" if ligne.get("verdict") else "")
+            + ". L'étape suivante refusera probablement de s'appuyer dessus : relis d'abord ce "
+              "qu'elle te demande.")
     try:
         call_agent.appeler(etape.url_decision(settings.hote, etudiant, session),
                            {"decision": decision}, settings.timeout, transport)
