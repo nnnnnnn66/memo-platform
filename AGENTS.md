@@ -13,9 +13,27 @@ Fichier de contexte projet (découverte : cwd uniquement — doit être lancé d
   vérificateurs, l'interface finale, ni l'orchestrateur complet (SPEC §4, §41, §44).
 - **Portillon §42 :** avant toute implémentation importante, présenter l'architecture
   (les 15 points) et **attendre la validation humaine** avant de continuer.
-- Ne jamais passer à l'étape suivante sans validation explicite de l'agent courant.
 - Pour chaque agent, dans l'ordre : mission → entrées → processus → sorties →
   contraintes → vérificateur → archi minimale → test → correction → validation.
+
+## Fonctionnement en ligne (consigne du porteur, 2026-10-13)
+
+> « je ne veux pas qu'il attende ma validation, ils seront en ligne, donc ils doivent être
+> indépendants […] qu'ils soient rapides et autonomes. »
+
+- **Le parcours N'ATTEND PLUS de décision humaine pour avancer.** En mode `automatique`
+  (`config/settings-orchestrateur.yaml`, section `parcours`), une étape produite **et vérifiée par
+  son propre vérificateur** ouvre la suivante immédiatement.
+- **Conséquence à ne jamais oublier :** le verdict du vérificateur INDÉPENDANT devient la seule
+  barrière de qualité. Le statut « validée » ne signifie plus « approuvée par l'étudiant » mais
+  « produite et vérifiée ». La décision humaine reste **possible** ; elle n'est plus **obligatoire**.
+- **On n'avance JAMAIS sur une production non vérifiée** : les étapes suivantes refuseraient de
+  s'appuyer dessus. Non vérifiée = on s'arrête là et on le DIT.
+- **La plateforme doit se relever seule** : services systemd `memo-agents` et
+  `memo-orchestrateur` (activés au démarrage). Ne pas compter sur un démarrage manuel.
+- **Aucun agent n'écrit qu'une étape amont est « validée »** sans décision humaine : on écrit
+  « vérifiée par son vérificateur ». Confondre les deux produit une incohérence que la vérification
+  globale relève — et elle a raison de la relever.
 
 ## Contraintes techniques
 - Stack : **Python + FastAPI**. Emplacement : ce dossier.

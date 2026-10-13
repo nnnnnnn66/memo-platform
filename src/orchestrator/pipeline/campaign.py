@@ -180,11 +180,16 @@ def decider(settings: Settings, etudiant: str, session: str, decision: str,
         call_agent.appeler(etape.url_decision(settings.hote, etudiant, session),
                            {"decision": decision}, settings.timeout, transport)
     except OrchestratorError as erreur:
-        # L'agent n'a pas pu consigner la décision : on le DÉCLARE, on ne le cache pas. La
-        # progression reste fondée sur l'état de l'orchestrateur, seule référence du parcours.
-        avertissement = ("La décision n'a pas pu être transmise à l'agent de cette étape "
-                         f"({erreur.etat.value}) ; elle est enregistrée ici, mais son dossier "
-                         "interne peut diverger.")
+        # Un agent qui n'expose PAS de route de décision renvoie 404. Ce n'est pas une panne : tous
+        # les agents ne sont pas concernés par la décision de l'étudiant, et l'orchestrateur reste
+        # la référence du parcours (il a déjà enregistré la décision avant d'appeler). Le dire comme
+        # un incident faisait croire à un dossier divergent — défaut relevé en exécution réelle.
+        if "HTTP 404" in (erreur.detail or ""):
+            avertissement = ""
+        else:
+            avertissement = ("La décision n'a pas pu être transmise à l'agent de cette étape "
+                             f"({erreur.etat.value}) ; elle est enregistrée ici, mais son dossier "
+                             "interne peut diverger.")
 
     statut = state.enregistrer_decision(settings.state_db, etudiant, session, numero,
                                         decision, commentaire)

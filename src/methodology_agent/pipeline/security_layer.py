@@ -92,7 +92,7 @@ def build_user_message(request, annotations: list[dict], extra_blocks: list[str]
 
 
 def diagnostic_block(request) -> str:
-    """Le diagnostic validé de l'étape 8, présenté comme le SOCLE à reprendre (donnée, pas consigne)."""
+    """Le diagnostic vérifié de l'étape 8, présenté comme le SOCLE à reprendre (donnée, pas consigne)."""
     payload = request.upstream_methodology_diagnostic
     if payload is None:
         return ""

@@ -104,7 +104,7 @@ def run_checks(request, protocol, matrix, draft, analysis) -> list[str]:
     missing_socle = [k for k, v in socle.items() if not str(v or "").strip()]
     if missing_socle:
         violations.append(
-            "P2 : le protocole ne reprend pas le socle validé de l'étape 8 (manquant : "
+            "P2 : le protocole ne reprend pas le socle vérifié de l'étape 8 (manquant : "
             + ", ".join(missing_socle) + "). Les choix de l'étape 8 ne se re-tranchent pas.")
 
     # P3 — taille d'échantillon chiffrée sans justification.
@@ -131,7 +131,7 @@ def run_checks(request, protocol, matrix, draft, analysis) -> list[str]:
         violations.append(
             "P4 : le protocole prévoit une collecte de terrain ("
             + ", ".join(terrain_used) + ") alors que le diagnostic de l'étape 8 ne retient aucune "
-            "technique de collecte. Signalez la contradiction ou revenez au socle validé.")
+            "technique de collecte. Signalez la contradiction ou revenez au socle vérifié.")
 
     # P5 — hypothèses ajoutées alors que l'étape 7 a conclu qu'elles ne sont pas pertinentes.
     if request.hypotheses_not_required() and re.search(r"\bhypoth[eè]se", text):

@@ -1,6 +1,6 @@
 """Contrat d'entrée de l'Agent Méthodologie (SPEC §6).
 
-Le diagnostic validé de l'agent 8 est le point de départ. Les sorties amont ne sont utilisables que
+Le diagnostic vérifié de l'agent 8 est le point de départ. Les sorties amont ne sont utilisables que
 si LEUR vérificateur les a validées, et les champs sont lus sous la forme RÉELLEMENT produite par
 l'émetteur (leçon de la chaîne 1 → 8 : une clé supposée casse la passation en silence).
 """

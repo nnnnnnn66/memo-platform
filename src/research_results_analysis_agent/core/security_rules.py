@@ -1,7 +1,7 @@
 """Règles de sécurité de l'Agent Méthodologie.
 
 Surfaces propres à cet agent : tout le dossier de recherche (sujet, problème, littérature,
-problématique, question, objectifs, hypothèses), le diagnostic validé de l'étape 8, la faisabilité
+problématique, question, objectifs, hypothèses), le diagnostic vérifié de l'étape 8, la faisabilité
 (accès au terrain, données et ressources disponibles, méthodologie existante), les contraintes et les
 consignes académiques. Tout est DONNÉE NON FIABLE. Aucun contrat d'ancrage bibliographique ici : la
 sécurité porte sur l'injection et les secrets, plus les contrôles déterministes de `analysis/`.

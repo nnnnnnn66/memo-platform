@@ -190,5 +190,5 @@ class Protocol(StrictModel):
     ethique: Ethique = Field(default_factory=Ethique)
     limites: list[Limite] = Field(default_factory=list)
     etapes: list[EtapeMiseEnOeuvre] = Field(default_factory=list)
-    # Contradictions constatées avec le diagnostic validé (déclarées, jamais corrigées en silence).
+    # Contradictions constatées avec le diagnostic vérifié (déclarées, jamais corrigées en silence).
     contradictions_diagnostic: StrList = Field(default_factory=list)

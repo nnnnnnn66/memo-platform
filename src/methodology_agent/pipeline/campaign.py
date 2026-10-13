@@ -163,7 +163,7 @@ def _assemble(request, analysis, protocol_out, instruments_out, writing_out) -> 
              f"type de recherche : {protocol.type_recherche}", f"stratégie : {protocol.strategie}"]
     out.choix_methodologiques_retenus = [c for c in choix if c.split(" : ", 1)[1].strip()]
     out.elements_de_recherche_examines = [
-        "diagnostic méthodologique validé de l'étape 8",
+        "diagnostic méthodologique vérifié de l'étape 8",
         "question de recherche vérifiée", "objectifs de recherche vérifiés",
     ]
     if hypotheses:

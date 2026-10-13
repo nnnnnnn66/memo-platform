@@ -13,9 +13,9 @@ def check(request) -> dict:
 
     diagnostic = request.upstream_methodology_diagnostic
     if diagnostic is None:
-        blockers.append("le diagnostic méthodologique validé de l'étape 8")
+        blockers.append("le diagnostic méthodologique vérifié de l'étape 8")
         questions.append(
-            "Pouvez-vous transmettre le diagnostic méthodologique validé (étape 8, avec le verdict "
+            "Pouvez-vous transmettre le diagnostic méthodologique vérifié (étape 8, avec le verdict "
             "du vérificateur et votre décision) ? La méthodologie de l'étape 9 le développe — elle "
             "ne le remplace pas.")
     else:

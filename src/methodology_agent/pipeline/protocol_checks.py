@@ -38,7 +38,7 @@ def coherence_controls(request, protocol, matrix) -> list[str]:
         controls.append(f"objectif sans ligne de matrice (à compléter) : {objective}")
     if protocol.contradictions_diagnostic:
         controls.append(
-            "contradictions avec le diagnostic validé, à arbitrer : "
+            "contradictions avec le diagnostic vérifié, à arbitrer : "
             + " ; ".join(protocol.contradictions_diagnostic))
     if protocol.echantillonnage.type.value == "sans_objet":
         controls.append(

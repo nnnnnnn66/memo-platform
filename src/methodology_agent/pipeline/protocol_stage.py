@@ -1,7 +1,7 @@
 """Étages P1 et P2 — analyse du dossier puis protocole détaillé (SPEC §9 étapes 1-2).
 
 P1 : ce que l'agent comprend du dossier (disponible / manquant / contradictoire).
-P2 : le protocole opérationnel, construit SUR le diagnostic validé de l'étape 8.
+P2 : le protocole opérationnel, construit SUR le diagnostic vérifié de l'étape 8.
 """
 
 from pathlib import Path
@@ -47,7 +47,7 @@ def _checks_protocol(obj: ProtocolOutput) -> list[str]:
     # Le socle de l'étape 8 est repris, jamais vidé.
     for name in ("approche", "logique", "type_recherche", "strategie"):
         if not str(getattr(protocol, name) or "").strip():
-            violations.append(f"protocol.{name} est vide (le socle validé de l'étape 8 est repris)")
+            violations.append(f"protocol.{name} est vide (le socle vérifié de l'étape 8 est repris)")
     if not protocol.terrain.strip():
         violations.append("protocol.terrain est vide (contexte ou terrain d'étude)")
     if not protocol.donnees:

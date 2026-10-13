@@ -11,7 +11,7 @@ from .common import StrictModel, StrList
 
 class Analysis(StrictModel):
     discipline: str = ""
-    # Ce sur quoi le protocole peut s'appuyer (diagnostic validé, question, objectifs, hypothèses,
+    # Ce sur quoi le protocole peut s'appuyer (diagnostic vérifié, question, objectifs, hypothèses,
     # consignes académiques, accès au terrain, données disponibles…).
     elements_disponibles: StrList = Field(default_factory=list)
     # Manques BLOQUANTS uniquement : sans eux, aucun protocole défendable ne peut être produit.

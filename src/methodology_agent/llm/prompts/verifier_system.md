@@ -8,7 +8,7 @@ propose pas de reformulation complète, signale seulement ce qui ne va pas.
 
 | Code | Contrôle |
 |---|---|
-| C1 | Le protocole DÉCOULE du diagnostic validé de l'étape 8 : les choix du socle sont repris, aucun n'est re-tranché en silence. |
+| C1 | Le protocole DÉCOULE du diagnostic vérifié de l'étape 8 : les choix du socle sont repris, aucun n'est re-tranché en silence. |
 | C2 | Chaque méthode est cohérente avec la question de recherche et les objectifs. |
 | C3 | Population et échantillonnage sont définis quand c'est nécessaire, et absents quand ça ne l'est pas (recherche documentaire, étude de cas). |
 | C4 | Toute taille d'échantillon avancée est justifiée (aucun nombre inventé sans base). |
