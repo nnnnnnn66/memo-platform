@@ -62,6 +62,11 @@ class Settings:
     workspace_dir: pathlib.Path
     state_db: pathlib.Path
     champs_base: tuple = ("student_id", "session_id", "subject_text")
+    # Consigne du porteur : la plateforme tourne en ligne et ne doit PAS attendre une validation
+    # pour avancer. En mode automatique, une étape produite et VÉRIFIÉE ouvre la suivante sans
+    # décision humaine ; le verdict du vérificateur indépendant devient la seule barrière de
+    # qualité. La décision humaine reste possible, elle n'est plus obligatoire.
+    validation_automatique: bool = False
 
     @property
     def par_numero(self) -> dict:
@@ -138,6 +143,11 @@ def charger(chemin: pathlib.Path | None = None) -> Settings:
                     f"ANTÉRIEURE dans le parcours (l'étape {source} vient après elle)")
 
     paths = brut.get("paths") or {}
+    # `parcours.validation: automatique` — la plateforme avance seule (consigne du porteur). Toute
+    # autre valeur, ou son absence, garde le comportement prudent d'origine : une décision humaine.
+    parcours = brut.get("parcours") or {}
+    automatique = str(parcours.get("validation", "humaine")).strip().lower() in ("automatique",
+                                                                               "auto")
     return Settings(
         mode=str(transport.get("mode", "http")).lower(),
         hote=str(transport.get("hote", "127.0.0.1")),
@@ -148,4 +158,5 @@ def charger(chemin: pathlib.Path | None = None) -> Settings:
         state_db=RACINE / str(paths.get("state_db", "workspace/orchestrateur.db")),
         champs_base=tuple(str(champ) for champ in (brut.get("base")
                                                    or ["student_id", "session_id", "subject_text"])),
+        validation_automatique=automatique,
     )

@@ -20,6 +20,20 @@ quota:
   # À réviser une fois le parcours stabilisé : la valeur de fond reste une décision du porteur.
   analyses_par_jour: 25
 
+parcours:
+  # CONSIGNE DU PORTEUR (2026-10-13) : « je ne veux pas qu'il attende ma validation, ils seront en
+  # ligne, donc ils doivent être indépendants […] qu'ils soient rapides et autonomes. »
+  #
+  # `automatique` : une étape produite ET VÉRIFIÉE par son propre vérificateur ouvre la suivante
+  #   sans attendre personne. La plateforme avance seule, en ligne.
+  # `humaine`     : chaque étape attend une décision avant la suivante (l'ancien comportement).
+  #
+  # CONSÉQUENCE, ÉCRITE ICI POUR NE PAS SE PERDRE : en mode automatique, le verdict du vérificateur
+  # INDÉPENDANT devient la seule barrière de qualité. Le statut « validée » ne signifie plus
+  # « approuvée par l'étudiant » mais « produite et vérifiée ». La décision humaine reste POSSIBLE
+  # à tout moment (le site peut demander une révision) : elle n'est plus OBLIGATOIRE.
+  validation: automatique
+
 paths:
   workspace: workspace                      # workspace/<etudiant>/<session>/
   state_db: workspace/orchestrateur.db      # état des dossiers (SQLite stdlib)

@@ -1,0 +1,17 @@
+[Unit]
+Description=memo-platform — les douze agents (accompagnement methodologique du memoire)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/root/memo-platform
+ExecStart=/root/memo-platform/demarrer-agents.sh
+ExecStop=/root/memo-platform/demarrer-agents.sh --arreter
+# Chaque agent installe ses dependances avant d'ecouter : la premiere montee peut etre longue.
+TimeoutStartSec=1200
+TimeoutStopSec=120
+
+[Install]
+WantedBy=multi-user.target

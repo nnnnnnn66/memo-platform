@@ -118,14 +118,33 @@ def lancer_etape(settings: Settings, etudiant: str, session: str, transport=None
     verdict = _verdict(reponse)
     state.enregistrer_resultat(settings.state_db, etudiant, session, numero,
                                resultat, verdict)
-    return {
+
+    reponse_finale = {
         "etape": numero,
         "libelle": etape.libelle,
         "statut": state.STATUT_PROPOSEE,
         "verdict": verdict,
         "resultat": resultat,
         "quota_restant": quota.restant(settings.state_db, etudiant, settings.analyses_par_jour),
+        "decision_automatique": False,
+        "etape_suivante": None,
     }
+
+    # CONSIGNE DU PORTEUR : la plateforme tourne EN LIGNE et ne doit pas attendre une validation
+    # pour avancer. Une étape produite ET VÉRIFIÉE par son propre vérificateur ouvre donc la
+    # suivante immédiatement. Le vérificateur indépendant est la barrière de qualité ; la décision
+    # humaine reste POSSIBLE (le site peut demander une révision), elle n'est plus OBLIGATOIRE.
+    #
+    # On n'avance JAMAIS sur une production non vérifiée : les étapes suivantes la refuseraient, et
+    # la chaîne s'arrêterait plus loin — c'est exactement ce qui s'est produit lors du premier
+    # parcours réel. Non vérifiée = on s'arrête là et on le dit.
+    if settings.validation_automatique and verdict.lower() == "verified":
+        state.enregistrer_decision(settings.state_db, etudiant, session, numero, "accepted",
+                                   "validation automatique (mode en ligne)")
+        suivante = state.etape_courante(settings.state_db, etudiant, session, ordre(settings))
+        reponse_finale["decision_automatique"] = True
+        reponse_finale["etape_suivante"] = suivante if suivante != numero else None
+    return reponse_finale
 
 
 def decider(settings: Settings, etudiant: str, session: str, decision: str,

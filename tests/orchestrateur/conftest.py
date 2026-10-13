@@ -19,8 +19,16 @@ from orchestrator.core.config import charger  # noqa: E402
 
 @pytest.fixture
 def settings(tmp_path):
-    """Configuration réelle, état et espace isolés dans un dossier temporaire."""
-    return dataclasses.replace(charger(), state_db=tmp_path / "etat.db", workspace_dir=tmp_path)
+    """Configuration réelle, état et espace isolés dans un dossier temporaire.
+
+    `validation_automatique` est FORCÉE à False : la configuration de production est en mode
+    autonome (consigne du porteur), mais les tests du mécanisme de décision humaine doivent pouvoir
+    l'exercer. Le mode autonome a ses propres tests (`test_orchestrateur_11_autonomie.py`), qui
+    rallument l'interrupteur. Sans cela, un test dépendrait du réglage de production — et changer
+    la production ferait tomber des tests qui ne parlent pas d'elle.
+    """
+    return dataclasses.replace(charger(), state_db=tmp_path / "etat.db", workspace_dir=tmp_path,
+                               validation_automatique=False)
 
 
 class AgentSimule:

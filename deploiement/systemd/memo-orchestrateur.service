@@ -1,0 +1,14 @@
+[Unit]
+Description=memo-platform — orchestrateur (seul interlocuteur du site, il pilote les agents)
+After=network-online.target memo-agents.service
+Wants=network-online.target memo-agents.service
+
+[Service]
+Type=simple
+WorkingDirectory=/root/memo-platform
+ExecStart=/root/memo-platform/lancer-orchestrateur.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
