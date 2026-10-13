@@ -25,19 +25,26 @@ limits:
                                      # (synthesis + diagnostic) + 1 VÉRIFICATION FINALE qui juge la
                                      # dernière reformulation (sinon la campagne échouait à tort)
   # --- recherche documentaire ---
-  max_search_queries: 12             # requêtes exécutées par campagne
+  # VITESSE (consigne du porteur, 2026-10-13 : « qu'ils soient rapides »). Mesure du premier
+  # parcours réel : cette étape a pris 26 MINUTES sur les 40 du parcours entier — téléchargement et
+  # lecture de jusqu'à 60 documents, plus 47 appels à un modèle raisonneur.
+  # Ces plafonds sont le seul levier honnête : le temps est proportionnel au volume traité.
+  # COMPROMIS ASSUMÉ : un corpus plus petit = une revue de littérature moins large, mais toujours
+  # au-dessus du seuil d'utilité (min_documents_useful = 10). Le porteur peut les relever.
+  max_search_queries: 10             # requêtes exécutées par campagne (était 12)
   max_results_per_query: 25          # résultats demandés par requête/fournisseur
-  max_documents: 60                  # objectif et plafond dur du corpus retenu
+  max_documents: 35                  # objectif et plafond dur du corpus retenu (était 60)
   min_documents_useful: 10           # en dessous : corpus_sufficiency = insufficient
-  max_external_requests: 80          # appels réseau (recherche + enrichissement)
-  source_timeout: 25                 # secondes par requête fournisseur
+  max_external_requests: 60          # appels réseau (recherche + enrichissement) (était 80)
+  source_timeout: 15                 # secondes par requête fournisseur (était 25 : les fournisseurs
+                                     # lents ou en panne faisaient patienter toute la campagne)
   max_abstract_chars: 1200           # extrait de résumé conservé
   documents_per_scoring_batch: 12    # documents par lot de notation/extraction (P2)
   max_scoring_batches: 6             # plafond de lots
   cache_ttl_hours: 336               # 14 jours
-  unpaywall_max_lookups: 60          # requêtes d'enrichissement accès ouvert
+  unpaywall_max_lookups: 40          # requêtes d'enrichissement accès ouvert (était 60)
   # --- texte intégral (téléchargement + lecture réelle) ---
-  max_downloads: 60                  # documents téléchargés au maximum par campagne
+  max_downloads: 30                  # documents téléchargés au maximum par campagne (était 60)
   max_download_mb: 30                # taille maximale d'un fichier
   max_session_download_mb: 400       # quota disque par session
   download_timeout: 40               # secondes par téléchargement
