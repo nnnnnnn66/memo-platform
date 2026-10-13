@@ -41,6 +41,23 @@ def _verdict(reponse: dict) -> str:
     return str(verdict or "")
 
 
+def detail_du_verificateur(reponse: dict) -> dict | None:
+    """Le détail du vérificateur de l'étape, transporté TEL QUEL (jamais interprété).
+
+    Une étape non vérifiée doit pouvoir dire POURQUOI : quelles corrections ont été demandées, et
+    sur quel motif. Jeter ce détail rendait l'échec inexplicable pour l'étudiant comme pour nous.
+    """
+    verificateur = reponse.get("verifier") or reponse.get("verificateur") or {}
+    if not verificateur:
+        return None
+    return {
+        "verdict": str(verificateur.get("verdict") or verificateur.get("status") or ""),
+        "corrections": list(verificateur.get("corrections") or []),
+        "motif": (verificateur.get("motif") or verificateur.get("reason")
+                  or verificateur.get("justification") or ""),
+    }
+
+
 def creer_dossier(settings: Settings, etudiant: str, session: str, sujet: str,
                   contexte: dict | None = None) -> dict:
     state.initialiser(settings.state_db)
@@ -119,12 +136,19 @@ def lancer_etape(settings: Settings, etudiant: str, session: str, transport=None
     state.enregistrer_resultat(settings.state_db, etudiant, session, numero,
                                resultat, verdict)
 
+    # POURQUOI une vérification a échoué. Le vérificateur de l'agent produit ses exigences
+    # (corrections demandées, motif) ; l'orchestrateur les JETAIT. Résultat : un étudiant lisait
+    # « le contrôle indépendant n'a pas pu aboutir » sans aucune raison, et personne ne pouvait
+    # savoir ce qui bloquait — constaté en répétition générale sur un sujet neuf.
+    detail_verificateur = detail_du_verificateur(reponse)
+
     reponse_finale = {
         "etape": numero,
         "libelle": etape.libelle,
         "statut": state.STATUT_PROPOSEE,
         "verdict": verdict,
         "resultat": resultat,
+        "verificateur": detail_verificateur,
         "quota_restant": quota.restant(settings.state_db, etudiant, settings.analyses_par_jour),
         "decision_automatique": False,
         "etape_suivante": None,
