@@ -14,4 +14,4 @@ export PYTHONPATH="src:${PYTHONPATH:-}"
 # authentification — une exposition sur 0.0.0.0 les rendrait utilisables par n'importe qui
 # (consommation de la clé LLM, lecture/écriture des espaces de session). Pour exposer
 # volontairement : HOST=0.0.0.0 ./run-coherence.sh (à réserver à un accès maîtrisé).
-exec uvicorn research_coherence_verifier.main:app --host "${HOST:-127.0.0.1}" --port "${PORT:-8130}"
+exec uvicorn research_coherence_verifier.main:app --workers "${WORKERS:-2}" --host "${HOST:-127.0.0.1}" --port "${PORT:-8130}"

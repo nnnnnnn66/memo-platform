@@ -9,7 +9,7 @@ import urllib.error
 import urllib.request
 
 BASE = "http://127.0.0.1:8001"
-E = "nahomie-koffi"
+E = "etudiant-demo"
 S = "promotions-immobilieres-bingerville-v2"
 
 

@@ -14,4 +14,4 @@ export PYTHONPATH="src:${PYTHONPATH:-}"
 # Boucle locale par défaut : les routes des agents ne portent AUCUNE authentification — les
 # exposer sur 0.0.0.0 les rendrait utilisables par n'importe qui. L'orchestrateur est leur unique
 # client. Pour exposer volontairement : HOST=0.0.0.0 ./run-sujet.sh
-exec uvicorn subject_agent.main:app --host "${HOST:-127.0.0.1}" --port "${PORT:-8010}"
+exec uvicorn subject_agent.main:app --workers "${WORKERS:-2}" --host "${HOST:-127.0.0.1}" --port "${PORT:-8010}"

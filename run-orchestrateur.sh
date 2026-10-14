@@ -15,4 +15,4 @@ export PYTHONPATH="src:${PYTHONPATH:-}"
 # Écoute par défaut sur la BOUCLE LOCALE : l'orchestrateur est le SEUL client des agents, et il
 # n'est lui-même appelé que par la plateforme. Pour l'exposer (derrière la passerelle HTTPS) :
 # HOST=0.0.0.0 ./run-orchestrateur.sh — à réserver à un accès maîtrisé et authentifié.
-exec uvicorn orchestrator.main:app --host "${HOST:-127.0.0.1}" --port "${PORT:-8000}"
+exec uvicorn orchestrator.main:app --workers "${WORKERS:-2}" --host "${HOST:-127.0.0.1}" --port "${PORT:-8000}"

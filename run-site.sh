@@ -19,4 +19,4 @@ pip install -q -r requirements.txt
 export PYTHONPATH="src:${PYTHONPATH:-}"
 # Écoute sur la BOUCLE LOCALE : c'est la passerelle HTTPS (Caddy) qui l'expose au monde, et elle
 # seule. Pour un premier essai local : ./run-site.sh puis http://127.0.0.1:9000
-exec uvicorn site_web.main:app --host "${HOST:-127.0.0.1}" --port "${PORT:-9000}"
+exec uvicorn site_web.main:app --workers "${WORKERS:-2}" --host "${HOST:-127.0.0.1}" --port "${PORT:-9000}"

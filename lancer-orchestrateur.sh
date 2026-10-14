@@ -14,4 +14,4 @@ set -a
 set +a
 
 export PYTHONPATH="src:${PYTHONPATH:-}"
-exec .venv/bin/uvicorn orchestrator.main:app --host "${HOST:-127.0.0.1}" --port "${PORT:-8000}"
+exec .venv/bin/uvicorn orchestrator.main:app --host "${HOST:-127.0.0.1}" --port "${PORT:-8000}" --workers "${WORKERS:-2}"
