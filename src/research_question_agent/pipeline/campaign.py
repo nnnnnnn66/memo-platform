@@ -97,13 +97,31 @@ def _formulate(llm, request, annotations, comprehension, intention, limits, prob
 
 
 def _derived(request, pre, feasibility, scope):
-    """Champs dérivés (informations manquantes + limites) — recalculés après chaque reformulation."""
+    """Champs dérivés (informations manquantes + limites) — recalculés après chaque reformulation.
+
+    Une délimitation n'est DÉCLARÉE MANQUANTE que si elle est vraiment absente des données. Le
+    contexte transmis par l'étudiant (sujet, sorties amont) est consulté, comme pour F5 : déclarer
+    « population non précisée » alors que l'étudiant l'a fournie dans son sujet est un manque
+    FANTOME — il contredit la compréhension et fait refuser l'étape par le vérificateur (défaut
+    constaté en répétition générale : la population était dans le sujet, la sortie la déclarait
+    pourtant manquante).
+    """
+    from ..analysis import question_rules
+
+    unsourced = question_rules.unsourced_boundaries(scope, request.all_provided_text())
+
+    def provided(flat_value: str, scope_value: str, field: str) -> bool:
+        if (flat_value or "").strip():
+            return True
+        # La délimitation est fournie si l'agent l'a reprise ET qu'elle est traçable (hors F5).
+        return bool((scope_value or "").strip()) and field not in unsourced
+
     missing: list[str] = []
-    if not (request.target_population or "").strip():
+    if not provided(request.target_population, scope.population, "population"):
         missing.append("population cible non précisée")
-    if not (request.geographical_area or request.country or "").strip():
+    if not provided(request.geographical_area or request.country, scope.geo, "geo"):
         missing.append("zone géographique non précisée")
-    if not (request.study_period or "").strip():
+    if not provided(request.study_period, scope.temps, "temps"):
         missing.append("période non précisée")
     missing.extend(feasibility.manques)
     seen: set[str] = set()

@@ -41,14 +41,11 @@ def check(request) -> dict:
             "Sans problématique de référence, la question de recherche ne peut pas en découler.")
 
     defaults_used: list[str] = []
-    if not (request.target_population or "").strip():
-        defaults_used.append(
-            "population non précisée : la compréhension la marquera comme inconnue (jamais inventée)")
-    if not (request.geographical_area or request.country or "").strip():
-        defaults_used.append("zone géographique non précisée : à confirmer avec l'étudiant")
-    if not (request.study_period or "").strip():
-        defaults_used.append("période non précisée : à confirmer avec l'étudiant")
-
+    # On ne DÉCLARE PAS une délimitation « non précisée » sur le seul vu des champs dédiés : le
+    # contexte transmis (sujet, sorties amont) peut la porter (défaut constaté : la population était
+    # dans le sujet, la sortie la disait pourtant manquante et le vérificateur refusait l'étape).
+    # Le pré-cadrage n'ayant pas encore la production, c'est `campaign._derived` — qui consulte les
+    # données de l'étudiant (règle F5) — qui décide, à juste titre, de ce qui manque réellement.
     return {
         "needs_clarification": bool(missing) or bool(problematic_missing),
         "questions": questions,

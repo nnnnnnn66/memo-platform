@@ -102,12 +102,52 @@ def _boundary_parts(normalized_value: str) -> list[str]:
     return [part.strip() for part in _PARTS_RE.split(normalized_value) if part.strip()]
 
 
+# Citations d'une information de l'étudiant : guillemets français, anglais ou courbes. On ne
+# retient PAS l'apostrophe droite, omniprésente en français (« d'Ivoire », « qu'elle »).
+_CITATION_RES = (
+    re.compile(r"«([^»]+)»"),
+    re.compile(r"“([^”]+)”"),
+    re.compile(r'"([^"]+)"'),
+)
+# Longueur minimale (normalisée) d'une citation pour valoir preuve : « Abidjan » suffit, « a » non.
+_MIN_CITED_CHARS = 4
+
+
+def cited_fragments(value: str) -> list[str]:
+    """Fragments cités entre guillemets, dans l'ordre d'apparition."""
+    fragments: list[str] = []
+    for pattern in _CITATION_RES:
+        fragments.extend(pattern.findall(str(value or "")))
+    return [fragment.strip() for fragment in fragments if fragment.strip()]
+
+
+def is_cited_from_student(value: str, haystack: str) -> bool:
+    """Vrai si la valeur porte une citation EXACTE d'un mot de l'étudiant (fragment verbatim).
+
+    C'est la règle « attribuée ET citée ⇒ acceptée » : l'agent peut reformuler une délimitation
+    dans sa langue, à condition de citer mot pour mot le libellé de l'étudiant entre guillemets.
+    Un fragment cité mais INTROUVABLE dans les données fournies ne vaut rien (citation fabriquée).
+    """
+    for fragment in cited_fragments(value):
+        normalized = _normalize(fragment)
+        if len(normalized) >= _MIN_CITED_CHARS and normalized in haystack:
+            return True
+    return False
+
+
 def unsourced_boundaries(scope, provided_text: str) -> dict:
     """Repère les délimitations présentes dans la question mais absentes des entrées fournies.
 
     Aucune invention n'est tolérée : si l'agent délimite (zone, période, population) sans que cela
     figure dans les données de l'étudiant, c'est signalé — jamais accepté en silence.
-    Une délimitation composée est acceptée dès lors que CHACUN de ses éléments est fourni.
+    Une délimitation est SOURCÉE si l'une de ces conditions tient :
+      - sa forme normalisée figure verbatim dans les données fournies ;
+      - une délimitation composée dont CHACUN des éléments figure dans les données fournies ;
+      - une période dont toutes les années figurent déjà dans les données fournies ;
+      - elle porte une CITATION EXACTE (entre guillemets) d'un libellé de l'étudiant présent dans
+        les données fournies — l'agent attribue alors explicitement à l'étudiant le mot qu'il cite.
+    Hors de ces cas, la délimitation est signalée : la règle reste STRICTE, une délimitation sans
+    source (même correctement attribuée mais non citée) n'est jamais acceptée en silence.
     """
     haystack = _normalize(provided_text)
     out: dict[str, str] = {}
@@ -128,5 +168,8 @@ def unsourced_boundaries(scope, provided_text: str) -> dict:
             years = _YEAR_RE.findall(value)
             if years and all(year in haystack for year in years):
                 continue
+        # Attribuée ET citée : l'agent cite mot pour mot un libellé de l'étudiant.
+        if is_cited_from_student(value, haystack):
+            continue
         out[field_name] = value
     return out

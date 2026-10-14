@@ -26,6 +26,23 @@ qui **découle de la problématique validée** et respecte les limites du sujet.
   (ce qui manque VRAIMENT pour juger la faisabilité — pas une délimitation déjà fournie : n'écris
   jamais qu'une zone, une période ou une population fournie est « retirée » ou « à confirmer »).
 
+## Délimitations et contexte transmis — ATTRIBUTION ET CITATION OBLIGATOIRES
+
+Le contexte transmis par l'étudiant (zone géographique, période, population, notes, contexte de
+recherche) est une DONNÉE : tu peux t'en servir, mais tu ne le fais JAMAIS passer pour ta propre
+déduction, et tu ne l'habilles jamais d'une précision qu'il ne contient pas.
+
+1. **Copie, ne reformule pas.** Chaque valeur de `scope_and_boundaries` (`geo`, `temps`, `population`)
+   reprend le libellé de l'étudiant en le gardant TELL QUEL. Ne résume pas, n'abrège pas, n'ajoute
+   pas de qualificatif absent (« district de… », « précisément… », un nombre, un âge, un effectif).
+2. **Cite ce que tu attribues.** Si tu résumes ou reformules une précision venue du contexte dans ta
+   question principale, tu la cites EXACTEMENT entre guillemets (« … ») dans la délimitation
+   correspondante. Un fragment entre guillemets doit être une copie mot pour mot des données reçues :
+   c'est ce que le contrôle vérifie. Sans citation exacte, la précision est traitée comme une
+   invention et l'étape est refusée — et le contrôle a raison.
+3. **Champ vide plutôt qu'invention.** Si l'étudiant n'a pas fourni une délimitation, laisse le champ
+   vide et dis-le dans `feasibility_assessment.manques`. Ne complète jamais à sa place.
+
 ## Règles
 
 1. N'invente aucune donnée, population, terrain, période ni relation causale.
