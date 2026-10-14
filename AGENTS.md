@@ -16,8 +16,30 @@ Fichier de contexte projet (découverte : cwd uniquement — doit être lancé d
 - Pour chaque agent, dans l'ordre : mission → entrées → processus → sorties →
   contraintes → vérificateur → archi minimale → test → correction → validation.
 
-## Fonctionnement en ligne (consigne du porteur, 2026-10-13)
+## Direction du produit — CONSIGNE DU PORTEUR (2026-10-14), PRIORITAIRE
 
+> « l'étudiant vient parce qu'il ne sait rien sur son sujet, il ne sait pas comment il va élaborer
+> son travail, donc ils sont là pour l'aider, pas pour lui poser des questions, eux agents doivent
+> aller chercher les informations pour l'aider […] les informations sont versées partout, ils
+> doivent aller chercher et livrer, et qu'elles soient vraies, comme la méthode de travail de
+> Perplexity et d'Elicit. »
+
+- **L'agent VA CHERCHER et LIVRE, avec ses sources.** Il ne rend plus de questionnaire à
+  l'étudiant. Cela **remplace** le principe antérieur « l'agent questionne, détecte les manques »
+  et « ne rien inventer : questionner plutôt que combler » (cf. SPEC §8/§44) — écart assumé et
+  validé par le porteur.
+- **Seule exception, stricte : les informations de TERRAIN** (le terrain de l'étudiant, sa
+  population, son échantillon, ses propres données, ses contraintes d'accès). Lui seul les détient :
+  c'est le **seul** objet de `questions_for_student`.
+- **Ne jamais écrire « je n'ai pas trouvé »** : ce qui manque se déclare comme **constat de
+  recherche** (`identified_limits`), jamais comme question rendue à l'étudiant.
+- **La garantie anti-invention est CONSERVÉE** : une source citée doit avoir été **réellement
+  récupérée** par la recherche (garde dans l'orchestrateur, comme pour un chiffre). C'est ce qui
+  rend la règle précédente tenable : l'agent cherche pour de vrai.
+- **Avancement** : porté sur l'Agent Sujet (étape 1). Les étapes 2 à 8 disposent déjà de la couche
+  `sources/` ; restent leurs prompts et leurs vérificateurs à porter.
+
+## Fonctionnement en ligne (consigne du porteur, 2026-10-13)
 > « je ne veux pas qu'il attende ma validation, ils seront en ligne, donc ils doivent être
 > indépendants […] qu'ils soient rapides et autonomes. »
 
