@@ -136,6 +136,21 @@ async def decider(request: Request, etudiant: str, session: str,
         raise _erreur(erreur) from erreur
 
 
+@router.post("/dossiers/{etudiant}/{session}/etapes/{n}/reprendre")
+async def reprendre_etape(request: Request, etudiant: str, session: str, n: int) -> dict:
+    """REPRENDRE une étape DÉJÀ FRANCHIE : l'étudiant reçoit de nouvelles données, ou veut corriger.
+
+    Une étape validée était définitive : y revenir exigeait d'intervenir dans la base. La reprise la
+    rouvre et invalide ses étapes aval (voir `campaign.reprendre` pour le comportement et pourquoi).
+    Aucun quota n'est consommé : rien ne part vers un agent, on rouvre seulement le parcours.
+    """
+    settings = request.app.state.settings
+    try:
+        return campaign.reprendre(settings, etudiant, session, n)
+    except OrchestratorError as erreur:
+        raise _erreur(erreur) from erreur
+
+
 @router.get("/dossiers/{etudiant}/{session}/etape")
 async def detail_etape(request: Request, etudiant: str, session: str, n: int = 0) -> dict:
     """Le détail d'une étape pour l'affichage : proposition, inconnues, limites, questions,

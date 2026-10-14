@@ -43,6 +43,25 @@ CREATE TABLE IF NOT EXISTS quota (
     analyses  INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (etudiant, jour)
 );
+-- Journal des REPRISES : une étape déjà franchie que l'étudiant rouvre.
+-- Table APPEND-ONLY et c'est voulu : `enregistrer_resultat` remet `decision` et `commentaire` à zéro
+-- lors du nouveau passage ; sans ce journal, la décision antérieure de l'étudiant disparaîtrait
+-- sans laisser de trace. On y consigne l'état AVANT reprise (statut, verdict, décision,
+-- commentaire) et la liste des étapes aval invalidées du fait de la reprise.
+CREATE TABLE IF NOT EXISTS reprises (
+    id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+    etudiant           TEXT NOT NULL,
+    session            TEXT NOT NULL,
+    numero             INTEGER NOT NULL,
+    ancien_statut      TEXT NOT NULL DEFAULT '',
+    ancien_verdict     TEXT NOT NULL DEFAULT '',
+    ancienne_decision  TEXT NOT NULL DEFAULT '',
+    ancien_commentaire TEXT NOT NULL DEFAULT '',
+    aval               TEXT NOT NULL DEFAULT '[]',
+    motif              TEXT NOT NULL DEFAULT '',
+    maj_le             TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS reprises_dossier ON reprises (etudiant, session, numero);
 """
 
 STATUT_A_FAIRE = "a_faire"
@@ -207,4 +226,94 @@ def journal(chemin: pathlib.Path, etudiant: str, session: str) -> list[dict]:
             "SELECT numero, statut, verdict, decision, maj_le FROM etapes"
             " WHERE etudiant = ? AND session = ? ORDER BY numero",
             (etudiant, session)).fetchall()
-    return [dict(ligne) for ligne in lignes]
+        # Nombre de fois que chaque étape a été REPRISE : l'étudiant doit pouvoir voir qu'une étape
+        # n'est pas « neuve » sans que cela change son statut courant.
+        compte = {int(ligne["numero"]): int(ligne["n"]) for ligne in base.execute(
+            "SELECT numero, COUNT(*) AS n FROM reprises"
+            " WHERE etudiant = ? AND session = ? GROUP BY numero",
+            (etudiant, session)).fetchall()}
+    return [{**dict(ligne), "reprises": compte.get(int(ligne["numero"]), 0)}
+            for ligne in lignes]
+
+
+# ============================================================================
+# REPRENDRE UNE ÉTAPE DÉJÀ FRANCHIE
+# ============================================================================
+# Une étape validée est franchie : le parcours est passé à la suivante. Jusqu'ici, revenir dessus
+# était IMPOSSIBLE sans intervenir directement dans la base — or un mémoire est itératif : l'étudiant
+# reçoit de nouvelles données, ou veut corriger. Ces fonctions rendent la reprise possible sans
+# casser la règle qui fonde la qualité de la plateforme : on n'avance jamais sur une production non
+# vérifiée.
+
+def rouvrir(chemin: pathlib.Path, etudiant: str, session: str, numero: int) -> None:
+    """Repasse une étape franchie à `a_faire` : elle redevient l'étape ouverte.
+
+    La `decision` et le `commentaire` sont remis à zéro — la nouvelle tentative repart d'une feuille
+    nette — mais l'état antérieur a été journalisé AVANT (voir `enregistrer_reprise`) : rien ne se
+    perd. Le `resultat` antérieur est CONSERVÉ pour rester lisible pendant la reprise ; il sera
+    remplacé par la nouvelle production au prochain `enregistrer_resultat`.
+    """
+    with _base(chemin) as base:
+        base.execute(
+            "UPDATE etapes SET statut = ?, decision = '', commentaire = '', maj_le = ?"
+            " WHERE etudiant = ? AND session = ? AND numero = ?",
+            (STATUT_A_FAIRE, _maintenant(), etudiant, session, numero))
+        base.execute("UPDATE dossiers SET maj_le = ? WHERE etudiant = ? AND session = ?",
+                     (_maintenant(), etudiant, session))
+
+
+def marquer_a_reviser(chemin: pathlib.Path, etudiant: str, session: str, numero: int) -> str:
+    """Retire à une étape son statut « validée » sans effacer sa production.
+
+    C'est ainsi que l'orchestrateur refuse de LAISSER MENTIR une étape aval : son contenu reste
+    lisible, mais son statut dit qu'elle doit être revue. Comme `sortie_validee` n'accepte que le
+    statut `validee`, plus rien ne peut s'appuyer dessus en silence.
+    """
+    with _base(chemin) as base:
+        base.execute(
+            "UPDATE etapes SET statut = ?, maj_le = ?"
+            " WHERE etudiant = ? AND session = ? AND numero = ?",
+            (STATUT_A_REVISER, _maintenant(), etudiant, session, numero))
+        base.execute("UPDATE dossiers SET maj_le = ? WHERE etudiant = ? AND session = ?",
+                     (_maintenant(), etudiant, session))
+    return STATUT_A_REVISER
+
+
+def enregistrer_reprise(chemin: pathlib.Path, etudiant: str, session: str, numero: int,
+                        ancien: dict, aval: list[int], motif: str = "") -> None:
+    """Journalise la reprise : l'état AVANT (statut, verdict, décision, commentaire) et les étapes
+    aval invalidées. Les décisions déjà prises restent ainsi traçables, même lorsque la ligne de
+    `etapes` est réécrite par le nouveau passage."""
+    with _base(chemin) as base:
+        base.execute(
+            "INSERT INTO reprises (etudiant, session, numero, ancien_statut, ancien_verdict,"
+            " ancienne_decision, ancien_commentaire, aval, motif, maj_le)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (etudiant, session, numero, str(ancien.get("statut", "")),
+             str(ancien.get("verdict", "")), str(ancien.get("decision", "")),
+             str(ancien.get("commentaire", "")),
+             json.dumps([int(n) for n in aval], ensure_ascii=False), motif, _maintenant()))
+
+
+def reprises(chemin: pathlib.Path, etudiant: str, session: str,
+             numero: int | None = None) -> list[dict]:
+    """Le journal des reprises, du plus récent au plus ancien (toutes étapes, ou une seule)."""
+    requete = ("SELECT id, numero, ancien_statut, ancien_verdict, ancienne_decision,"
+               " ancien_commentaire, aval, motif, maj_le FROM reprises"
+               " WHERE etudiant = ? AND session = ?")
+    parametres: list = [etudiant, session]
+    if numero is not None:
+        requete += " AND numero = ?"
+        parametres.append(int(numero))
+    requete += " ORDER BY id DESC"
+    with _base(chemin) as base:
+        lignes = base.execute(requete, parametres).fetchall()
+    resultat = []
+    for ligne in lignes:
+        item = dict(ligne)
+        try:
+            item["aval"] = json.loads(item.get("aval") or "[]")
+        except (TypeError, ValueError):
+            item["aval"] = []
+        resultat.append(item)
+    return resultat

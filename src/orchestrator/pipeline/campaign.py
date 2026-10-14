@@ -230,6 +230,134 @@ def decider(settings: Settings, etudiant: str, session: str, decision: str,
 
 
 # ==========================================================================================
+# REPRENDRE UNE ÉTAPE DÉJÀ FRANCHIE
+# ==========================================================================================
+# MANQUE COMBLÉ : une étape validée était définitive. Pour revenir dessus, il fallait intervenir
+# directement dans la base SQLite — or un mémoire est ITÉRATIF : l'étudiant reçoit de nouvelles
+# données, ou veut corriger une étape. Une plateforme en ligne doit le permettre.
+#
+# COMPORTEMENT CHOISI, ET POURQUOI (le point le plus délicat)
+# ----------------------------------------------------------
+# Reprendre une étape rouvre l'étape, ET invalide ses étapes AVAL (elles passent `a_reviser`).
+#
+# Pourquoi invalider plutôt que « simplement signaler » : on ne peut pas savoir À L'AVANCE si la
+# nouvelle production différera de l'ancienne. Tant qu'elle n'a pas été rejouée et vérifiée, les
+# étapes qui s'appuyaient dessus reposent FACTUELLEMENT sur une version antérieure. Les laisser
+# `validee` les ferait mentir en silence : elles seraient transmises à leurs propres étapes aval
+# comme si elles avaient été bâties sur la version courante. Ici :
+#   - leur PRODUCTION est CONSERVÉE (rien n'est effacé : l'étudiant peut la relire) ;
+#   - leur STATUT cesse d'être `validee`, donc `sortie_validee` refuse de la transmettre
+#     (le contrat `upstream_*` ne peut plus être satisfait par une version périmée) ;
+#   - `etape_detail` DIT pourquoi (`repose_sur`) : « cette étape repose sur une version antérieure
+#     de l'étape N ».
+# Le parcours reste donc cohérent : l'étape reprise est la première non validée (elle est ouverte),
+# et les étapes aval se rejouent, dans l'ORDRE DU PARCOURS, après elle.
+#
+# La contrainte « on n'avance JAMAIS sur une production non vérifiée » est intacte : la reprise ne
+# valide rien. Elle rouvre — c'est le verdict du vérificateur du nouveau passage (mode automatique)
+# ou la décision de l'étudiant qui refermera l'étape, exactement comme au premier passage.
+#
+# Les décisions déjà prises restent traçables : elles sont journalisées dans `reprises` AVANT que
+# la ligne ne soit réécrite (le nouveau passage remet `decision`/`commentaire` à zéro).
+
+def etapes_aval(settings: Settings, numero: int) -> list:
+    """Étapes du parcours qui dépendent, DIRECTEMENT OU NON, de `numero` — dans l'ordre du parcours.
+
+    La dépendance vient du contrat réel (`upstream`) : une étape qui relit la sortie d'une étape
+    aval invalide est aval elle aussi, transitivement.
+    """
+    dependants: set = set()
+    progression = True
+    while progression:
+        progression = False
+        for etape in settings.etapes:
+            if etape.numero == numero or etape.numero in dependants:
+                continue
+            amont = set(etape.upstream.values())
+            if numero in amont or (amont & dependants):
+                dependants.add(etape.numero)
+                progression = True
+    return [n for n in ordre(settings) if n in dependants]
+
+
+def reprendre(settings: Settings, etudiant: str, session: str, numero: int) -> dict:
+    """Rouvre une étape DÉJÀ FRANCHIE et invalide ses étapes aval.
+
+    Refusés, et dits clairement : un dossier inconnu, une étape hors parcours, une étape jamais
+    atteinte, et une étape qui n'est pas franchie (déjà ouverte, ou en attente de décision : la
+    relancer est déjà possible, la « reprendre » serait un doublon silencieux).
+    """
+    _dossier_ou_erreur(settings, etudiant, session)
+    try:
+        numero = int(numero)
+    except (TypeError, ValueError):
+        raise OrchestratorError(EtatErreur.ETAPE_INCONNUE, "Cette étape n'existe pas.",
+                                f"étape {numero!r} illisible")
+
+    if numero not in settings.par_numero:
+        raise OrchestratorError(EtatErreur.ETAPE_INCONNUE, "Cette étape n'existe pas.",
+                                f"étape {numero} hors parcours")
+
+    etape = settings.par_numero[numero]
+    ligne = state.statut(settings.state_db, etudiant, session, numero) or {}
+    statut = ligne.get("statut", state.STATUT_A_FAIRE)
+
+    # Jamais atteinte : aucune trace de production (colonne absente = jamais lancée).
+    if not ligne or statut == state.STATUT_A_FAIRE:
+        raise OrchestratorError(
+            EtatErreur.ETAPE_NON_AUTORISEE,
+            f"Tu n'as pas encore franchi l'étape « {etape.libelle} » : il n'y a rien à reprendre.",
+            f"étape {numero} jamais atteinte (statut {statut!r})")
+
+    # Pas (encore) franchie : elle est ouverte, ou attend une décision — la relancer est déjà le
+    # geste normal, une « reprise » serait ambiguë et ferait perdre la proposition en cours.
+    if statut != state.STATUT_VALIDEE:
+        raise OrchestratorError(
+            EtatErreur.ETAPE_NON_AUTORISEE,
+            f"L'étape « {etape.libelle} » n'est pas franchie : elle est déjà ouverte. "
+            "Relance-la (ou décide-la) : il n'y a rien à rouvrir.",
+            f"étape {numero} au statut {statut!r}")
+
+    aval = etapes_aval(settings, numero)
+    motif = f"reprise de l'étape {numero} par l'étudiant"
+
+    # On ne « revoit » que les étapes réellement atteintes : les suivantes n'ont aucune production à
+    # revoir (elles sont encore `a_faire`) — les annoncer ne serait que du bruit.
+    def _atteinte(n: int) -> bool:
+        ligne_aval = state.statut(settings.state_db, etudiant, session, n) or {}
+        return bool(ligne_aval) and ligne_aval.get("statut") != state.STATUT_A_FAIRE
+
+    aval_atteintes = [n for n in aval if _atteinte(n)]
+
+    # Journaliser AVANT de réécrire : c'est ce qui garde la décision antérieure traçable.
+    state.enregistrer_reprise(settings.state_db, etudiant, session, numero,
+                              dict(ligne), aval_atteintes, motif)
+    state.rouvrir(settings.state_db, etudiant, session, numero)
+    for suivant in aval_atteintes:
+        state.marquer_a_reviser(settings.state_db, etudiant, session, suivant)
+
+    etat_dossier = etat(settings, etudiant, session)
+    return {
+        "etape": numero,
+        "libelle": etape.libelle,
+        "statut": state.STATUT_A_FAIRE,
+        "reprise": True,
+        "etape_ouverte": etat_dossier["etape_ouverte"],
+        "libelle_ouvert": etat_dossier["libelle"],
+        "ancien_statut": ligne.get("statut", ""),
+        "ancien_verdict": ligne.get("verdict", ""),
+        "ancienne_decision": ligne.get("decision", ""),
+        "etapes_aval_a_revoir": [
+            {"numero": n, "libelle": settings.par_numero[n].libelle} for n in aval_atteintes],
+        "message": (
+            f"L'étape « {etape.libelle} » est de nouveau ouverte : relance-la quand tu veux. "
+            + (f"Les étapes suivantes ({len(aval_atteintes)}) s'appuyaient sur les anciennes "
+               "données : elles sont à revoir, et il te sera demandé de les relancer dans l'ordre."
+               if aval_atteintes else "Rien d'autre n'en dépend pour l'instant.")),
+    }
+
+
+# ==========================================================================================
 # Ce que le SITE a besoin de lire : le détail d'une étape, et les documents de l'étudiant.
 # L'orchestrateur reste la seule porte : le site ne connaît ni les agents, ni le stockage.
 # ==========================================================================================
@@ -280,6 +408,25 @@ def _chercher(resultat: dict, *cles) -> list:
     return []
 
 
+def _repose_sur(settings: Settings, etudiant: str, session: str, etape) -> dict | None:
+    """L'étape AMONT encore ouverte dont cette étape dépend — celle qui la fait « reposer sur une
+    version antérieure ».
+
+    Après une reprise, les étapes aval cessent d'être `validee` : sans cette explication, l'étudiant
+    lirait « à revoir » sans comprendre pourquoi. On renvoie la PREMIÈRE étape amont non validée
+    (dans l'ORDRE DU PARCOURS, jamais l'ordre numérique) — c'est elle qui bloque en premier.
+    """
+    parcours = ordre(settings)
+    for source in sorted(etape.upstream.values(),
+                         key=lambda n: parcours.index(n) if n in parcours else len(parcours)):
+        ligne = state.statut(settings.state_db, etudiant, session, source) or {}
+        if ligne.get("statut") != state.STATUT_VALIDEE:
+            return {"numero": source,
+                    "libelle": settings.par_numero[source].libelle,
+                    "statut": ligne.get("statut", state.STATUT_A_FAIRE)}
+    return None
+
+
 def etape_detail(settings: Settings, etudiant: str, session: str,
                  numero: int | None = None) -> dict:
     """L'étape telle que l'étudiant doit la voir : sa proposition, ses inconnues, ses limites,
@@ -303,7 +450,15 @@ def etape_detail(settings: Settings, etudiant: str, session: str,
     # vérification globale porte le numéro 13 et vient AVANT la conclusion, qui porte le 11).
     # Un `numero > ouverte` se trompait dès que ces deux étapes étaient en jeu — défaut introduit
     # par le réordonnancement voulu par le porteur, corrigé ici.
-    if parcours.index(numero) > parcours.index(ouverte):
+    #
+    # « À venir » veut dire JAMAIS PRODUITE. Après une REPRISE, les étapes aval invalides se
+    # trouvent APRÈS l'étape reprise — mais elles EXISTENT : elles reposent sur une version
+    # antérieure et doivent rester lisibles, avec leur statut `a_reviser` et l'explication
+    # (`repose_sur`). Les renvoyer comme « à venir » les ferait disparaître, et l'étudiant ne
+    # comprendrait pas qu'il doit les revoir.
+    ligne = state.statut(settings.state_db, etudiant, session, numero) or {}
+    atteinte = bool(ligne) and ligne.get("statut") != state.STATUT_A_FAIRE
+    if parcours.index(numero) > parcours.index(ouverte) and not atteinte:
         etape = settings.par_numero[numero]
         return {
             "numero": numero,
@@ -316,10 +471,10 @@ def etape_detail(settings: Settings, etudiant: str, session: str,
             "resume": etape.resume,
             "verdict": "", "verdict_texte": "",
             "resultat": {}, "inconnues": [], "limites": [], "questions": [], "signalements": [],
+            "reprises": 0, "historique_reprises": [], "repose_sur": None,
         }
 
     etape = settings.par_numero[numero]
-    ligne = state.statut(settings.state_db, etudiant, session, numero) or {}
     resultat = state.sortie_proposee(settings.state_db, etudiant, session, numero) or {}
     verdict = ligne.get("verdict", "")
     signalements = _chercher(resultat, "verification_flags", "signalements", "flags", "concerns")
@@ -353,6 +508,14 @@ def etape_detail(settings: Settings, etudiant: str, session: str,
         "questions": _chercher(resultat, "questions_for_human", "questions",
                                "questions_for_student", "clarification_questions"),
         "signalements": signalements,
+        # Reprise : combien de fois cette étape a été rouverte, son journal (les décisions
+        # antérieures y restent lisibles), et — pour une étape AVAL invalidée par une reprise —
+        # l'étape amont sur laquelle elle « repose » désormais. On ne se contente pas de marquer
+        # « à revoir » : on dit POURQUOI.
+        "reprises": len(state.reprises(settings.state_db, etudiant, session, numero)),
+        "historique_reprises": state.reprises(settings.state_db, etudiant, session, numero),
+        "repose_sur": (None if ligne.get("statut") == state.STATUT_VALIDEE
+                       else _repose_sur(settings, etudiant, session, etape)),
     }
 
 
