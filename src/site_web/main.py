@@ -21,6 +21,19 @@ from .core import securite
 from .core.config import charger
 from .storage import comptes
 
+# ------------------------------------------------------------------ identifiants d'URL
+# Les identifiants de session et d'invitation viennent de l'URL. Repris tels quels dans une
+# REDIRECTION, un « // » ou un « .. » enverrait le navigateur ailleurs : c'est la redirection
+# ouverte (règle py/url-redirection). On ne redirige donc que vers un identifiant dont la FORME
+# est vérifiée : lettres, chiffres, tiret et souligné uniquement.
+_IDENTIFIANT_SUR = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+
+
+def _id_sur(identifiant: str) -> str:
+    """Renvoie l'identifiant s'il a la forme attendue, sinon une valeur neutre et sûre."""
+    return identifiant if _IDENTIFIANT_SUR.match(identifiant or "") else "inconnu"
+
+
 REGLAGES = charger()
 ORCHESTRATEUR = Orchestrateur(REGLAGES.orchestrateur_url)
 GABARITS = Jinja2Templates(directory=str(REGLAGES.dossier_templates))
@@ -421,11 +434,11 @@ async def activer(request: Request, mot_de_passe: str = Form(""), confirmation: 
         return RedirectResponse("/connexion?message=Cette invitation n'est plus valable.",
                                 status_code=303)
     if mot_de_passe != confirmation:
-        return RedirectResponse(f"/invitation/{jeton}?message=Les deux mots de passe diffèrent.",
+        return RedirectResponse(f"/invitation/{_id_sur(jeton)}?message=Les deux mots de passe diffèrent.",
                                 status_code=303)
     valide, explication = securite.mot_de_passe_valide(mot_de_passe)
     if not valide:
-        return RedirectResponse(f"/invitation/{jeton}?message={explication}", status_code=303)
+        return RedirectResponse(f"/invitation/{_id_sur(jeton)}?message={explication}", status_code=303)
 
     identifiant = "etudiant-" + jeton[:8]
     comptes.creer_compte(REGLAGES.base_comptes, identifiant, securite.hacher(mot_de_passe))
@@ -621,12 +634,12 @@ def _laterale(identifiant: str, session: str, etat: dict) -> dict:
 async def lancer_etape(request: Request, session: str, csrf: str = Form("")):
     identifiant, _ = _memoire_autorise(request, session)
     if not csrf_valide(request.cookies.get("session", ""), csrf):
-        return RedirectResponse(f"/memoire/{session}?message=L'envoi du formulaire a échoué.",
+        return RedirectResponse(f"/memoire/{_id_sur(session)}?message=L'envoi du formulaire a échoué.",
                                 status_code=303)
     resultat = ORCHESTRATEUR.lancer_etape(identifiant, session)
     comptes.consigner(REGLAGES.base_comptes, "étape lancée", identifiant, session,
                       f"étape {resultat.get('etape')} — {verdict_affiche(resultat.get('verdict'))}")
-    return RedirectResponse(f"/memoire/{session}/etape", status_code=303)
+    return RedirectResponse(f"/memoire/{_id_sur(session)}/etape", status_code=303)
 
 
 @app.get("/memoire/{session}/etape", response_class=HTMLResponse)
@@ -656,15 +669,15 @@ async def decider(request: Request, session: str, csrf: str = Form(""),
                   decision: str = Form("accepted"), commentaire: str = Form("")):
     identifiant, _ = _memoire_autorise(request, session)
     if not csrf_valide(request.cookies.get("session", ""), csrf):
-        return RedirectResponse(f"/memoire/{session}/etape?message=L'envoi du formulaire a échoué.",
+        return RedirectResponse(f"/memoire/{_id_sur(session)}/etape?message=L'envoi du formulaire a échoué.",
                                 status_code=303)
     resultat = ORCHESTRATEUR.decider(identifiant, session, decision, commentaire)
     comptes.consigner(REGLAGES.base_comptes, "décision",
                       identifiant, session,
                       f"étape {resultat.get('etape')} : {'validée' if decision == 'accepted' else 'à réviser'}")
     if decision == "accepted":
-        return RedirectResponse(f"/memoire/{session}", status_code=303)
-    return RedirectResponse(f"/memoire/{session}/etape", status_code=303)
+        return RedirectResponse(f"/memoire/{_id_sur(session)}", status_code=303)
+    return RedirectResponse(f"/memoire/{_id_sur(session)}/etape", status_code=303)
 
 
 # ------------------------------------------------------------ documents & export

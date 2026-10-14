@@ -4,6 +4,7 @@ Toute opération porte student_id + session_id + agent_id. Aucune fonction ici n
 données d'un autre étudiant.
 """
 
+import pathlib
 import re
 import uuid
 
@@ -16,9 +17,11 @@ def new_session_id() -> str:
 
 def session_dir(workspace_root, student_id: str, session_id: str):
     """Chemin isolé par étudiant puis session. Empêche toute fuite croisée."""
-    safe_student = _sanitize(student_id)
-    safe_session = _sanitize(session_id)
-    return workspace_root / safe_student / safe_session
+    racine = pathlib.Path(workspace_root).resolve()
+    chemin = (racine / _sanitize(student_id) / _sanitize(session_id)).resolve()
+    if chemin != racine and racine not in chemin.parents:
+        raise ValueError("chemin de session en dehors de l'espace de travail de l'agent")
+    return chemin
 
 
 def _sanitize(value: str) -> str:

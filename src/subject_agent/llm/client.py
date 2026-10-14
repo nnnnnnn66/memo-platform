@@ -20,8 +20,13 @@ class LLMClient:
         self._transport = transport
         self.calls = 0
         if not creds.get("api_key"):
-            log.warning("Aucune clé LLM trouvée pour %s (%s)",
-                        creds.get("provider"), creds.get("api_key_env"))
+            # Message SANS AUCUNE valeur issue des identifiants : l'analyse de sécurité statique
+            # (CodeQL, règle py/clear-text-logging-sensitive-data) signalait ce message parce que
+            # le nom de la variable d'environnement attendue était lu dans le dictionnaire des
+            # identifiants — un faux positif, mais qui masquait les vraies fuites éventuelles.
+            # On indique où poser la clé, sans jamais toucher au contenu des identifiants.
+            log.warning("Aucune clé LLM trouvée pour le fournisseur configuré : la clé se pose "
+                        "dans ~/.hermes/.env (voir le fichier de configuration de l'agent).")
 
     def nouvelle_campagne(self) -> None:
         """Remet le compteur à zéro : la limite protege UNE execution, pas la vie du processus.
