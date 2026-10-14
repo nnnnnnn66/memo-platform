@@ -14,12 +14,18 @@ import urllib.request
 
 
 class ErreurSite(Exception):
-    """Erreur affichable telle quelle à l'étudiant."""
+    """Erreur affichable telle quelle à l'étudiant.
 
-    def __init__(self, message: str, technique: str = ""):
+    `statut` est le code HTTP que le SITE renverra : une ressource inconnue (404) n'est pas une
+    panne (500). Sans cela, le site répondait 200 pour une page d'erreur — un client, un moteur de
+    recherche ou un moniteur ne pouvaient pas savoir qu'il y avait eu une erreur.
+    """
+
+    def __init__(self, message: str, technique: str = "", statut: int = 500):
         super().__init__(message)
         self.message = message
         self.technique = technique or message
+        self.statut = statut
 
 
 class Orchestrateur:
@@ -50,7 +56,11 @@ class Orchestrateur:
 
     @staticmethod
     def _traduire(code: int, detail: str, adresse: str) -> ErreurSite:
-        """Un code d'erreur devient une phrase que l'étudiant comprend."""
+        """Un code d'erreur devient une phrase que l'étudiant comprend.
+
+        Le code HTTP est CONSERVÉ dans l'`ErreurSite` : `404` reste « ressource inconnue », les
+        autres codes remontent tels quels. Le site renverra donc ce code, jamais 200.
+        """
         message = None
         try:
             charge = json.loads(detail)
@@ -59,21 +69,21 @@ class Orchestrateur:
         except (ValueError, AttributeError):
             pass
         if message:
-            return ErreurSite(message, f"HTTP {code} sur {adresse} : {detail[:300]}")
+            return ErreurSite(message, f"HTTP {code} sur {adresse} : {detail[:300]}", statut=code)
         if code == 404:
-            return ErreurSite("Ce dossier est introuvable.", f"HTTP 404 sur {adresse}")
+            return ErreurSite("Ce dossier est introuvable.", f"HTTP 404 sur {adresse}", statut=404)
         if code == 429:
             return ErreurSite(
                 "Vous avez atteint votre nombre d'analyses du jour. "
                 "Votre dossier est conservé : vous pourrez reprendre demain.",
-                f"HTTP 429 sur {adresse}")
+                f"HTTP 429 sur {adresse}", statut=429)
         if code == 409:
             return ErreurSite(
                 "Cette étape attend votre décision : validez-la ou demandez une révision.",
-                f"HTTP 409 sur {adresse}")
+                f"HTTP 409 sur {adresse}", statut=409)
         return ErreurSite(
             "Cette action n'a pas pu aboutir. Rien n'a été validé ; vous pouvez réessayer.",
-            f"HTTP {code} sur {adresse} : {detail[:300]}")
+            f"HTTP {code} sur {adresse} : {detail[:300]}", statut=code)
 
     # ------------------------------------------------------------------- lecture
     def sante(self) -> bool:
@@ -102,7 +112,8 @@ class Orchestrateur:
         return self._appeler(adresse)
 
     # ------------------------------------------------------------------ écriture
-    def creer_dossier(self, etudiant: str, session: str, sujet: str, contexte: dict) -> dict:
+    def creer_dossier(self, etudiant: str, session: str, sujet: str,
+                      contexte: dict | str) -> dict:
         return self._appeler(f"/dossiers/{self._c(etudiant)}/{self._c(session)}", "POST",
                              {"sujet": sujet, "sujet_contexte": contexte})
 

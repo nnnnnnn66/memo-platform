@@ -286,9 +286,15 @@ async def _rediriger(request: Request, erreur: _Redirection):
 
 @app.exception_handler(ErreurSite)
 async def _erreur_site(request: Request, erreur: ErreurSite):
+    """Page d'erreur affichable — avec le CODE HTTP RÉEL.
+
+    Une page d'erreur en 200 mentait aux clients : un navigateur, un moteur de recherche ou un
+    moniteur voyait « 200 OK » et croyait la page valide. On renvoie donc le code que l'erreur
+    porte (404 pour une ressource inconnue, 500 pour une panne), en gardant la page telle quelle.
+    """
     return GABARITS.TemplateResponse(
         request, "erreur.html", _contexte(request, message=_message("erreur", erreur.message)),
-        status_code=200)
+        status_code=erreur.statut)
 
 
 # -------------------------------------------------------------------- accueil

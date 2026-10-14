@@ -148,14 +148,40 @@ def test_les_documents_et_la_bibliographie_sont_telechargeables(site):
 
 # ------------------------------------------------------------------- erreurs
 def test_un_orchestrateur_en_panne_est_annonce_en_francais(site):
+    """Une panne est une erreur SERVEUR : le code HTTP doit le dire (500), et jamais 200.
+
+    Un 200 sur une page d'erreur trompait tout le monde — navigateur, moteur de recherche,
+    supervision. La page reste la même ; seul le code devient honnête.
+    """
     client, simule, _ = _preparer(site)
     simule.en_panne = True
 
     page = client.get("/memoire/mon-memoire")
 
-    assert page.status_code == 200
+    assert page.status_code == 500
     assert "ne répond pas pour le moment" in page.text
     assert "Traceback" not in page.text
+
+
+def test_une_ressource_inconnue_est_annoncee_en_404(site):
+    """Une ressource qui n'existe pas est un 404 — distinct d'une panne (500)."""
+    client, simule, _ = _preparer(site)
+    simule.en_panne = True
+    simule.statut_erreur = 404
+
+    page = client.get("/memoire/mon-memoire")
+
+    assert page.status_code == 404
+    assert "Revenir à mes mémoires" in page.text
+
+
+def test_le_client_conserve_le_code_http_de_l_erreur():
+    """Le code remonte du client : 404 (ressource inconnue) ≠ 500 (panne), jamais 200."""
+    from site_web.clients.orchestrateur import Orchestrateur
+
+    assert Orchestrateur._traduire(404, "", "http://127.0.0.1:8000/x").statut == 404
+    assert Orchestrateur._traduire(500, "", "http://127.0.0.1:8000/x").statut == 500
+    assert Orchestrateur._traduire(429, "", "http://127.0.0.1:8000/x").statut == 429
 
 
 def test_l_etudiant_est_redirige_vers_la_connexion_s_il_expire(site):

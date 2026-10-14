@@ -5,7 +5,7 @@ l'étudiant. Aucune logique métier ici — les routes traduisent et délèguent
 """
 
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from ..core.errors import OrchestratorError
 from ..pipeline import campaign, registry
@@ -18,6 +18,23 @@ class CreationDossier(BaseModel):
 
     sujet: str
     sujet_contexte: dict = {}
+
+    @field_validator("sujet_contexte", mode="before")
+    @classmethod
+    def _contexte_tolerant(cls, valeur):
+        """Le contexte d'un étudiant est naturellement du TEXTE.
+
+        Le site envoie une chaîne, et il a raison : elle est donc acceptée et encapsulée en objet
+        (`{"contexte": "…"}`) pour que le pipeline continue de recevoir un objet. Un OBJET déjà
+        formé est gardé tel quel. Toute autre forme (liste, nombre…) reste REFUSÉE : on ne devine
+        jamais ce que l'appelant a voulu dire.
+        """
+        if valeur is None:
+            return {}
+        if isinstance(valeur, str):
+            texte = valeur.strip()
+            return {"contexte": texte} if texte else {}
+        return valeur
 
 
 class DecisionEtudiant(BaseModel):

@@ -40,6 +40,9 @@ class OrchestrateurSimule:
     def __init__(self, en_panne=False):
         self.appels: list[tuple[str, str]] = []
         self.en_panne = en_panne
+        # Code HTTP porté par l'erreur simulée : 500 (panne) par défaut, 404 pour une ressource
+        # inconnue. Le site doit renvoyer CE code, jamais 200.
+        self.statut_erreur = 500
         self.etape_ouverte = 3
 
     def _retenir(self, chemin, methode):
@@ -47,7 +50,8 @@ class OrchestrateurSimule:
         if self.en_panne:
             from site_web.clients.orchestrateur import ErreurSite
 
-            raise ErreurSite("La plateforme d'accompagnement ne répond pas pour le moment.")
+            raise ErreurSite("La plateforme d'accompagnement ne répond pas pour le moment.",
+                             statut=self.statut_erreur)
 
     def sante(self):
         return True
