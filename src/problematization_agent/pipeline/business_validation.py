@@ -6,6 +6,7 @@ affirmation inventée ne franchit pas cette barrière.
 """
 
 import re
+import unicodedata
 
 from ..schemas.output import ProblemStatus, ProblematizationOutput
 from ..theory import matrix as theory
@@ -76,6 +77,95 @@ def _free_texts(output: ProblematizationOutput) -> str:
     return " ".join(parts)
 
 
+# --- Source des délimitations du constat (zone, population) ------------------------------------
+#
+# Même règle que le garde-fou F5 de l'agent Question : une délimitation ajoutée au constat (zone
+# géographique, population) doit venir des données de l'étudiant. Si l'agent la reformule ou
+# l'enrichit sans le dire, elle est signalée. Elle est ACCEPTÉE si elle est fournie telle quelle, ou
+# si elle porte une CITATION EXACTE (entre guillemets) d'un libellé présent dans les données de
+# l'étudiant — l'agent attribue alors explicitement à l'étudiant ce qu'il cite.
+
+_CITATION_RES = (
+    re.compile(r"«([^»]+)»"),
+    re.compile(r"“([^”]+)”"),
+    re.compile(r'"([^"]+)"'),
+)
+_MIN_CITED_CHARS = 4
+
+
+def _normalize(text: str) -> str:
+    decomposed = unicodedata.normalize("NFKD", (text or "").lower())
+    ascii_text = decomposed.encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"\s+", " ", ascii_text).strip()
+
+
+def _cited_from_student(value: str, haystack: str) -> bool:
+    for pattern in _CITATION_RES:
+        for fragment in pattern.findall(str(value or "")):
+            normalized = _normalize(fragment)
+            if len(normalized) >= _MIN_CITED_CHARS and normalized in haystack:
+                return True
+    return False
+
+
+def provided_text(request) -> str:
+    """Tout le texte fourni par l'étudiant, imports amont compris (pour tracer une délimitation)."""
+    texts = getattr(request, "untrusted_texts", None)
+    raw = texts() if callable(texts) else {}
+    parts = list(raw.values()) if isinstance(raw, dict) else []
+    for attr in ("upstream_subject", "upstream_problem"):
+        payload = getattr(request, attr, None)
+        if payload is not None and hasattr(payload, "model_dump_json"):
+            parts.append(payload.model_dump_json())
+    return "\n".join(str(p) for p in parts if p)
+
+
+_TOKEN_RE = re.compile(r"[a-z0-9]{4,}")
+
+
+def _anchored(value: str, haystack: str) -> bool:
+    """La valeur partage-t-elle AU MOINS un mot significatif avec les données de l'étudiant ?
+
+    Le constat SYNTHÉTISE les entrées : il peut les qualifier (« développeurs d'Abidjan » à partir
+    de « développeurs » + « Abidjan »), jamais leur substituer une délimitation étrangère. Un mot
+    d'ancrage suffit ; une délimitation entièrement ÉTRANGÈRE (aucun mot commun) est une invention.
+    """
+    tokens = _TOKEN_RE.findall(value)
+    return bool(tokens) and any(token in haystack for token in tokens)
+
+
+def unsourced_delimitations(mapping, provided: str) -> dict:
+    """Délimitations du constat (zone, population) sans ancrage dans les données de l'étudiant.
+
+    Renvoie {champ: valeur} pour chaque délimitation NON traçable. Une valeur est traçable si l'une
+    de ces conditions tient :
+      - sa forme normalisée figure verbatim dans les données fournies ;
+      - elle partage au moins un mot significatif avec les données fournies (ancrage lexical) ;
+      - elle porte une CITATION EXACTE (entre guillemets) d'un libellé de l'étudiant — l'agent
+        ATTRIBUE alors explicitement à l'étudiant le mot qu'il cite.
+
+    Sans ancrage ni citation, la délimitation ne recoupe AUCUNE donnée de l'étudiant : c'est une
+    invention, signalée et jamais acceptée en silence. La règle « attribuée ET citée ⇒ acceptée » ne
+    relâche rien : le garde-fou reste strict, il refuse tout ce qui est étranger aux entrées.
+    """
+    haystack = _normalize(provided)
+    out: dict[str, str] = {}
+    for field_name, value in (("zone_geographique", getattr(mapping, "zone_geographique", "") or ""),
+                              ("population", getattr(mapping, "population", "") or "")):
+        value = str(value).strip()
+        if not value:
+            continue
+        normalized = _normalize(value)
+        if normalized and normalized in haystack:
+            continue
+        if _anchored(normalized, haystack):
+            continue
+        if _cited_from_student(value, haystack):
+            continue
+        out[field_name] = value
+    return out
+
+
 def validate_semantics(output: ProblematizationOutput, request, index) -> list[str]:
     """Contrôles sur le contenu produit (ancrage, doc_id, anti-fusion, alignement, honnêteté)."""
     violations: list[str] = []
@@ -94,6 +184,16 @@ def validate_semantics(output: ProblematizationOutput, request, index) -> list[s
         violations.append("R2: la question de recherche doit rester une PROPOSITION (proposed)")
     if output.objectives.status.value != "proposed":
         violations.append("R2: les objectifs doivent rester une PROPOSITION (proposed)")
+
+    # R10 — source des délimitations du constat (zone, population) : une délimitation ajoutée sans
+    # ancrage dans les données de l'étudiant, et sans citation exacte, est refusée. Corollaire :
+    # une délimitation correctement ATTRIBUÉE et CITÉE (guillemets verbatim) est acceptée.
+    added = unsourced_delimitations(output.problem_mapping, provided_text(request))
+    if added:
+        violations.append(
+            "R10: délimitation du constat sans source ("
+            + ", ".join(f"{k}={v}" for k, v in added.items())
+            + ") : elle doit être fournie par l'étudiant, ou citée mot pour mot par l'agent")
 
     # R3 — ancrage verbatim obligatoire
     for origin, statement in _statement_fields(output):
