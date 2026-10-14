@@ -35,6 +35,21 @@ class Settings:
         self.llm = self.raw["llm"]
         self.paths = self.raw["paths"]
         self.security = self.raw.get("security", {})
+        # Couche de recherche documentaire réelle : sa présence rend l'agent capable d'ALLER
+        # CHERCHER l'information au lieu de la réclamer à l'étudiant.
+        self.sources = self.raw.get("sources", {})
+        self.research = self.raw.get("research", {})
+
+    @property
+    def providers_file(self) -> Path:
+        """Fichier des fournisseurs — chemin relatif au paquet `sources/` de CET agent."""
+        return Path(__file__).resolve().parents[1] / "sources" / str(
+            self.sources.get("providers_file", "providers.yaml"))
+
+    @property
+    def cache_db(self) -> Path:
+        chemin = (self.paths or {}).get("cache_db")
+        return self.root / str(chemin) if chemin else self.root / "workspace" / "subject-cache.db"
 
     # --- chemins ---
     @property

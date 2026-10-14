@@ -13,6 +13,13 @@ class Limits:
     timeout: int
     max_external_requests: int
     max_search_results: int
+    # --- recherche documentaire RÉELLE (couche « sources ») ---
+    # L'agent ne se contente plus de questionner : il va chercher l'information et la livre,
+    # avec ses sources. Bornes strictes (budget réseau, délai, cache) : voir sources/http.py.
+    source_timeout: int = 20
+    max_research_queries: int = 3
+    max_results_per_query: int = 8
+    cache_ttl_hours: int = 336
 
     @classmethod
     def from_dict(cls, d: dict) -> "Limits":

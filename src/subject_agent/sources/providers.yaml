@@ -1,0 +1,66 @@
+# Fournisseurs du « gap check » de l'Agent Problématique (étape 4).
+# Ajouter un fournisseur gratuit utile = éditer ce fichier (l'adaptateur correspondant doit exister
+# dans sources/adapters/<adaptateur>.py).
+# `host` est la SEULE destination réseau autorisée pour ce fournisseur (anti-SSRF).
+#
+# Robustesse : OpenAlex (le plus large index généraliste) renvoie 429 depuis ce serveur — le quota
+# quotidien gratuit est partagé par toute l'adresse IP et s'épuise. Le gap check interroge donc
+# PLUSIEURS fournisseurs gratuits sans clé : la défaillance de l'un n'empêche pas la vérification.
+
+providers:
+  - id: openalex
+    label: OpenAlex
+    family: publications
+    host: api.openalex.org
+    adapter: openalex
+    enabled: true
+    note: "Publications et chapitres (gratuit, sans clé). Peut renvoyer 429 depuis certains serveurs."
+  - id: crossref
+    label: Crossref
+    family: publications
+    host: api.crossref.org
+    adapter: crossref
+    enabled: true
+    note: "Registre officiel des DOI (gratuit, sans clé). Repli en cas de 429 d'OpenAlex."
+  - id: hal
+    label: HAL
+    family: repositories
+    host: api.archives-ouvertes.fr
+    adapter: hal
+    enabled: true
+    note: "Dépôts universitaires francophones, thèses incluses (gratuit, sans clé)."
+  - id: theses_fr
+    label: theses.fr
+    family: theses
+    host: theses.fr
+    adapter: theses_fr
+    enabled: true
+    note: "Thèses soutenues en France (API v1, gratuite, sans clé) : détecte un gap déjà comblé."
+  - id: openaire
+    label: OpenAIRE
+    family: repositories
+    host: api.openaire.eu
+    adapter: openaire
+    enabled: true
+    note: "Recherche financée publiquement et dépôts institutionnels (gratuit, sans clé)."
+  - id: datacite
+    label: DataCite
+    family: publications
+    host: api.datacite.org
+    adapter: datacite
+    enabled: true
+    note: "DOI de publications, thèses et jeux de données (gratuit, sans clé)."
+  - id: doaj
+    label: DOAJ
+    family: publications
+    host: doaj.org
+    adapter: doaj
+    enabled: true
+    note: "Revues en accès ouvert (gratuit, sans clé)."
+  - id: europepmc
+    label: Europe PMC
+    family: publications
+    host: www.ebi.ac.uk
+    adapter: europepmc
+    enabled: true
+    note: "Littérature biomédicale et sciences de la vie (gratuit, sans clé)."

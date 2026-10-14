@@ -13,17 +13,42 @@ llm:
 
 limits:                              # SPEC §30 — bornes de consommation
   max_input_size: 20000              # caractères
-  max_output_tokens: 4000             # 2000 tronquait le JSON de l'Agent Sujet (sujet précis)
+  max_output_tokens: 16000            # modèle raisonneur : les tokens de raisonnement consomment
+                                     # ce budget ; une limite basse coupe le JSON en plein objet.
+                                     # Élevé avec la recherche documentaire : le contexte à lire
+                                     # (titres, résumés, liens des sources récupérées) est plus long.
   max_tool_calls: 0
   max_agent_turns: 6
   max_verification_retries: 3
-  timeout: 30                        # secondes
-  max_external_requests: 0           # V1 : aucune recherche externe
-  max_search_results: 5
+  timeout: 60                        # secondes
+  max_external_requests: 36          # requêtes × fournisseurs × (1 + retry) de la recherche réelle
+  max_search_results: 8
+  # --- recherche documentaire réelle (couche « sources ») ---
+  source_timeout: 20                 # secondes par requête fournisseur
+  max_research_queries: 3            # requêtes envoyées aux fournisseurs
+  max_results_per_query: 8           # résultats demandés par requête/fournisseur
+  cache_ttl_hours: 336               # 14 jours
 
 paths:
   workspace: workspace               # artefacts par session
   audit_db: workspace/audit.db       # journal d'audit (SQLite stdlib)
+  cache_db: workspace/subject-cache.db   # cache des requêtes documentaires
+
+# RECHERCHE DOCUMENTAIRE RÉELLE — l'agent va CHERCHER l'information au lieu de la réclamer.
+sources:
+  enabled: true
+  user_agent: "memo-platform/0.1 (accompagnement memoire; contact: etudiant@example.org)"
+  polite_email: "etudiant@example.org"
+  max_response_bytes: 3000000
+  providers_file: providers.yaml
+  polite_delay_seconds: 0.4
+  retry_on_transient: 2
+  max_retry_wait: 5.0
+
+research:
+  # Nombre de références retenues et présentées au modèle. Elles sont RÉELLES : le modèle ne peut
+  # citer que celles-là (une source inventée est refusée par la validation).
+  max_sources: 12
 
 security:
   fail_on_injection: false           # true = bloquer ; false = annoter et continuer
