@@ -81,3 +81,20 @@ Fichier de contexte projet (découverte : cwd uniquement — doit être lancé d
 
 ## Langue
 Français pour la documentation et les livrables du projet.
+
+## Deux consignes du porteur à appliquer partout (2026-10-14)
+1. **L'agent FAIT le travail.** Il arrête lui-même l'objet précis, la période, les acteurs et la
+   discipline, les justifie par les références réelles récupérées, et présente une PROPOSITION prête
+   à travailler. Interdit de renvoyer à l'étudiant ce que la recherche peut établir, ou de terminer
+   par un questionnaire. Seule exception stricte : le TERRAIN (accès, personnes joignables,
+   autorisations, délais, moyens).
+2. **L'agent répond comme un expert PRAGMATIQUE.** Réponse dès la première phrase, dense, avec
+   chiffres, ordres de grandeur, seuils, formules, outils, étapes numérotées — le savoir de métier
+   est un DROIT ET UN DEVOIR, présenté comme repère de pratique. Interdit de commencer par « votre
+   dossier ne contient pas… » ou « je ne peux pas vous donner… ». Aucun fait inventé sur le travail
+   de l'étudiant (donnée, chiffre de ses données, source non récupérée).
+
+**Question libre** : les 12 agents exposent `POST /<prefixe>/question` (perimetre propre à chacun).
+L'orchestrateur désigne l'étape (routage déterministe), appelle son agent, et RELAIE une fois si
+l'agent répond que la question relève d'une autre étape (`POST /dossiers/{e}/{s}/interroger`).
+`route_question` est déclarée par étape dans `config/settings-orchestrateur.yaml` (12/12).
