@@ -41,6 +41,12 @@ limits:
   max_abstract_chars: 1200           # extrait de résumé conservé
   documents_per_scoring_batch: 12    # documents par lot de notation/extraction (P2)
   max_scoring_batches: 6             # plafond de lots
+  # VITESSE (mesure réelle, 2026-10-14, étape 3 sur 250 documents collectés / 72 notés) : la
+  # notation/extraction des 6 lots pesait 461,9 s faite lot après lot alors qu'ils sont
+  # INDÉPENDANTS ; les 6 lots notés EN PARALLÈLE prennent 129,2 s (×3,6). Même corpus, mêmes
+  # documents, mêmes contrôles, verdict vérifié dans les deux cas — seul l'ordre d'exécution change.
+  # 1 = séquentiel (ancien comportement) ; borne le nombre d'appels LLM simultanés.
+  scoring_parallelism: 6
   cache_ttl_hours: 336               # 14 jours
   unpaywall_max_lookups: 40          # requêtes d'enrichissement accès ouvert (était 60)
   # --- texte intégral (téléchargement + lecture réelle) ---

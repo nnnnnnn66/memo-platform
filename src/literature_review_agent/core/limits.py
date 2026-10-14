@@ -32,6 +32,11 @@ class Limits:
     excerpt_window_chars: int
     max_quote_chars: int
     max_thesis_resolvers: int
+    # Nombre de lots de notation notés SIMULTANÉMENT (les lots sont indépendants : méthode,
+    # résultats et citations ne dépendent que du document lui-même). 1 = ancien comportement
+    # strictement séquentiel. La qualité ne dépend pas du parallélisme : chaque lot reçoit
+    # exactement le même contenu et passe par les mêmes validations.
+    scoring_parallelism: int = 4
 
     @classmethod
     def from_dict(cls, d: dict) -> "Limits":

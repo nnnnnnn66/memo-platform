@@ -1,10 +1,15 @@
 """Phase 2 : notation et extraction par lots bornés, puis sélection finale du corpus."""
 
+import concurrent.futures
+import time
 from pathlib import Path
 
 from ..core.errors import ErrorState, PipelineError
+from ..core.logging import get_logger
 from ..sources.corpus import Corpus
 from . import fulltext_stage, output_parser, schema_validation, security_layer
+
+log = get_logger("pipeline.scoring")
 
 _PROMPT_DIR = Path(__file__).resolve().parents[1] / "llm" / "prompts"
 
@@ -43,9 +48,65 @@ def _batch_block(corpus: Corpus, records, documents: dict, abstract_chars: int,
     return "\n".join(lines)
 
 
+def _score_batch(llm, system, request, annotations, corpus, records, documents, limits,
+                 base_extra, max_attempts) -> tuple[dict, int]:
+    """Note et analyse UN lot. Indépendant des autres lots : peut tourner dans son propre fil.
+
+    Retourne (analyses_du_lot, tentatives_consommées). Lève PipelineError si le lot reste invalide
+    après `max_attempts` — le lot fautif doit faire échouer la campagne comme avant.
+    """
+    block = _batch_block(corpus, records, documents, limits.max_abstract_chars,
+                         limits.excerpt_window_chars)
+    expected = {record.doc_id for record in records}
+    analyses: dict[str, dict] = {}
+    extra = base_extra
+    attempts = 0
+    while attempts < max_attempts:
+        attempts += 1
+        user = security_layer.build_user_message(request, annotations, [block])
+        if extra:
+            user += "\n\n[INSTRUCTION DE CORRECTION]\n" + extra
+        try:
+            raw = llm.complete(system, user)
+            data = output_parser.extract_json(raw)
+            batch = schema_validation.validate_batch(data)
+        except PipelineError as exc:
+            if attempts < max_attempts:
+                extra = (f"Ta sortie précédente était invalide ({exc.state.value}). "
+                         f"Détail : {exc.detail[:500]}\nRéémets uniquement le JSON conforme.")
+                continue
+            raise
+        returned = {a.doc_id for a in batch.documents}
+        violations = []
+        if not returned & expected:
+            violations.append("aucun doc_id du lot n'est présent dans la réponse")
+        unknown = returned - expected
+        if unknown:
+            violations.append(f"doc_id hors lot : {sorted(unknown)[:5]}")
+        if violations:
+            if attempts < max_attempts:
+                extra = ("Corrige ces points puis réémets le JSON COMPLET :\n"
+                         + "\n".join(f"- {v}" for v in violations))
+                continue
+            raise PipelineError(ErrorState.OUTPUT_SCHEMA_ERROR,
+                                "phase 2 non conforme : " + " ; ".join(violations))
+        for analysis in batch.documents:
+            analyses[analysis.doc_id] = analysis.model_dump(mode="json")
+        break
+    return analyses, attempts
+
+
 def run(llm, request, corpus: Corpus, documents: dict, annotations: list[dict], settings,
         extra: str = "", max_attempts: int = 2):
-    """Note et analyse les documents par lots. Retourne (lots_validés, attempts)."""
+    """Note et analyse les documents par lots. Retourne (lots_validés, attempts).
+
+    Les lots sont INDÉPENDANTS (chaque lot ne lit que ses propres documents) : ils sont notés en
+    parallèle, bornés par `limits.scoring_parallelism`. Le résultat est assemblé dans l'ordre des
+    lots, donc identique au séquentiel — même corpus, mêmes documents, mêmes validations. La
+    contrepartie technique est traitée en amont : le compteur d'appels LLM est verrouillé (le
+    client est partagé) et chaque lot construit son propre dictionnaire d'analyses (fusion faite
+    ici, dans le fil principal).
+    """
     system = load_system()
     limits = settings.limits
     batch_size = limits.documents_per_scoring_batch
@@ -53,50 +114,44 @@ def run(llm, request, corpus: Corpus, documents: dict, annotations: list[dict], 
 
     # On note en priorité les documents les mieux pré-classés par les heuristiques déterministes.
     candidates = corpus.records[: batch_size * max_batches]
+    batches = [candidates[start:start + batch_size]
+               for start in range(0, len(candidates), batch_size)]
+    batches = [records for records in batches if records]
+
     analyses: dict[str, dict] = {}
     attempts_total = 0
+    started = time.monotonic()
 
-    for start in range(0, len(candidates), batch_size):
-        records = candidates[start:start + batch_size]
-        if not records:
-            break
-        block = _batch_block(corpus, records, documents, limits.max_abstract_chars,
-                             limits.excerpt_window_chars)
-        expected = {record.doc_id for record in records}
-        attempts = 0
-        while attempts < max_attempts:
-            attempts += 1
-            attempts_total += 1
-            user = security_layer.build_user_message(request, annotations, [block])
-            if extra:
-                user += "\n\n[INSTRUCTION DE CORRECTION]\n" + extra
-            try:
-                raw = llm.complete(system, user)
-                data = output_parser.extract_json(raw)
-                batch = schema_validation.validate_batch(data)
-            except PipelineError as exc:
-                if attempts < max_attempts:
-                    extra = (f"Ta sortie précédente était invalide ({exc.state.value}). "
-                             f"Détail : {exc.detail[:500]}\nRéémets uniquement le JSON conforme.")
-                    continue
-                raise
-            returned = {a.doc_id for a in batch.documents}
-            violations = []
-            if not returned & expected:
-                violations.append("aucun doc_id du lot n'est présent dans la réponse")
-            unknown = returned - expected
-            if unknown:
-                violations.append(f"doc_id hors lot : {sorted(unknown)[:5]}")
-            if violations:
-                if attempts < max_attempts:
-                    extra = ("Corrige ces points puis réémets le JSON COMPLET :\n"
-                             + "\n".join(f"- {v}" for v in violations))
-                    continue
-                raise PipelineError(ErrorState.OUTPUT_SCHEMA_ERROR,
-                                    "phase 2 non conforme : " + " ; ".join(violations))
-            for analysis in batch.documents:
-                analyses[analysis.doc_id] = analysis.model_dump(mode="json")
-            break
+    parallelism = max(1, int(getattr(limits, "scoring_parallelism", 1) or 1))
+    if parallelism == 1 or len(batches) <= 1:
+        for records in batches:
+            got, attempts = _score_batch(llm, system, request, annotations, corpus, records,
+                                         documents, limits, extra, max_attempts)
+            analyses.update(got)
+            attempts_total += attempts
+        log.info("notation : %s lot(s) en séquentiel — %.1fs (%s document(s))",
+                 len(batches), time.monotonic() - started, len(analyses))
+        return analyses, attempts_total
+
+    workers = min(parallelism, len(batches))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=workers,
+                                               thread_name_prefix="scoring") as pool:
+        futures = {
+            pool.submit(_score_batch, llm, system, request, annotations, corpus, records,
+                        documents, limits, extra, max_attempts): index
+            for index, records in enumerate(batches)
+        }
+        # Un lot en échec lève ici (dans le fil principal), exactement comme en séquentiel.
+        results = {futures[future]: future.result()
+                   for future in concurrent.futures.as_completed(futures)}
+
+    # Fusion ORDONNÉE : l'ordre d'insertion des analyses suit l'ordre des lots du séquentiel.
+    for index in range(len(batches)):
+        got, attempts = results[index]
+        analyses.update(got)
+        attempts_total += attempts
+    log.info("notation : %s lot(s) en parallèle (max %s simultanés) — %.1fs (%s document(s))",
+             len(batches), workers, time.monotonic() - started, len(analyses))
     return analyses, attempts_total
 
 
