@@ -117,7 +117,8 @@ def analyze_subject(request: SubjectRequest, settings, llm, verifier_llm=None,
     # passer un objet déjà calculé sert aux tests hors réseau.
     if research is None:
         try:
-            research = research_stage.run(request.subject_text or "", settings)
+            research = research_stage.run(request.subject_text or "", settings,
+                                          discipline=request.discipline or "")
         except Exception as exc:  # jamais une panne réseau ne fait échouer le travail
             log.info("recherche documentaire indisponible : %s", exc)
             research = research_stage.ResearchResult(

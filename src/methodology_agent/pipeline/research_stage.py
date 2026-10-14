@@ -211,8 +211,16 @@ def run(request, settings, registry=None, fetcher=None, cache=None) -> ResearchR
         resultat.note = "recherche documentaire désactivée par configuration"
         return resultat
 
+    from .discipline import profil as profil_discipline
+
+    filiere = profil_discipline(getattr(request, "discipline", "") or "")
     domaine = _termes(getattr(request, "subject_text", "") or "")
-    methode = _vocabulaire_du_diagnostic(request) or _METHODES[:5]
+    # Le vocabulaire de méthode est enrichi par celui de la FILIÈRE : les instruments et les
+    # méthodes d'analyse ne portent pas le même nom en santé, en droit ou en gestion.
+    methode = list(_vocabulaire_du_diagnostic(request) or _METHODES[:5])
+    for mot in filiere.vocabulaire:
+        if mot not in methode:
+            methode.append(mot)
     requetes = _requetes(domaine, methode, int(getattr(settings.limits, "max_research_queries", 3)))
     if not requetes:
         resultat.note = "aucune requête exploitable"
@@ -228,11 +236,18 @@ def run(request, settings, registry=None, fetcher=None, cache=None) -> ResearchR
                                     registry.allowed_hosts())
     cache = cache or GapCheckCache(settings.cache_db, settings.limits.cache_ttl_hours)
 
+    from .discipline import ordonner_fournisseurs
+
     par_requete = int(getattr(settings.limits, "max_results_per_query", 8) or 8)
     limite = int((getattr(settings, "research", {}) or {}).get("max_sources", 12) or 12)
     vus: set[str] = set()
+    par_fournisseur = max(2, limite // 3)
+    disponibles = [p.id for p in registry.enabled()]
+    par_id = {p.id: p for p in registry.enabled()}
 
-    for provider in registry.enabled():
+    for identifiant in ordonner_fournisseurs(getattr(request, "discipline", "") or "", disponibles):
+        provider = par_id[identifiant]
+        comptes_fournisseur = 0
         search = registry.adapter_module(provider).search
         for requete in requetes:
             try:
@@ -255,6 +270,7 @@ def run(request, settings, registry=None, fetcher=None, cache=None) -> ResearchR
                 if not cle or cle in vus:
                     continue
                 vus.add(cle)
+                comptes_fournisseur += 1
                 resultat.records.append(SourceRecord(
                     source_id=cle[:160],
                     provider=provider.id,
@@ -266,7 +282,7 @@ def run(request, settings, registry=None, fetcher=None, cache=None) -> ResearchR
                     abstract=str(record.get("abstract", "") or ""),
                     query=requete,
                 ))
-                if len(resultat.records) >= limite:
+                if len(resultat.records) >= limite or comptes_fournisseur >= par_fournisseur:
                     break
             if len(resultat.records) >= limite:
                 break

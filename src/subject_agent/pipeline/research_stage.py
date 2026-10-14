@@ -169,7 +169,8 @@ def _pertinent(record: dict, termes: list[str], coeur: list[str]) -> bool:
     return True
 
 
-def run(subject_text: str, settings, registry=None, fetcher=None, cache=None) -> ResearchResult:
+def run(subject_text: str, settings, discipline: str = "", registry=None, fetcher=None,
+        cache=None) -> ResearchResult:
     """Interroge les fournisseurs gratuits sans clé et renvoie les références réellement obtenues.
 
     Ne lève JAMAIS pour un échec réseau : un fournisseur muet est DÉCLARÉ, il ne fait pas échouer
@@ -199,11 +200,22 @@ def run(subject_text: str, settings, registry=None, fetcher=None, cache=None) ->
                                     registry.allowed_hosts())
     cache = cache or GapCheckCache(settings.cache_db, settings.limits.cache_ttl_hours)
 
+    from .discipline import ordonner_fournisseurs
+
     par_requete = int(getattr(settings.limits, "max_results_per_query", 8))
     vus: set[str] = set()
     limite = int(getattr(settings, "research", {}).get("max_sources", 12) or 12)
+    # La FILIÈRE décide de l'ordre de consultation ET du plafond par fournisseur : sans plafond, le
+    # premier fournisseur qui répond remplit tout le quota et les autres (les plus pertinents pour
+    # la discipline) ne sont jamais atteints.
+    par_fournisseur = max(2, limite // 3)
+    disponibles = [p.id for p in registry.enabled()]
+    ordre = ordonner_fournisseurs(discipline, disponibles)
+    par_id = {p.id: p for p in registry.enabled()}
 
-    for provider in registry.enabled():
+    for identifiant in ordre:
+        provider = par_id[identifiant]
+        comptes_fournisseur = 0
         search = registry.adapter_module(provider).search
         for requete in requetes:
             try:
@@ -226,6 +238,7 @@ def run(subject_text: str, settings, registry=None, fetcher=None, cache=None) ->
                 if not cle or cle in vus:
                     continue
                 vus.add(cle)
+                comptes_fournisseur += 1
                 resultat.records.append(SourceRecord(
                     source_id=cle[:160],
                     provider=provider.id,
@@ -237,7 +250,7 @@ def run(subject_text: str, settings, registry=None, fetcher=None, cache=None) ->
                     abstract=str(record.get("abstract", "") or ""),
                     query=requete,
                 ))
-                if len(resultat.records) >= limite:
+                if len(resultat.records) >= limite or comptes_fournisseur >= par_fournisseur:
                     break
             if len(resultat.records) >= limite:
                 break
