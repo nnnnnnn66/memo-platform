@@ -29,6 +29,7 @@ from . import (
     prerequisites,
     protocol_checks,
     protocol_stage,
+    research_stage,
     security_layer,
     security_validation,
     verifier as verifier_module,
@@ -121,7 +122,8 @@ def _clean_missing(request, items) -> list[str]:
     return out
 
 
-def _assemble(request, analysis, protocol_out, instruments_out, writing_out) -> MethodologyOutput:
+def _assemble(request, analysis, protocol_out, instruments_out, writing_out,
+              recherche=None) -> MethodologyOutput:
     protocol = protocol_out.protocol
     matrix = matrix_rules.recompute_coverage(
         matrix_rules.build(request, instruments_out.matrice))
@@ -170,8 +172,18 @@ def _assemble(request, analysis, protocol_out, instruments_out, writing_out) -> 
         out.elements_de_recherche_examines.append("hypothèses de recherche vérifiées")
     if (request.university_instructions or "").strip():
         out.elements_de_recherche_examines.append("consignes de l'établissement fournies")
-    out.sources_methodologiques_consultees = [
-        "aucune source en ligne consultée (étape 9 sans réseau)"]
+    # Champ DÉTERMINISTE : ce sont les références RÉELLEMENT récupérées, jamais ce que le modèle
+    # prétend avoir lu. Il disait « aucune source en ligne consultée » — faux depuis que l'agent
+    # va chercher lui-même ses références de méthode.
+    if recherche is not None and recherche.records:
+        out.sources_methodologiques_consultees = [
+            (f"{r.title} ({r.year}) — {r.url}" if r.year else f"{r.title} — {r.url}").strip(" —")
+            for r in recherche.records]
+    else:
+        note = getattr(recherche, "note", "") if recherche is not None else ""
+        out.sources_methodologiques_consultees = [
+            "recherche documentaire sans résultat exploitable"
+            + (f" ({note})" if note else "")]
     out.limites_et_risques = [f"{l.description} — {l.consequence}".strip(" —")
                               for l in protocol.limites if str(l.description or "").strip()]
     out.contradictions = list(protocol.contradictions_diagnostic)
@@ -204,7 +216,8 @@ def _derived_missing(request, analysis) -> list[str]:
     return [m for m in missing if not (m in seen or seen.add(m))]
 
 
-def _formulate(llm, request, annotations, analysis, limits, extra: str = "", max_attempts: int = 2):
+def _formulate(llm, request, annotations, analysis, limits, extra: str = "",
+               max_attempts: int = 2, recherche=None, bloc_sources: str = ""):
     """Produit P2 → P3 → P4, applique les contrôles déterministes, re-tente si nécessaire."""
     attempts = 0
     out = None
@@ -212,17 +225,20 @@ def _formulate(llm, request, annotations, analysis, limits, extra: str = "", max
     extra_local = extra
     for _ in range(max(1, max_attempts)):
         protocol_out, used2 = protocol_stage.run_protocol(
-            llm, request, annotations, analysis, extra=extra_local)
+            llm, request, annotations, analysis, extra=extra_local,
+            sources_bloc=bloc_sources)
         attempts += used2
         instruments_out, used3 = instruments_stage.run(
-            llm, request, annotations, protocol_out.protocol, extra=extra_local)
+            llm, request, annotations, protocol_out.protocol, extra=extra_local,
+            sources_bloc=bloc_sources)
         attempts += used3
         writing_out, used4 = writing_stage.run(
             llm, request, annotations, protocol_out.protocol,
             matrix_rules.recompute_coverage(matrix_rules.build(request, instruments_out.matrice)),
             extra=extra_local)
         attempts += used4
-        out = _assemble(request, analysis, protocol_out, instruments_out, writing_out)
+        out = _assemble(request, analysis, protocol_out, instruments_out, writing_out,
+                        recherche=recherche)
         violations = protocol_checks.run(request, out.protocol, out.matrice, out.draft,
                                          out.analysis)
         if not violations:
@@ -319,12 +335,29 @@ def run(request, settings, llm, verifier_llm=None, allow_network: bool = True, p
 
     annotations = security_layer.screen(request, settings.security)
 
+    # L'AGENT VA CHERCHER (mission propre : des references de MÉTHODE, pas la litterature du sujet).
+    # La recherche tourne AVANT les etages et son bloc est transmis a P1, P2 et P3 — la ou se
+    # decident l'echantillon, les instruments et l'analyse. Un echec reseau est DECLARE, jamais fatal.
+    if allow_network:
+        recherche = research_stage.run(request, settings)
+    else:
+        recherche = research_stage.ResearchResult(
+            note="recherche documentaire non lancée (réseau désactivé)")
+    bloc_sources = recherche.bloc_prompt
+    stages["recherche"] = {
+        "references": len(recherche.records),
+        "fournisseurs": recherche.providers_used,
+        "echecs": recherche.providers_failed,
+        "requetes": recherche.queries,
+    }
+
     def checkpoint(name: str, payload) -> None:
         if persist:
             persist(name, payload)
 
     # [P1] analyse du dossier
-    analysis, a1 = protocol_stage.run_analysis(llm, request, annotations)
+    analysis, a1 = protocol_stage.run_analysis(llm, request, annotations,
+                                              sources_bloc=bloc_sources)
     stages["analysis"] = {
         "disponible": len(analysis.elements_disponibles),
         "manquant": len(analysis.elements_manquants),
@@ -333,7 +366,8 @@ def run(request, settings, llm, verifier_llm=None, allow_network: bool = True, p
     checkpoint("analysis", analysis)
 
     # [P2 → P4] protocole, instruments, matrice, rédaction + contrôles déterministes
-    out, a_rest, violations = _formulate(llm, request, annotations, analysis, settings.limits)
+    out, a_rest, violations = _formulate(llm, request, annotations, analysis, settings.limits,
+                                         recherche=recherche, bloc_sources=bloc_sources)
     attempts_total = a1 + a_rest
     if violations or out is None:
         raise PipelineError(ErrorState.OUTPUT_SCHEMA_ERROR,

@@ -30,11 +30,15 @@ def _checks_analysis(obj: AnalysisOutput) -> list[str]:
     return violations
 
 
-def run_analysis(llm, request, annotations, extra: str = ""):
+def run_analysis(llm, request, annotations, extra: str = "", sources_bloc: str = ""):
     system = load_p1()
     # Le diagnostic de l'étape 8 est FOURNI : sans ce bloc, le modèle le déclare « absent du
     # dossier » — contradiction interne relevée par le vérificateur en campagne réelle.
     context = [security_layer.diagnostic_block(request)]
+    if sources_bloc:
+        context = list(context) + [sources_bloc]
+    if sources_bloc:
+        context = list(context) + [sources_bloc]
     user = security_layer.build_user_message(request, annotations, extra_blocks=context)
     obj, attempts = llm_stage.run_json_stage(
         llm, system, user, AnalysisOutput, extra_checks=_checks_analysis, extra=extra)
@@ -65,7 +69,7 @@ def _checks_protocol(obj: ProtocolOutput) -> list[str]:
     return violations
 
 
-def run_protocol(llm, request, annotations, analysis, extra: str = ""):
+def run_protocol(llm, request, annotations, analysis, extra: str = "", sources_bloc: str = ""):
     system = load_p2()
     context = [
         f"Analyse préalable : disponible = {' ; '.join(analysis.elements_disponibles) or 'aucun'}",
@@ -80,6 +84,10 @@ def run_protocol(llm, request, annotations, analysis, extra: str = ""):
         ("Hypothèses à examiner, le cas échéant : " + " ; ".join(request.effective_hypotheses()))
         if request.effective_hypotheses() else "",
     ]
+    if sources_bloc:
+        context = list(context) + [sources_bloc]
+    if sources_bloc:
+        context = list(context) + [sources_bloc]
     user = security_layer.build_user_message(request, annotations, extra_blocks=context)
     obj, attempts = llm_stage.run_json_stage(
         llm, system, user, ProtocolOutput, extra_checks=_checks_protocol, extra=extra)

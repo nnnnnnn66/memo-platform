@@ -27,7 +27,7 @@ def _checks(obj: InstrumentsOutput) -> list[str]:
     return violations
 
 
-def run(llm, request, annotations, protocol, extra: str = ""):
+def run(llm, request, annotations, protocol, extra: str = "", sources_bloc: str = ""):
     system = load_system()
     objectives = [request.effective_general_objective(), *request.effective_specific_objectives()]
     objectives = [o for o in objectives if str(o).strip()]
@@ -38,6 +38,8 @@ def run(llm, request, annotations, protocol, extra: str = ""):
         ("Aucune hypothèse n'est pertinente pour ce travail (décision de l'étape 7) : ne pas en "
          "introduire dans les instruments.") if request.hypotheses_not_required() else "",
     ]
+    if sources_bloc:
+        context = list(context) + [sources_bloc]
     user = security_layer.build_user_message(request, annotations, extra_blocks=context)
     obj, attempts = llm_stage.run_json_stage(
         llm, system, user, InstrumentsOutput, extra_checks=_checks, extra=extra)

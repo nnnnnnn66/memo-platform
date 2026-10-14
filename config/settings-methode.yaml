@@ -22,20 +22,34 @@ limits:
   timeout: 90                        # secondes (appel LLM)
   max_llm_calls: 22                  # P1 + P2 + P3 + P4 + vérificateur + re-tentatives
                                      # + reformulations sur corrections
-  # --- aucun réseau : l'étape 9 ne consulte aucune source en ligne ---
-  max_external_requests: 0
+  # --- recherche méthodologique réelle (bornée) ---
+  # L'agent va CHERCHER des références de méthode (échantillonnage, instruments, analyse) au lieu
+  # de réclamer à l'étudiant ce qu'il ne peut pas savoir. Seul le TERRAIN se demande.
+  max_external_requests: 36
   source_timeout: 25
-  max_clarification_queries: 0
-  max_results_per_query: 0
+  max_clarification_queries: 3
+  max_results_per_query: 8
   cache_ttl_hours: 336
 
 paths:
   workspace: workspace                             # workspace/<student_id>/<session_id>/
   audit_db: workspace/audit-methode.db             # journal d'audit (SQLite stdlib)
-  cache_db: workspace/methode-cache.db             # inutilisé en V1 (aucun réseau)
+  cache_db: workspace/methode-cache.db             # cache des requêtes méthodologiques
 
 sources:
-  enabled: false
+  enabled: true
+  user_agent: "memo-platform/0.1 (accompagnement memoire; contact: etudiant@example.org)"
+  polite_email: "etudiant@example.org"
+  max_response_bytes: 3000000
+  providers_file: providers.yaml
+  polite_delay_seconds: 0.4
+  retry_on_transient: 2
+  max_retry_wait: 5.0
+
+research:
+  # Références méthodologiques présentées au modèle. Elles sont RÉELLES : le modèle ne peut citer
+  # que celles-là (une référence inventée est refusée par les contrôles).
+  max_sources: 12
 
 security:
   fail_on_injection: false                         # true = bloquer ; false = annoter et continuer
