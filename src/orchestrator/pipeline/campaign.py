@@ -537,7 +537,7 @@ def documents(settings: Settings, etudiant: str, session: str, transport=None) -
             "annee": entree.get("year") or entree.get("annee") or "",
             "revue": entree.get("venue") or entree.get("journal") or entree.get("revue") or "",
             "lien": entree.get("url_source") or (f"https://doi.org/{doi}" if doi else ""),
-            "telechargeable": bool(entree.get("downloaded") and entree.get("file_name")),
+            "telechargeable": bool(entree.get("file_name")),
         })
     return {
         "entries": entrees,
