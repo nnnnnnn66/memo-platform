@@ -23,6 +23,10 @@ class Etape:
     port: int
     prefixe: str
     route_analyse: str
+    # Route d'INTERROGATION de cet agent : sa capacite a repondre a une question LIBRE
+    # (voir pipeline/interrogation.py). Vide = l'agent ne sait pas encore repondre a une
+    # question hors analyse ; l'orchestrateur le DIT au lieu de faire semblant.
+    route_question: str = ""
     upstream: dict = field(default_factory=dict)
     finale: bool = False
     # Champs de base transmis à CET agent, sous la forme {notre clé → nom attendu par l'agent}.
@@ -44,6 +48,9 @@ class Etape:
 
     def url_analyse(self, hote: str) -> str:
         return f"http://{hote}:{self.port}{self.route_analyse}"
+
+    def url_question(self, hote: str) -> str:
+        return f"http://{hote}:{self.port}{self.route_question}" if self.route_question else ""
 
     def url_lecture(self, hote: str, etudiant: str, session: str) -> str:
         return f"http://{hote}:{self.port}{self.prefixe}/{etudiant}/{session}"
@@ -113,6 +120,7 @@ def charger(chemin: pathlib.Path | None = None) -> Settings:
             port=int(item["port"]),
             prefixe=str(item["prefixe"]).rstrip("/"),
             route_analyse=str(item["route_analyse"]),
+            route_question=str(item.get("route_question", "") or ""),
             upstream={str(champ): int(source) for champ, source in (item.get("upstream") or {}).items()},
             finale=bool(item.get("finale", False)),
             champs=_champs(item.get("champs")),

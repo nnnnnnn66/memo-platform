@@ -65,6 +65,7 @@ etapes:
     port: 8010
     prefixe: /subject
     route_analyse: /subject/analyze
+    route_question: /subject/question
     # {notre clé → nom attendu par CET agent}. Les champs absents ne sont pas envoyés : ils sont
     # recopiés dans `contexte_libre` avec leur intitulé, pour ne rien perdre.
     champs:
@@ -250,6 +251,7 @@ etapes:
     port: 8090
     prefixe: /methodology/protocol
     route_analyse: /methodology/protocol/analyze
+    route_question: /methodology/question
     champs:
       student_id: student_id
       session_id: session_id

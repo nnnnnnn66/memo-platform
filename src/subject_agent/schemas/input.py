@@ -28,3 +28,14 @@ class SubjectRequest(BaseModel):
             "institution": self.institution,
             "additional_constraints": self.additional_constraints,
         }
+
+
+class QuestionRequest(BaseModel):
+    """Une question LIBRE posée à cet agent (voir pipeline/interrogation.py)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    student_id: str = ""
+    session_id: str | None = None
+    question: str
+    contexte: str = ""

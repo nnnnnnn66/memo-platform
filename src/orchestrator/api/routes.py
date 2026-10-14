@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, field_validator
 
 from ..core.errors import OrchestratorError
-from ..pipeline import campaign, registry
+from ..pipeline import campaign, interrogation, registry
 
 router = APIRouter()
 
@@ -218,3 +218,20 @@ async def bibliographie_du_dossier(request: Request, etudiant: str, session: str
     return Response(content=contenu, media_type=type_mime,
                     headers={"Content-Disposition":
                              f'attachment; filename="bibliographie.{extension}"'})
+
+@router.post("/dossiers/{etudiant}/{session}/interroger")
+async def interroger(request: Request, etudiant: str, session: str,
+                     body: QuestionLibre) -> dict:
+    """L'étudiant pose une question LIBRE : l'orchestrateur désigne l'étape et SON AGENT répond.
+
+    Différence avec `/question` (qui ne fait que désigner) : ici la réponse existe. L'agent
+    compétent est appelé, il répond dans son périmètre à partir du dossier réel, et si la question
+    appartient en fait à une AUTRE étape, l'orchestrateur appelle cet agent-là.
+
+    Sans effet de bord : aucune écriture de dossier, aucun quota consommé, aucune campagne lancée.
+    """
+    settings = request.app.state.settings
+    try:
+        return interrogation.interroger(settings, etudiant, session, body.question)
+    except OrchestratorError as erreur:
+        raise _erreur(erreur) from erreur
