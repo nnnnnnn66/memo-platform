@@ -206,3 +206,13 @@ class ObjectivesRequest(BaseModel):
         if self.upstream_problematic is not None:
             parts.append(self.upstream_problematic.model_dump_json())
         return "\n".join(p for p in parts if p)
+
+class QuestionRequest(BaseModel):
+    """Une question LIBRE posée à cet agent (voir pipeline/interrogation.py)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    student_id: str = ""
+    session_id: str | None = None
+    question: str
+    contexte: str = ""

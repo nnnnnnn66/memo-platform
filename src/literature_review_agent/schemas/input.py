@@ -102,3 +102,13 @@ class CampaignRequest(BaseModel):
         for i, reference in enumerate(self.known_references):
             base[f"known_reference_{i + 1}"] = reference
         return base
+
+class QuestionRequest(BaseModel):
+    """Une question LIBRE posée à cet agent (voir pipeline/interrogation.py)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    student_id: str = ""
+    session_id: str | None = None
+    question: str
+    contexte: str = ""

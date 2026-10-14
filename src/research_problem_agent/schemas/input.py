@@ -64,3 +64,13 @@ class ProblemRequest(BaseModel):
         for i, doc in enumerate(self.student_documents):
             base[f"student_document_{i}"] = doc
         return base
+
+class QuestionRequest(BaseModel):
+    """Une question LIBRE posée à cet agent (voir pipeline/interrogation.py)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    student_id: str = ""
+    session_id: str | None = None
+    question: str
+    contexte: str = ""

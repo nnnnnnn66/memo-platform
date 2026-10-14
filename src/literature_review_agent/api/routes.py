@@ -6,8 +6,8 @@ from fastapi.responses import FileResponse
 from ..bibliography import export
 from ..core.errors import ErrorState, PipelineError
 from ..core.logging import get_logger
-from ..pipeline import campaign, input_controller
-from ..schemas.input import CampaignRequest
+from ..pipeline import campaign, input_controller, interrogation
+from ..schemas.input import CampaignRequest, QuestionRequest
 from ..storage import audit, workspace
 
 router = APIRouter()
@@ -175,3 +175,27 @@ async def download_document(request: Request, student_id: str, session_id: str, 
             return FileResponse(path, media_type="application/pdf",
                                 filename=str(entry.get("file_name")))
     raise HTTPException(status_code=404, detail={"error": "NOT_FOUND"})
+
+@router.post("/literature/question")
+async def question(request: Request, body: QuestionRequest) -> dict:
+    """Répondre à une question de l'étudiant DANS le périmètre de cet agent.
+
+    Demande du porteur : l'agent choisi répond à toutes les requêtes ; s'il ne sait pas, il le DIT et
+    nomme l'étape compétente — c'est ce signalement qui permet à l'orchestrateur de faire répondre le
+    bon agent, au lieu de laisser inventer. Répondre n'écrit rien dans le dossier et ne consomme pas
+    une analyse.
+    """
+    settings = request.app.state.settings
+    llm = request.app.state.llm
+    try:
+        reponse = interrogation.repondre(
+            llm, body.question, contexte=body.contexte,
+            nom_etape="Revue de littérature", libelle_etape="Revue de littérature et diagnostic")
+    except PipelineError as exc:
+        raise HTTPException(status_code=_STATUS_MAP.get(exc.state, 500),
+                            detail={"error": exc.state.value, "detail": exc.detail}) from exc
+
+    audit.log_event(settings.audit_db, session_id=body.session_id or "?",
+                    agent_id="literature_review_agent", version="1.0", status="question_answered",
+                    llm_calls=llm.calls)
+    return {"agent": "literature_review_agent", "nom": "Revue de littérature", "question": body.question, **reponse}

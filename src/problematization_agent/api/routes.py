@@ -4,8 +4,8 @@ from fastapi import APIRouter, HTTPException, Request
 
 from ..core.errors import ErrorState, PipelineError
 from ..core.logging import get_logger
-from ..pipeline import campaign, input_controller
-from ..schemas.input import ProblemRequest
+from ..pipeline import campaign, input_controller, interrogation
+from ..schemas.input import ProblemRequest, QuestionRequest
 from ..storage import audit, workspace
 
 router = APIRouter()
@@ -121,3 +121,27 @@ async def get_note(request: Request, student_id: str, session_id: str) -> dict:
     if data is None:
         raise HTTPException(status_code=404, detail={"error": "NOT_FOUND"})
     return data
+
+@router.post("/problematique/question")
+async def question(request: Request, body: QuestionRequest) -> dict:
+    """Répondre à une question de l'étudiant DANS le périmètre de cet agent.
+
+    Demande du porteur : l'agent choisi répond à toutes les requêtes ; s'il ne sait pas, il le DIT et
+    nomme l'étape compétente — c'est ce signalement qui permet à l'orchestrateur de faire répondre le
+    bon agent, au lieu de laisser inventer. Répondre n'écrit rien dans le dossier et ne consomme pas
+    une analyse.
+    """
+    settings = request.app.state.settings
+    llm = request.app.state.llm
+    try:
+        reponse = interrogation.repondre(
+            llm, body.question, contexte=body.contexte,
+            nom_etape="Problématique", libelle_etape="Construction de la problématique")
+    except PipelineError as exc:
+        raise HTTPException(status_code=_STATUS_MAP.get(exc.state, 500),
+                            detail={"error": exc.state.value, "detail": exc.detail}) from exc
+
+    audit.log_event(settings.audit_db, session_id=body.session_id or "?",
+                    agent_id="problematization_agent", version="1.0", status="question_answered",
+                    llm_calls=llm.calls)
+    return {"agent": "problematization_agent", "nom": "Problématique", "question": body.question, **reponse}

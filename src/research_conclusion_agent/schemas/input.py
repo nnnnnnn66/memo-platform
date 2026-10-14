@@ -253,3 +253,13 @@ class ConclusionRequest(BaseModel):
             "student_constraints": self.student_constraints,
             "student_comments": self.student_comments,
         }
+
+class QuestionRequest(BaseModel):
+    """Une question LIBRE posée à cet agent (voir pipeline/interrogation.py)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    student_id: str = ""
+    session_id: str | None = None
+    question: str
+    contexte: str = ""
