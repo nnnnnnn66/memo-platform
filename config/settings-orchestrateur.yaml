@@ -108,7 +108,7 @@ etapes:
     port: 8030
     prefixe: /literature
     route_analyse: /literature/review
-    timeout: 2400        # recherche en ligne + lecture de PDF
+    timeout: 3600        # recherche en ligne + lecture de PDF + analyse du corpus
     route_question: /literature/question
     champs:
       student_id: student_id

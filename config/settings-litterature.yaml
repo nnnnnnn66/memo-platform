@@ -46,7 +46,8 @@ limits:
   # INDÉPENDANTS ; les 6 lots notés EN PARALLÈLE prennent 129,2 s (×3,6). Même corpus, mêmes
   # documents, mêmes contrôles, verdict vérifié dans les deux cas — seul l'ordre d'exécution change.
   # 1 = séquentiel (ancien comportement) ; borne le nombre d'appels LLM simultanés.
-  scoring_parallelism: 6
+  scoring_parallelism: 3             # le fournisseur limite (429) quand on lui envoie
+                                      # 6 requetes geantes en parallele : 3 va plus vite au total
   cache_ttl_hours: 336               # 14 jours
   unpaywall_max_lookups: 40          # requêtes d'enrichissement accès ouvert (était 60)
   # --- texte intégral (téléchargement + lecture réelle) ---
