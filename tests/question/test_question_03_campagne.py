@@ -68,3 +68,28 @@ def test_upstream_non_verifie_rejete(settings, request_factory):
     with pytest.raises(PipelineError) as exc:
         campaign.run(req, settings, StubLLM(), allow_network=False)
     assert "vérifiée" in exc.value.detail
+
+
+def test_intention_ambigue_est_TRANCHEE_et_DECLAREE(settings, request_factory):
+    """Défaut réel (simulation complète) : deux orientations possibles renvoyaient l'étudiante à sa
+    copie — « mesurez-vous une relation ou cherchez-vous à comprendre ? » — et toute la suite du
+    parcours était bloquée (l'étape suivante refusait une sortie non vérifiée).
+
+    Consigne du porteur, PRIORITAIRE sur la SPEC : un agent TRANCHE et DÉCLARE. Un étudiant qui ne
+    connaît rien à son sujet n'a pas à choisir entre mesurer et comprendre : c'est le travail de la
+    plateforme. On vérifie donc que la campagne retient l'intention principale, qu'elle DÉCLARE la
+    lecture écartée, et qu'elle ne s'arrête plus sur `needs_clarification`.
+    """
+    intention = {
+        "intention": "mesurer",
+        "justification": "La problématique interroge l'ampleur du lien.",
+        "alternatives": ["comprendre"],
+    }
+    result = campaign.run(request_factory(), settings,
+                          StubLLM(verdict="verified", intention=intention), allow_network=False)
+    out = result.output
+
+    assert out.status.value != "needs_clarification"
+    assert out.research_intention.intention == "mesurer"
+    assert any("Orientation retenue" in note for note in out.limits_of_this_output), \
+        "la lecture écartée doit être DÉCLARÉE, pas passée sous silence"

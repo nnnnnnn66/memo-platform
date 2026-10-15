@@ -273,13 +273,21 @@ def run(request, settings, llm, verifier_llm=None, allow_network: bool = True, p
 
     # [7] contrôle d'intention (déterministe)
     icheck = intention_check.check(intention, comprehension, problematic)
+    choix_declare = ""
     if icheck["ambiguous"]:
-        output = _clarification_output(
-            request, [icheck["clarification_question"]], pre["defaults_used"])
-        output.research_intention = intention
-        output.comprehension = comprehension
-        stages["intention_check"] = {"ambiguous": True}
-        return CampaignResult(output=output, stages=stages)
+        # Deux orientations étaient possibles (« mesurer » vs « comprendre »). On ne renvoie plus
+        # l'étudiante à sa copie : consigne du porteur, PRIORITAIRE sur la SPEC — un agent TRANCHE
+        # et DÉCLARE. Un étudiant qui ne connaît rien à son sujet n'a pas à choisir entre mesurer et
+        # comprendre : c'est le travail de la plateforme. On retient l'intention adossée à la
+        # problématique validée, on DÉCLARE la lecture écartée, et l'étudiante peut corriger en
+        # REPRENANT l'étape (c'est fait pour ça).
+        ecartees = [str(a) for a in intention.alternatives if str(a).strip()]
+        choix_declare = (
+            f"Orientation retenue : « {intention.intention} ». Une autre lecture était possible"
+            + (f" ({', '.join(ecartees[:3])})" if ecartees else "")
+            + " ; elle aurait conduit à une question différente. La question ci-dessous suit "
+              "l'orientation retenue, la mieux adossée à la problématique validée.")
+        stages["intention_check"] = {"ambiguous": True, "orientation_retenue": intention.intention}
     if icheck["issues"]:
         raise PipelineError(ErrorState.OUTPUT_SCHEMA_ERROR,
                             "intention non conforme : " + " ; ".join(icheck["issues"]))
@@ -296,6 +304,8 @@ def run(request, settings, llm, verifier_llm=None, allow_network: bool = True, p
     # ambiguïtés réellement signalées (aucune requête si rien à clarifier).
     out = _assemble(request, pre, comprehension, intention, formulation)
     _backfill_scope(out, request)
+    if choix_declare:
+        out.limits_of_this_output.append(choix_declare)
     evidence = []
     clarif_stats = {"network_requests": 0, "cache_hits": 0}
     if allow_network:
