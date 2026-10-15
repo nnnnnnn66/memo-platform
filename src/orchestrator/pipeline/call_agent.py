@@ -25,7 +25,10 @@ def appeler(url: str, charge: dict, timeout: int, transport=None) -> dict:
     donnees = json.dumps(charge, ensure_ascii=False).encode("utf-8")
     requete = urllib.request.Request(
         url, data=donnees, method="POST",
-        headers={"Content-Type": "application/json", "Accept": "application/json"})
+        headers={"Content-Type": "application/json", "Accept": "application/json",
+                     # Connexion fermée après la réponse : un agent qui rend une erreur
+                     # sans corps (502 d'uvicorn) ne peut plus bloquer l'attente.
+                     "Connection": "close"})
     try:
         with urllib.request.urlopen(requete, timeout=timeout) as reponse:
             corps = reponse.read().decode("utf-8", errors="replace")

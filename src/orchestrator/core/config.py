@@ -27,6 +27,9 @@ class Etape:
     # (voir pipeline/interrogation.py). Vide = l'agent ne sait pas encore repondre a une
     # question hors analyse ; l'orchestrateur le DIT au lieu de faire semblant.
     route_question: str = ""
+    # Délai propre à CETTE étape. Défaut du transport si absent : une étape qui
+    # échoue doit le dire vite, pas retenir l'étudiant une demi-heure.
+    timeout: int = 0
     upstream: dict = field(default_factory=dict)
     finale: bool = False
     # Champs de base transmis à CET agent, sous la forme {notre clé → nom attendu par l'agent}.
@@ -121,6 +124,7 @@ def charger(chemin: pathlib.Path | None = None) -> Settings:
             prefixe=str(item["prefixe"]).rstrip("/"),
             route_analyse=str(item["route_analyse"]),
             route_question=str(item.get("route_question", "") or ""),
+            timeout=int(item.get("timeout", 0) or 0),
             upstream={str(champ): int(source) for champ, source in (item.get("upstream") or {}).items()},
             finale=bool(item.get("finale", False)),
             champs=_champs(item.get("champs")),

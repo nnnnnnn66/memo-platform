@@ -126,7 +126,7 @@ def lancer_etape(settings: Settings, etudiant: str, session: str, transport=None
     quota.consommer(settings.state_db, etudiant, settings.analyses_par_jour)
     try:
         reponse = call_agent.appeler(etape.url_analyse(settings.hote), entree,
-                                     settings.timeout, transport)
+                                     (etape.timeout or settings.timeout), transport)
     except OrchestratorError as erreur:
         state.enregistrer_echec(settings.state_db, etudiant, session, numero, erreur.detail)
         raise
@@ -202,7 +202,7 @@ def decider(settings: Settings, etudiant: str, session: str, decision: str,
               "qu'elle te demande.")
     try:
         call_agent.appeler(etape.url_decision(settings.hote, etudiant, session),
-                           {"decision": decision}, settings.timeout, transport)
+                           {"decision": decision}, (etape.timeout or settings.timeout), transport)
     except OrchestratorError as erreur:
         # Un agent qui n'expose PAS de route de décision renvoie 404. Ce n'est pas une panne : tous
         # les agents ne sont pas concernés par la décision de l'étudiant, et l'orchestrateur reste
@@ -660,7 +660,7 @@ def _lire_agent(settings: Settings, chemin: str, transport=None) -> bytes:
         return transport(url)
     requete = urllib.request.Request(url, headers={"Accept": "*/*"})
     try:
-        with urllib.request.urlopen(requete, timeout=settings.timeout) as reponse:
+        with urllib.request.urlopen(requete, timeout=(etape.timeout or settings.timeout)) as reponse:
             return reponse.read()
     except urllib.error.HTTPError as erreur:
         if erreur.code == 404:

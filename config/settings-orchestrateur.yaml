@@ -8,7 +8,7 @@ transport:
   mode: http
   hote: 127.0.0.1
   # La revue de littérature télécharge et LIT des PDF : une campagne peut durer longtemps.
-  timeout: 1800
+  timeout: 900          # délai par défaut d'un appel d'agent
 
 quota:
   # Nombre d'analyses qu'un étudiant peut lancer par jour. Protection du solde LLM du porteur :
@@ -65,6 +65,7 @@ etapes:
     port: 8010
     prefixe: /subject
     route_analyse: /subject/analyze
+    timeout: 600
     route_question: /subject/question
     # {notre clé → nom attendu par CET agent}. Les champs absents ne sont pas envoyés : ils sont
     # recopiés dans `contexte_libre` avec leur intitulé, pour ne rien perdre.
@@ -85,6 +86,7 @@ etapes:
     port: 8020
     prefixe: /problem
     route_analyse: /problem/analyze
+    timeout: 600
     route_question: /problem/question
     # Cet agent ne connaît ni `geographical_scope` ni `period` : la zone et la période partent donc
     # dans son champ de contexte libre, avec leur intitulé lisible.
@@ -106,6 +108,7 @@ etapes:
     port: 8030
     prefixe: /literature
     route_analyse: /literature/review
+    timeout: 2400        # recherche en ligne + lecture de PDF
     route_question: /literature/question
     champs:
       student_id: student_id
@@ -129,6 +132,7 @@ etapes:
     port: 8040
     prefixe: /problematique
     route_analyse: /problematique/analyze
+    timeout: 600
     route_question: /problematique/question
     champs:
       student_id: student_id
@@ -153,6 +157,7 @@ etapes:
     port: 8050
     prefixe: /question
     route_analyse: /question/analyze
+    timeout: 600
     route_question: /question/question
     # NOM DIVERGENT, traduit ici : cet agent nomme la zone `geographical_area` et la période
     # `study_period`. Sans cette table, l'orchestrateur lui enverrait `geographical_scope` et
@@ -180,6 +185,7 @@ etapes:
     port: 8060
     prefixe: /objectives
     route_analyse: /objectives/analyze
+    timeout: 600
     route_question: /objectives/question
     champs:
       student_id: student_id
@@ -205,6 +211,7 @@ etapes:
     port: 8070
     prefixe: /hypotheses
     route_analyse: /hypotheses/analyze
+    timeout: 600
     route_question: /hypotheses/question
     champs:
       student_id: student_id
@@ -231,6 +238,7 @@ etapes:
     port: 8080
     prefixe: /methodology
     route_analyse: /methodology/analyze
+    timeout: 600
     route_question: /methodology/question
     champs:
       student_id: student_id
@@ -258,6 +266,7 @@ etapes:
     port: 8090
     prefixe: /methodology/protocol
     route_analyse: /methodology/protocol/analyze
+    timeout: 1200
     route_question: /methodology/question
     champs:
       student_id: student_id
@@ -287,6 +296,7 @@ etapes:
     port: 8100
     prefixe: /results
     route_analyse: /results/analyze
+    timeout: 600
     route_question: /results/question
     champs:
       student_id: student_id
@@ -317,6 +327,7 @@ etapes:
     port: 8130
     prefixe: /coherence
     route_analyse: /coherence/audit
+    timeout: 600
     route_question: /coherence/question
     champs:
       student_id: student_id
@@ -345,6 +356,7 @@ etapes:
     port: 8110
     prefixe: /conclusion
     route_analyse: /conclusion/write
+    timeout: 600
     route_question: /conclusion/question
     champs:
       student_id: student_id
