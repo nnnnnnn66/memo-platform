@@ -57,12 +57,33 @@ def opening_verb(text: str) -> str:
     return _normalize(match.group(1)).strip() if match else ""
 
 
+#: Mots qui, EN TÊTE d'une formulation, annoncent une question.
+_PREMIERS_MOTS_INTERROGATIFS = {
+    "pourquoi", "comment", "combien", "quand", "ou", "qui", "quel", "quelle", "quels", "quelles",
+    "questce", "qu", "estce",
+}
+
+
 def looks_like_question(text: str) -> bool:
-    if not text:
+    """Détermine si la formulation est une QUESTION.
+
+    Un marqueur interrogatif SEUL ne suffit pas : « qui », « quelle », « quand », « comment » sont
+    aussi des mots français ordinaires. Les compter partout déclarait « question, pas proposition »
+    une hypothèse parfaitement valide — « les secteurs QUI ont accueilli des opérations… », « QUELLE
+    que soit la période… » — et la campagne mourait après ses deux tentatives, sans que le
+    vérificateur soit même atteint (faux positif constaté : « hypothèse 2 : c'est une question »).
+    On ne retient donc qu'un point d'interrogation, ou un marqueur en TÊTE de formulation (après un
+    éventuel « et / mais / or / donc »).
+    """
+    texte = (text or "").strip()
+    if not texte:
         return False
-    if text.strip().endswith("?"):
+    if texte.endswith("?"):
         return True
-    return any(re.search(pat, text, re.IGNORECASE) for pat in _INTERROGATIVES)
+    mots = _normalize(texte).split()
+    if mots and mots[0] in {"et", "mais", "or", "donc"} and len(mots) > 1:
+        mots = mots[1:]
+    return bool(mots) and mots[0] in _PREMIERS_MOTS_INTERROGATIFS
 
 
 def looks_like_objective(text: str) -> bool:
