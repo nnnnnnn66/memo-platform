@@ -135,8 +135,12 @@ def interroger(settings, etudiant: str, session: str, question: str, transport=N
 
     relaye_depuis = None
     # L'agent a reconnu que la question n'était pas la sienne : on appelle LE BON agent, une fois.
-    if reponse.get("dans_perimetre") is False and reponse.get("etape_competente"):
-        vise = int(reponse["etape_competente"])
+    # Le numéro peut manquer : on le lit alors dans le texte de la réponse.
+    hors_perimetre = reponse.get("dans_perimetre") is False
+    vise = reponse.get("etape_competente") or (_etape_citee(reponse.get("reponse", ""))
+                                               if hors_perimetre else None)
+    if hors_perimetre and vise:
+        vise = int(vise)
         cible = _etape_de(settings, vise)
         if vise != numero and cible is not None and cible.route_question:
             try:
@@ -160,3 +164,20 @@ def interroger(settings, etudiant: str, session: str, question: str, transport=N
         "annotations_injection": reponse.get("annotations", []),
         "routage": routage,
     }
+
+def _etape_citee(texte: str) -> int | None:
+    """Numéro d'étape CITÉ dans la réponse de l'agent, quand il n'a pas rempli le champ dédié.
+
+    Défaut réel constaté en test : l'agent répond « cette question relève de l'étape 3 (Revue de
+    littérature) » mais laisse `etape_competente` vide → l'orchestrateur ne relançait pas la
+    question et l'étudiant restait sur « ce n'est pas mon domaine ». On lit donc le numéro dans le
+    texte, faute de quoi le relais ne fonctionne que quand le modèle veut bien remplir le champ.
+    """
+    import re
+    correspondances = re.findall(r"\b(?:[eé]tape|jalon)\s*n?°?\s*(\d{1,2})\b", texte or "",
+                                 flags=re.IGNORECASE)
+    for brut in correspondances:
+        n = int(brut)
+        if 1 <= n <= 13:
+            return n
+    return None

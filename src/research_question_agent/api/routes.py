@@ -6,7 +6,7 @@ from ..core.errors import ErrorState, PipelineError
 from ..core.logging import get_logger
 from ..pipeline import campaign, input_controller, interrogation
 from ..schemas.decision import DecisionRequest
-from ..schemas.input import QuestionRequest
+from ..schemas.input import QuestionLibreRequest, QuestionRequest
 from ..schemas.output import QuestionOutput
 from ..storage import audit, workspace
 
@@ -162,7 +162,7 @@ async def get_question(request: Request, student_id: str, session_id: str) -> di
     return data
 
 @router.post("/question/question")
-async def question(request: Request, body: QuestionRequest) -> dict:
+async def question(request: Request, body: QuestionLibreRequest) -> dict:
     """Répondre à une question de l'étudiant DANS le périmètre de cet agent.
 
     Demande du porteur : l'agent choisi répond à toutes les requêtes ; s'il ne sait pas, il le DIT et

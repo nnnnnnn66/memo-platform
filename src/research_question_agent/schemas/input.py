@@ -146,3 +146,16 @@ class QuestionRequest(BaseModel):
         if self.upstream_problem is not None:
             parts.append(self.upstream_problem.model_dump_json())
         return "\n".join(p for p in parts if p)
+
+
+class QuestionLibreRequest(BaseModel):
+    """Une question LIBRE posée à cet agent (distinct de QuestionRequest, qui porte la
+    demande de l'étape 5). La collision de noms faisait échouer la question libre avec
+    « extra_forbidden » : ce modèle a un nom qui lui est propre."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    student_id: str = ""
+    session_id: str | None = None
+    question: str
+    contexte: str = ""
