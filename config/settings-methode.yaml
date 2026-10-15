@@ -20,7 +20,11 @@ limits:
   max_agent_turns: 8
   max_verification_retries: 3
   timeout: 90                        # secondes (appel LLM)
-  max_llm_calls: 22                  # P1 + P2 + P3 + P4 + vérificateur + re-tentatives
+  max_llm_calls: 44                  # P1 + P2 + P3 + P4 + vérificateur + re-tentatives, avec une
+                                     # MARGE : sur un dossier riche (diagnostic détaillé, matrice
+                                     # complète), 22 appels étaient atteints EN PLEINE CAMPAGNE et
+                                     # l'étape échouait sur RESOURCE_LIMIT (défaut réel constaté en
+                                     # rejouant un dossier complet).
                                      # + reformulations sur corrections
   # --- recherche méthodologique réelle (bornée) ---
   # L'agent va CHERCHER des références de méthode (échantillonnage, instruments, analyse) au lieu
