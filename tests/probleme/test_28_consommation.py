@@ -101,7 +101,12 @@ def test_stage_s_arrete_au_plafond_de_requetes(settings, monkeypatch):
 
 
 def test_nombre_de_requetes_proposees_borne(settings):
-    """MAX_SEARCH_QUERIES est appliqué côté métier (phase 1)."""
+    """MAX_SEARCH_QUERIES est appliqué côté métier (phase 1) — par TRONCATURE, sans échec.
+
+    Le test décrivait l'ancien comportement (une violation levée, donc une campagne morte).
+    Le code a raison de ne plus échouer : leçon du projet — corriger la surévaluation du modèle par
+    le code, pas par un échec. On vérifie donc que la liste est ramenée à la borne, sans violation.
+    """
     from probleme_helpers import phase1_output
 
     from research_problem_agent.pipeline import business_validation
@@ -111,5 +116,5 @@ def test_nombre_de_requetes_proposees_borne(settings):
     phase1 = Phase1Output.model_validate(phase1_output(search_intents=intents))
 
     violations = business_validation.validate_phase1(phase1, settings.limits)
-
-    assert any("trop de requêtes" in v for v in violations)
+    assert len(phase1.search_intents) == settings.limits.max_search_queries
+    assert not any("trop de requêtes" in v for v in violations)

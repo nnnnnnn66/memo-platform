@@ -2,6 +2,8 @@
 
 import threading
 
+import time
+
 import httpx
 
 from ..core.errors import ErrorState, PipelineError
@@ -9,6 +11,12 @@ from ..core.logging import get_logger
 from ..core.security_rules import redact
 
 log = get_logger("llm")
+
+
+# Reprises sur erreur PASSAGÈRE du fournisseur (503/429/502/504/délai).
+_TENTATIVES = 3
+_ATTENTES = (3, 10)
+_TRANSITOIRES = {429, 500, 502, 503, 504}
 
 
 class LLMClient:
@@ -74,17 +82,37 @@ class LLMClient:
         headers = {"Authorization": f"Bearer {self.creds['api_key']}"}
         url = self.creds["base_url"].rstrip("/") + "/chat/completions"
         self._reserver()
-        try:
-            with httpx.Client(timeout=self.limits.timeout, transport=self._transport) as client:
-                resp = client.post(url, json=payload, headers=headers)
-                resp.raise_for_status()
-                data = resp.json()
-        except httpx.TimeoutException as exc:
-            self._liberer(False)
-            raise PipelineError(ErrorState.TIMEOUT, redact(str(exc))) from exc
-        except httpx.HTTPError as exc:
-            self._liberer(False)
-            raise PipelineError(ErrorState.TOOL_ERROR, redact(str(exc))) from exc
+        # Une coupure PASSAGÈRE du fournisseur de modèle ne doit jamais tuer une campagne déjà
+        # avancée : cette étape avait lu 250 documents et 30 textes intégraux quand un 503 a tout
+        # perdu. On retente un nombre borné de fois, avec une attente croissante ; une erreur
+        # DÉFINITIVE (400, 401, 404…) n'est pas retentée, elle ne guérira pas. Le jeton de
+        # concurrence n'est rendu qu'à la fin, une seule fois.
+        dernier: Exception | None = None
+        for tentative in range(1, _TENTATIVES + 1):
+            try:
+                with httpx.Client(timeout=self.limits.timeout,
+                                  transport=self._transport) as client:
+                    resp = client.post(url, json=payload, headers=headers)
+                    resp.raise_for_status()
+                    data = resp.json()
+                break
+            except httpx.TimeoutException as exc:
+                dernier, passager = exc, True
+            except httpx.HTTPStatusError as exc:
+                dernier = exc
+                passager = exc.response.status_code in _TRANSITOIRES
+            except httpx.HTTPError as exc:
+                dernier, passager = exc, True
+
+            if not passager or tentative == _TENTATIVES:
+                self._liberer(False)
+                if isinstance(dernier, httpx.TimeoutException):
+                    raise PipelineError(ErrorState.TIMEOUT, redact(str(dernier))) from dernier
+                raise PipelineError(ErrorState.TOOL_ERROR, redact(str(dernier))) from dernier
+            attente = _ATTENTES[tentative - 1]
+            log.warning("fournisseur de modèle indisponible (%s), nouvelle tentative dans %ss "
+                        "[%s/%s]", type(dernier).__name__, attente, tentative, _TENTATIVES)
+            time.sleep(attente)
 
         self._liberer(True)
         try:

@@ -2,6 +2,9 @@
 
 from pathlib import Path
 
+from ..core.logging import get_logger
+
+log = get_logger("litterature.keywords")
 from ..core.errors import ErrorState, PipelineError
 from . import output_parser, schema_validation, security_layer
 
@@ -32,6 +35,16 @@ def run(llm, request, annotations: list[dict], limits, extra: str = "",
                          f"Détail : {exc.detail[:600]}\nRéémets UNIQUEMENT le JSON conforme.")
                 continue
             raise
+
+        # Le modèle propose parfois PLUS de requêtes que la borne de l'agent. On ne fait pas
+        # échouer la campagne pour autant : leçon du projet — corriger la surévaluation par le CODE,
+        # pas par un échec. On garde les premières (dans l'ordre voulu par le modèle) et on le
+        # DÉCLARE. Sans cela, une campagne entière mourait sur « trop de requêtes (9 > 8) ».
+        if not keywords.subject_is_too_broad and len(keywords.queries) > limits.max_search_queries:
+            retirees = len(keywords.queries) - limits.max_search_queries
+            keywords.queries = keywords.queries[:limits.max_search_queries]
+            log.info("phase 1 : %s requête(s) au-delà de la borne (%s) retirée(s) ; borne respectée",
+                     retirees, limits.max_search_queries)
 
         violations = []
         if keywords.subject_reference.original.strip() != request.subject_text.strip():

@@ -6,6 +6,10 @@ surtout ANCRAGE STRICT des sources : une référence inventée ne peut pas passe
 §13, §16.B-C).
 """
 
+from ..core.logging import get_logger
+
+log = get_logger("probleme.business")
+
 from ..schemas.input import ProblemRequest
 from ..schemas.output import (
     Nature,
@@ -34,11 +38,14 @@ def validate_phase1(phase1: Phase1Output, limits) -> list[str]:
         violations.append("P1: needs_search=true mais aucune requête de recherche fournie")
     if not phase1.preliminary_analysis.phenomenon and not phase1.preliminary_analysis.main_concepts:
         violations.append("P1: analyse préliminaire vide (ni phénomène ni concepts)")
+    # Le modèle propose parfois plus de requêtes que la borne. On ne fait pas échouer la campagne
+    # pour autant (leçon du projet : corriger la surévaluation par le CODE, pas par un échec) : on
+    # garde les premières, on tronque, et on le DÉCLARE. Même correctif que la revue de littérature.
     if len(phase1.search_intents) > limits.max_search_queries:
-        violations.append(
-            f"P1: trop de requêtes proposées ({len(phase1.search_intents)} > "
-            f"{limits.max_search_queries})"
-        )
+        retirees = len(phase1.search_intents) - limits.max_search_queries
+        phase1.search_intents = phase1.search_intents[:limits.max_search_queries]
+        log.info("P1 : %s requête(s) au-delà de la borne (%s) retirée(s)", retirees,
+                 limits.max_search_queries)
     return violations
 
 
