@@ -75,12 +75,17 @@ def test_write_puis_decision(client):
     assert dec.json()["document_status"] == "valide"
 
 
-def test_write_sans_resultats_needs_clarification(client):
+def test_write_sans_resultats_produit_un_plan(client):
+    """Sans résultats, la réponse est un PLAN déclaré — jamais une question renvoyée à l'étudiante.
+
+    Même défaut que celui décrit dans tests/conclusion/test_conclusion_02_campagne.py : le test
+    décrivait l'ancien renvoi à la copie, qui bloquait la dernière étape d'un dossier complet.
+    """
     body = {k: v for k, v in _body().items() if k != "upstream_results"}
     resp = client.post("/conclusion/write", json=body)
     assert resp.status_code == 200
-    assert resp.json()["status"] == "needs_clarification"
-    assert resp.json()["output"]["questions_for_human"]
+    assert resp.json()["status"] != "needs_clarification"
+    assert resp.json()["output"]["synthesis"]["plan_seulement"] is True
 
 
 def test_resultats_non_verifies_422(client):

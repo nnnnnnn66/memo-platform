@@ -125,6 +125,43 @@ def _clarification_output(request, questions: list[str], notes: list[str]) -> Me
     )
 
 
+# --- Une seule question autorisée : le TERRAIN (consigne du porteur, prioritaire) -------------
+_MOTS_METHODE = (
+    "valider", "décider", "decider", "choisir", "arbitrer", "restreindre", "renoncer",
+    "approche", "méthode", "methode", "stratégie", "strategie", "logiciel", "compétence",
+    "competence", "critère", "critere", "hypothèse", "hypothese", "formulation", "borne",
+    "échelle", "echelle", "échantillon", "echantillon", "indicateur", "variable", "protocole",
+)
+_MOTS_TERRAIN = (
+    "accès", "acces", "autorisation", "joignable", "contact", "disponibilité", "disponibilite",
+    "ressource", "budget", "moyen", "terrain", "enquête", "enquete", "document disponible",
+    "registre", "donnée disponible", "donnee disponible", "recueillir", "collecte", "délai",
+    "delai", "financement", "permis",
+)
+
+
+def _est_question_de_terrain(question: str) -> bool:
+    """Une question n'est rendue à l'étudiante que si elle porte sur son TERRAIN."""
+    texte = (question or "").lower()
+    if any(mot in texte for mot in _MOTS_METHODE):
+        return False
+    return any(mot in texte for mot in _MOTS_TERRAIN)
+
+
+def _questions_de_terrain(questions):
+    """Seules les questions de TERRAIN sont rendues à l'étudiante (consigne du porteur)."""
+    return [q for q in questions if _est_question_de_terrain(q)]
+
+
+def _declarer_choix(out, questions) -> None:
+    """Un choix de méthode est TRANCHÉ par l'agent et DÉCLARÉ, jamais demandé à l'étudiante."""
+    for question in questions:
+        if not _est_question_de_terrain(question):
+            out.limits_of_this_output.append(
+                "Choix tranché par l'agent (à corriger en reprenant l'étape si nécessaire) : "
+                + str(question))
+
+
 def _coherence_summary(output: MethodologyOutput) -> list[str]:
     """Contrôles de cohérence rendus lisibles pour l'étudiant (SPEC §16).
 
@@ -166,7 +203,7 @@ def _assemble(request, pre, analysis, diagnosis_stage_out, missing) -> Methodolo
         feasibility_controls=list(diagnosis_stage_out.feasibility_controls),
         unknowns=list(diagnosis_stage_out.unknowns),
         limits_of_this_output=list(diagnosis_stage_out.limits_of_this_output),
-        questions_for_human=list(diagnosis_stage_out.questions_for_human),
+        questions_for_human=_questions_de_terrain(diagnosis_stage_out.questions_for_human),
     )
     # `unknowns` (déclaration brute du modèle) et `missing_information` (manques DÉDUITS du dossier)
     # restent deux listes distinctes, comme chez les agents 6 et 7 — où `missing_information` ne
@@ -285,7 +322,8 @@ def _run_verifier(out, verifier_llm, request, pre, llm, annotations, analysis, s
         out.feasibility_controls = list(obj.feasibility_controls)
         out.unknowns = list(obj.unknowns)
         out.limits_of_this_output = list(obj.limits_of_this_output)
-        out.questions_for_human = list(obj.questions_for_human)
+        out.questions_for_human = _questions_de_terrain(obj.questions_for_human)
+        _declarer_choix(out, obj.questions_for_human)
         out.coherence_controls = _coherence_summary(out)
         out.alternatives_overview = _alternatives_overview(out.diagnosis)
         # Confiance recalculée après reformulation (cohérence interne — leçon de l'agent 7).

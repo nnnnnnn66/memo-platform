@@ -9,24 +9,19 @@ def check(request) -> dict:
     blockers: list[str] = []
     questions: list[str] = []
 
-    results = request.upstream_results
-    if results is None:
-        blockers.append("les résultats et analyses de l'étape 10")
-        questions.append(
-            "Pouvez-vous transmettre les résultats vérifiés (étape 10, avec le verdict du vérificateur "
-            "et votre décision) ? Sans eux, aucune conclusion fondée ne peut être rédigée.")
+    # L'état des résultats de l'étape 10 n'est PAS un prérequis BLOQUANT : sans résultat exploitable,
+    # la production devient un PLAN de conclusion (voir `_assemble`, qui le déclare et n'invente
+    # rien). Défaut réel constaté en simulation complète : un dossier mené jusqu'au bout se voyait
+    # renvoyé en arrière (« le statut des résultats est brouillon ») à la DERNIÈRE étape — l'étudiante
+    # restait bloquée sur une demande qui ne dépend pas d'elle (les résultats de terrain n'existent
+    # pas encore). Consigne du porteur, PRIORITAIRE : un agent LIVRE, il ne renvoie pas l'étudiant à
+    # sa copie. Seule l'absence TOTALE de l'étape 10 reste signalée, et la production d'un plan
+    # lorsqu'aucun résultat n'est exploitable est désormais DÉCLARÉE dans les limites.
+    if request.upstream_results is None:
+        defaults_used_note = ("les résultats de l'étape 10 n'ont pas été transmis : la production se "
+                              "limitera à un PLAN de conclusion et aux informations à recueillir")
     else:
-        if not results.is_verified:
-            blockers.append("des résultats dont le vérificateur a validé le contenu")
-            questions.append(
-                "Les résultats transmis ne sont pas marqués vérifiés. Finalisez l'étape 10 "
-                "(vérificateur puis décision), ou confirmez explicitement votre validation.")
-        status = request.results_status()
-        if status not in ("valide", "en_attente_de_validation"):
-            blockers.append("des résultats au statut « validé » ou « en attente de validation »")
-            questions.append(
-                f"Le statut des résultats est « {status or 'inconnu'} ». Des résultats provisoires ne "
-                "peuvent pas fonder une conclusion.")
+        defaults_used_note = ""
 
     if not request.effective_question().strip():
         blockers.append("la question de recherche principale")
@@ -37,6 +32,8 @@ def check(request) -> dict:
         questions.append("Pouvez-vous préciser le sujet exact du mémoire ?")
 
     defaults_used: list[str] = []
+    if defaults_used_note:
+        defaults_used.append(defaults_used_note)
     if not request.available_results():
         defaults_used.append(
             "aucun résultat vérifié exploitable : la production se limitera à un PLAN de conclusion "

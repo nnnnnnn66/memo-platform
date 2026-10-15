@@ -26,7 +26,12 @@ def validate_semantics(output: ConclusionOutput, request) -> list[str]:
     # T1 — le socle : question de recherche et résultats vérifiés de l'étape 10.
     if not request.effective_question().strip():
         violations.append("T1: aucune question de recherche de référence")
-    if request.upstream_results is None:
+    # Les résultats ne sont exigés QUE si l'on prétend rédiger une conclusion : quand la production
+    # est un PLAN déclaré (`plan_seulement`), il n'y a rien à citer — c'est précisément le cas d'un
+    # dossier dont le terrain n'a pas encore livré de données. Exiger des résultats ici bloquait la
+    # dernière étape d'un parcours complet (défaut constaté en simulation), alors que le plan est un
+    # livrable légitime et honnête. Même logique que T2 ci-dessous.
+    if request.upstream_results is None and not output.synthesis.plan_seulement:
         violations.append("T1: aucun résultat de l'étape 10 rattaché")
 
     # T2 — cohérence des statuts.

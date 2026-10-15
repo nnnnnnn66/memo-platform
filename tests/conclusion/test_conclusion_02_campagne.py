@@ -49,10 +49,21 @@ def test_hypothese_non_examinable_conservee(settings, request_factory):
 
 
 def test_prerequis_resultats_absents(settings, request_factory):
+    """Des résultats ABSENTS ne bloquent plus : la production devient un PLAN déclaré.
+
+    Le test décrivait l'ancien comportement — renvoyer l'étudiante à sa copie. Défaut réel constaté
+    en simulation complète : un dossier mené jusqu'au bout restait bloqué à la DERNIÈRE étape sur
+    « le statut des résultats est brouillon », alors que les résultats de terrain n'existent pas
+    encore et que l'étudiante ne peut donc rien « transmettre ». Consigne du porteur, PRIORITAIRE :
+    un agent LIVRE ; il ne pose pas de question. On vérifie donc qu'un plan est produit, DÉCLARÉ
+    comme plan (jamais une conclusion inventée), et qu'aucune question n'est rendue à l'étudiante.
+    """
     result = campaign.run(request_factory(upstream_results=None), settings, StubLLM(),
                           allow_network=False)
-    assert result.output.status.value == "needs_clarification"
-    assert result.output.questions_for_human
+    assert result.output.status.value != "needs_clarification"
+    assert not result.output.questions_for_human
+    assert result.output.synthesis.plan_seulement is True
+    assert any("résultat" in note for note in result.output.limits_of_this_output)
 
 
 def test_resultats_non_verifies_refuses(settings, request_factory):

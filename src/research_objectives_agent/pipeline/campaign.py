@@ -38,6 +38,33 @@ from . import (
 log = get_logger("pipeline.campaign")
 
 
+# --- Une seule question autorisée : le TERRAIN (consigne du porteur, prioritaire) -------------
+# Défaut réel constaté avant démonstration : chaque ambiguïté de l'analyse était transformée en
+# question rendue à l'étudiante (« Pouvez-vous préciser : Formulation orientée… »), alors qu'un
+# choix de méthode appartient à la plateforme — elle le tranche et le DÉCLARE, l'étudiante pouvant
+# corriger en reprenant l'étape.
+_MOTS_METHODE = (
+    "valider", "décider", "decider", "choisir", "arbitrer", "restreindre", "renoncer",
+    "approche", "méthode", "methode", "stratégie", "strategie", "logiciel", "compétence",
+    "competence", "critère", "critere", "hypothèse", "hypothese", "formulation", "borne",
+    "échelle", "echelle", "échantillon", "echantillon", "indicateur", "variable", "protocole",
+)
+_MOTS_TERRAIN = (
+    "accès", "acces", "autorisation", "joignable", "contact", "disponibilité", "disponibilite",
+    "ressource", "budget", "moyen", "terrain", "enquête", "enquete", "document disponible",
+    "registre", "donnée disponible", "donnee disponible", "recueillir", "collecte", "délai",
+    "delai", "financement", "permis",
+)
+
+
+def _est_question_de_terrain(question: str) -> bool:
+    """Une question n'est rendue à l'étudiante que si elle porte sur son TERRAIN."""
+    texte = (question or "").lower()
+    if any(mot in texte for mot in _MOTS_METHODE):
+        return False
+    return any(mot in texte for mot in _MOTS_TERRAIN)
+
+
 @dataclass
 class CampaignResult:
     output: ObjectivesOutput
@@ -107,9 +134,20 @@ def _assemble(request, pre, analysis, general, specific) -> ObjectivesOutput:
             clarification_question=(text if text.endswith("?") else "Pouvez-vous préciser : " + text))
         for text in items
     ]
-    out.clarification_questions = [a.clarification_question for a in out.ambiguities]
     out.missing_information, out.limits_of_this_output = _derived(
         request, pre, out.feasibility_assessment, out.scope_and_boundaries)
+    # Les ambiguïtés ne sont plus rendues comme des QUESTIONS : elles sont DÉCLARÉES, et seules les
+    # questions de terrain restent posées (l'étudiante peut corriger une décision en reprenant
+    # l'étape). Défaut réel : six questions de méthode étaient renvoyées pour des choix qui
+    # appartiennent à la plateforme.
+    out.clarification_questions = [question for question in
+                                   (a.clarification_question for a in out.ambiguities)
+                                   if _est_question_de_terrain(question)]
+    for ambiguite in out.ambiguities:
+        if not _est_question_de_terrain(ambiguite.clarification_question):
+            out.limits_of_this_output.append(
+                "Point tranché par l'agent (à corriger en reprenant l'étape si nécessaire) : "
+                + ambiguite.description)
     return out
 
 
