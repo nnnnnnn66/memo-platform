@@ -357,6 +357,64 @@ def reprendre(settings: Settings, etudiant: str, session: str, numero: int) -> d
     }
 
 
+def _atteinte(settings: Settings, etudiant: str, session: str, numero: int) -> bool:
+    """L'étape a-t-elle déjà une production ? (une étape jamais lancée n'a rien à revoir)"""
+    ligne = state.statut(settings.state_db, etudiant, session, numero) or {}
+    return bool(ligne) and ligne.get("statut") != state.STATUT_A_FAIRE
+
+
+def repondre(settings: Settings, etudiant: str, session: str, numero: int,
+             reponses: list[dict], transport=None) -> dict:
+    """L'étudiante répond aux questions d'une étape : sa réponse entre dans le dossier, l'étape repart.
+
+    Défaut réel : un agent posait une question de terrain, l'étudiante répondait, et rien ne se
+    passait — la réponse n'était transmise à personne. Elle est maintenant enregistrée dans le
+    contexte du dossier (donc transmise à toutes les étapes) et l'étape est relancée immédiatement.
+    """
+    _dossier_ou_erreur(settings, etudiant, session)
+    try:
+        numero = int(numero)
+    except (TypeError, ValueError):
+        raise OrchestratorError(EtatErreur.ETAPE_INCONNUE, "Cette étape n'existe pas.",
+                                f"étape {numero!r} illisible")
+    if numero not in settings.par_numero:
+        raise OrchestratorError(EtatErreur.ETAPE_INCONNUE, "Cette étape n'existe pas.",
+                                f"étape {numero} hors parcours")
+
+    lignes = []
+    for reponse in reponses or []:
+        texte = str(reponse.get("reponse") or "").strip()
+        if not texte:
+            continue
+        question = str(reponse.get("question") or "").strip()
+        lignes.append(f"Question posée : {question}\nRéponse de l'étudiante : {texte}"
+                      if question else f"Précision de l'étudiante : {texte}")
+    if not lignes:
+        raise OrchestratorError(
+            EtatErreur.ENTREE_INVALIDE,
+            "Écris ta réponse : sans elle, l'étape n'a rien de nouveau à exploiter.",
+            "aucune réponse exploitable transmise")
+
+    state.ajouter_contexte(settings.state_db, etudiant, session, "reponses_etudiant",
+                           "\n\n".join(lignes))
+
+    # Si la proposition attendait une décision, on la rouvre : c'est la réponse qui relance l'étape,
+    # pas un « accepter » qui figerait une production faite sans l'information.
+    ligne = state.statut(settings.state_db, etudiant, session, numero) or {}
+    if ligne.get("statut", state.STATUT_A_FAIRE) in (state.STATUT_PROPOSEE, state.STATUT_VALIDEE):
+        aval = [n for n in etapes_aval(settings, numero)
+                if _atteinte(settings, etudiant, session, n)]
+        state.rouvrir(settings.state_db, etudiant, session, numero)
+        for suivant in aval:
+            state.marquer_a_reviser(settings.state_db, etudiant, session, suivant)
+
+    resultat = lancer_etape(settings, etudiant, session, transport=transport)
+    resultat["reponses_enregistrees"] = len(lignes)
+    resultat["message"] = ("Ta réponse est enregistrée dans ton dossier : l'étape a été relancée "
+                           "avec elle.")
+    return resultat
+
+
 # ==========================================================================================
 # Ce que le SITE a besoin de lire : le détail d'une étape, et les documents de l'étudiant.
 # L'orchestrateur reste la seule porte : le site ne connaît ni les agents, ni le stockage.

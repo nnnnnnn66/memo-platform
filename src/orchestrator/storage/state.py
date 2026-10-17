@@ -113,6 +113,35 @@ def dossier(chemin: pathlib.Path, etudiant: str, session: str) -> dict | None:
     return dict(ligne) if ligne else None
 
 
+def ajouter_contexte(chemin: pathlib.Path, etudiant: str, session: str,
+                     champ: str, texte: str) -> None:
+    """Ajoute une information fournie par l'étudiante au CONTEXTE de son dossier.
+
+    Le contexte du dossier est transmis à chaque étape par la passation (`handoff.construire_entree`) :
+    un champ qu'un agent n'accepte pas tel quel est recopié, avec son intitulé, dans son champ de
+    contexte libre. Une réponse enregistrée ici est donc VUE par toutes les étapes suivantes — elle
+    ne se perd pas et l'agent n'a plus à la redemander.
+    """
+    texte = (texte or "").strip()
+    if not texte:
+        return
+    with _base(chemin) as base:
+        ligne = base.execute(
+            "SELECT contexte FROM dossiers WHERE etudiant = ? AND session = ?",
+            (etudiant, session)).fetchone()
+        if ligne is None:
+            return
+        try:
+            contexte = json.loads(ligne["contexte"] or "{}") or {}
+        except (TypeError, ValueError):
+            contexte = {}
+        ancien = str(contexte.get(champ) or "").strip()
+        contexte[champ] = f"{ancien}\n{texte}".strip() if ancien else texte
+        base.execute(
+            "UPDATE dossiers SET contexte = ?, maj_le = ? WHERE etudiant = ? AND session = ?",
+            (json.dumps(contexte, ensure_ascii=False), _maintenant(), etudiant, session))
+
+
 def statut(chemin: pathlib.Path, etudiant: str, session: str, numero: int) -> dict | None:
     with _base(chemin) as base:
         ligne = base.execute(

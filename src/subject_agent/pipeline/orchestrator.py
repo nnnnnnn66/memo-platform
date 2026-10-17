@@ -128,6 +128,20 @@ def analyze_subject(request: SubjectRequest, settings, llm, verifier_llm=None,
     output, attempts = _produce_validated(llm, system, request, annotations,
                                           sources_bloc=research.bloc_prompt, research=research)
 
+    # Une limite qui CONTREDIT les sources réellement transmises est retirée : le modèle recopie
+    # parfois une phrase type (« aucune référence externe n'a été récupérée… ») alors que le bloc de
+    # sources lui a été fourni et qu'il en cite plusieurs. Défaut constaté en démonstration : la
+    # fiche affichait « aucune source » ET sept références citées. On ne touche qu'à cette
+    # contradiction précise, jamais aux autres limites.
+    if getattr(research, "records", None):
+        _contradictoires = ("aucune référence externe", "aucun bloc de sources",
+                            "aucune source documentaire", "aucune référence n'a été")
+        retirees = [limite for limite in (output.identified_limits or [])
+                    if any(motif in limite.lower() for motif in _contradictoires)]
+        if retirees:
+            output.identified_limits = [limite for limite in (output.identified_limits or [])
+                                        if limite not in retirees]
+
     result = PipelineResult(output=output, attempts=attempts,
                             injection_annotations=annotations, research=research)
 

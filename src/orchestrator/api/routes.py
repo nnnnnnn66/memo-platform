@@ -93,6 +93,20 @@ async def agents(request: Request, forcer: bool = False) -> dict:
     }
 
 
+class ReponseEtudiant(BaseModel):
+    """Une réponse de l'étudiante à une question posée par une étape."""
+    model_config = ConfigDict(extra="forbid")
+
+    question: str = ""
+    reponse: str
+
+
+class ReponsesEtudiant(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reponses: list[ReponseEtudiant]
+
+
 @router.post("/dossiers/{etudiant}/{session}")
 async def creer_dossier(request: Request, etudiant: str, session: str,
                         body: CreationDossier) -> dict:
@@ -147,6 +161,22 @@ async def reprendre_etape(request: Request, etudiant: str, session: str, n: int)
     settings = request.app.state.settings
     try:
         return campaign.reprendre(settings, etudiant, session, n)
+    except OrchestratorError as erreur:
+        raise _erreur(erreur) from erreur
+
+
+@router.post("/dossiers/{etudiant}/{session}/etapes/{n}/repondre")
+async def repondre_etape(request: Request, etudiant: str, session: str, n: int,
+                         body: ReponsesEtudiant) -> dict:
+    """L'étudiante répond aux questions d'une étape : sa réponse entre dans le dossier.
+
+    L'étape est relancée immédiatement AVEC la réponse : l'agent continue sa recherche au lieu de
+    reposer la même question. C'est ce qui manquait — répondre ne produisait rien.
+    """
+    settings = request.app.state.settings
+    try:
+        return campaign.repondre(settings, etudiant, session, n,
+                                 [r.model_dump() for r in body.reponses])
     except OrchestratorError as erreur:
         raise _erreur(erreur) from erreur
 

@@ -22,6 +22,7 @@ LIBELLES_CONTEXTE = {
     "research_problem": "problème observé",
     "prior_work": "travaux déjà réalisés",
     "additional_constraints": "contraintes particulières",
+    "reponses_etudiant": "réponses de l'étudiante aux questions posées",
 }
 
 
@@ -83,6 +84,15 @@ def construire_entree(settings: Settings, etudiant: str, session: str, etape: Et
         entree[etape.contexte_libre] = "\n".join(
             f"{LIBELLES_CONTEXTE.get(champ, champ.replace('_', ' '))} : {contexte[champ]}"
             for champ in non_acceptes)
+
+    # Les RÉPONSES de l'étudiante sont une information VIVANTE, hors du formulaire de création :
+    # elles ne figurent pas dans `champs_base`, mais elles doivent être transmises à CHAQUE étape.
+    # Défaut réel : l'étudiante répondait à une question de terrain, l'agent ne recevait rien et
+    # reposait la même question — la réponse était pourtant enregistrée dans le dossier.
+    reponses = str(contexte.get("reponses_etudiant") or "").strip()
+    if reponses and etape.contexte_libre:
+        existant = str(entree.get(etape.contexte_libre) or "").strip()
+        entree[etape.contexte_libre] = (existant + "\n" + reponses).strip() if existant else reponses
 
     # Pont : la sortie réelle de chaque étape amont, sous le nom de champ attendu par l'agent.
     for champ, source in etape.upstream.items():
